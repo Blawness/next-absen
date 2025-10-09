@@ -58,8 +58,8 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background px-4 py-8 grid place-items-center">
+      <div className="w-full max-w-md mx-auto">
         <Card>
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">
