@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  user
+}
+
+enum AttendanceStatus {
+  present
+  late
+  absent
+  half_day
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        UserRole  @default(user)
+  department  String?
+  position    String?
+  phone       String?
+  avatarUrl   String?   @map("avatar_url")
+  isActive    Boolean   @default(true) @map("is_active")
+  lastLogin   DateTime? @map("last_login")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  absensiRecords AbsensiRecord[]
+  activityLogs   ActivityLog[]
+
+  @@map("users")
+}
+
+model AbsensiRecord {
+  id                String            @id @default(uuid())
+  userId            String            @map("user_id")
+  date              DateTime          @db.Date
+  checkInTime       DateTime?         @map("check_in_time")
+  checkOutTime      DateTime?         @map("check_out_time")
+  checkInLatitude   Decimal?          @map("check_in_latitude") @db.Decimal(10, 8)
+  checkInLongitude  Decimal?          @map("check_in_longitude") @db.Decimal(11, 8)
+  checkInAddress    String?           @map("check_in_address") @db.Text
+  checkInAccuracy   Decimal?          @map("check_in_accuracy") @db.Decimal(8, 2)
+  checkOutLatitude  Decimal?          @map("check_out_latitude") @db.Decimal(10, 8)
+  checkOutLongitude Decimal?          @map("check_out_longitude") @db.Decimal(11, 8)
+  checkOutAddress   String?           @map("check_out_address") @db.Text
+  checkOutAccuracy  Decimal?          @map("check_out_accuracy") @db.Decimal(8, 2)
+  workHours         Decimal?          @map("work_hours") @db.Decimal(4, 2)
+  overtimeHours     Decimal          @default(0.00) @map("overtime_hours") @db.Decimal(4, 2)
+  lateMinutes       Int              @default(0) @map("late_minutes")
+  status            AttendanceStatus @default(absent)
+  notes             String?          @db.Text
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("absensi_records")
+}
+
+model ActivityLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  details      Json?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model Setting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
