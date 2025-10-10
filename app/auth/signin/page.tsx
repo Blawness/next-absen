@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
-import { FORM_LABELS, MESSAGES, VALIDATION_MESSAGES } from "@/lib/constants"
+import { FORM_LABELS, MESSAGES, VALIDATION_MESSAGES, NAVIGATION } from "@/lib/constants"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -123,11 +123,11 @@ export default function SignInPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 text-base font-medium bg-primary hover:bg-primary/90"
                 disabled={isLoading || !email || !password}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {MESSAGES.LOGIN}
+                {NAVIGATION.LOGIN}
               </Button>
             </form>
 

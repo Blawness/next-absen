@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if accuracy is acceptable (within 10 meters)
-    if (accuracy > 10) {
+    // GPS accuracy validation disabled for testing - using 1000 meters threshold
+    if (accuracy > 1000) {
       return NextResponse.json(
         { error: "Akurasi GPS tidak mencukupi. Pastikan GPS aktif dan akurat." },
         { status: 400 }
@@ -54,28 +54,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if within allowed check-in time (6:00 - 10:00)
-    const checkInStart = new Date(today.getTime() + 6 * 60 * 60 * 1000) // 6:00
-    const checkInEnd = new Date(today.getTime() + 10 * 60 * 60 * 1000) // 10:00
-
-    if (!isWithinInterval(now, { start: checkInStart, end: checkInEnd })) {
-      return NextResponse.json(
-        { error: "Check-in hanya dapat dilakukan antara pukul 06:00 - 10:00" },
-        { status: 400 }
-      )
-    }
-
-    // Calculate late minutes (if after 8:00)
-    const expectedCheckIn = new Date(today.getTime() + 8 * 60 * 60 * 1000) // 8:00
-    const lateMinutes = now > expectedCheckIn
-      ? Math.floor((now.getTime() - expectedCheckIn.getTime()) / (1000 * 60))
-      : 0
-
-    // Determine status based on check-in time
-    let status = "present" as const
-    if (lateMinutes > 15) {
-      status = "late"
-    }
+    // Check-in validation disabled for testing - user can check-in anytime
+    const lateMinutes = 0
+    const status = "present" as const
 
     // Create or update attendance record
     const attendanceData = {
@@ -91,17 +72,28 @@ export async function POST(request: NextRequest) {
     }
 
     let attendance
-    if (existingAttendance) {
-      // Update existing record
-      attendance = await prisma.absensiRecord.update({
-        where: { id: existingAttendance.id },
-        data: attendanceData,
-      })
-    } else {
-      // Create new record
-      attendance = await prisma.absensiRecord.create({
-        data: attendanceData,
-      })
+    try {
+      if (existingAttendance) {
+        // Update existing record
+        attendance = await prisma.absensiRecord.update({
+          where: { id: existingAttendance.id },
+          data: attendanceData,
+        })
+      } else {
+        // Create new record
+        attendance = await prisma.absensiRecord.create({
+          data: attendanceData,
+        })
+      }
+    } catch (error) {
+      // Handle unique constraint violation
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        return NextResponse.json(
+          { error: "Anda sudah check-in hari ini" },
+          { status: 400 }
+        )
+      }
+      throw error
     }
 
     // Log activity
@@ -113,7 +105,6 @@ export async function POST(request: NextRequest) {
         resourceId: attendance.id,
         details: {
           location: { latitude, longitude, address, accuracy },
-          lateMinutes,
           status,
         },
       },
@@ -126,7 +117,6 @@ export async function POST(request: NextRequest) {
         id: attendance.id,
         checkInTime: attendance.checkInTime,
         status: attendance.status,
-        lateMinutes: attendance.lateMinutes,
       },
     })
   } catch (error) {

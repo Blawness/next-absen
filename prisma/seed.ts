@@ -34,7 +34,7 @@ async function main() {
       isActive: true,
     },
     {
-      email: '  ',
+      email: 'user1@demo.com',
       password: hashedPassword,
       name: 'Employee One',
       role: 'user' as const,
