@@ -22,6 +22,7 @@ import { AttendanceStatus, UserRole } from "@prisma/client"
 import { getCurrentPosition } from "@/lib/location"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { Map } from "@/components/ui/map"
 
 interface LocationData {
   latitude: number
@@ -68,6 +69,7 @@ export default function AttendancePage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null)
 
   useEffect(() => {
     // Wait for session to be loaded
@@ -110,7 +112,30 @@ export default function AttendancePage() {
 
       if (response.ok) {
         const data = await response.json()
-        setTodayAttendance(data)
+        console.log('loadTodayAttendance - received data:', data)
+
+        // Parse date strings back to Date objects and numeric strings to numbers
+        const parsedData = data ? {
+          ...data,
+          date: data.date ? new Date(data.date) : null,
+          checkInTime: data.checkInTime ? new Date(data.checkInTime) : null,
+          checkOutTime: data.checkOutTime ? new Date(data.checkOutTime) : null,
+          createdAt: data.createdAt ? new Date(data.createdAt) : null,
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : null,
+          // Parse numeric fields
+          checkInLatitude: data.checkInLatitude ? Number(data.checkInLatitude) : null,
+          checkInLongitude: data.checkInLongitude ? Number(data.checkInLongitude) : null,
+          checkInAccuracy: data.checkInAccuracy ? Number(data.checkInAccuracy) : null,
+          checkOutLatitude: data.checkOutLatitude ? Number(data.checkOutLatitude) : null,
+          checkOutLongitude: data.checkOutLongitude ? Number(data.checkOutLongitude) : null,
+          checkOutAccuracy: data.checkOutAccuracy ? Number(data.checkOutAccuracy) : null,
+          workHours: data.workHours ? Number(data.workHours) : null,
+          overtimeHours: data.overtimeHours ? Number(data.overtimeHours) : null,
+          lateMinutes: data.lateMinutes ? Number(data.lateMinutes) : null,
+        } : null
+
+        console.log('loadTodayAttendance - parsed data:', parsedData)
+        setTodayAttendance(parsedData)
       } else {
         console.error('Failed to fetch today attendance:', response.statusText)
       }
@@ -156,17 +181,26 @@ export default function AttendancePage() {
     try {
       // Get current location directly
       const position = await getCurrentPosition()
+      console.log('Check-in GPS data:', {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy: position.accuracy,
+        timestamp: position.timestamp
+      })
 
-      // Get address using reverse geocoding
+      // Get address using reverse geocoding (now returns coordinates as address)
       let address = ""
       try {
         const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lng=${position.longitude}`)
         if (response.ok) {
           const addressData = await response.json()
-          address = addressData.address || ""
+          address = addressData.address || `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
+        } else {
+          console.warn('Reverse geocoding failed, using coordinates as address')
+          address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
         }
       } catch (error) {
-        console.error('Error getting address:', error)
+        console.error('Error getting address, using coordinates as fallback:', error)
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
@@ -188,7 +222,11 @@ export default function AttendancePage() {
 
       if (checkInResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
+        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
         await loadTodayAttendance()
+        // Small delay to ensure state is properly updated
+        await new Promise(resolve => setTimeout(resolve, 100))
+        console.log('After check-in - todayAttendance:', todayAttendance)
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_IN_FAILED })
       }
@@ -200,27 +238,50 @@ export default function AttendancePage() {
   }
 
   const handleCheckOut = async () => {
+    console.log('handleCheckOut called - current state:', {
+      todayAttendance,
+      canCheckIn,
+      canCheckOut,
+      hasCheckedOut
+    })
+
     setIsCheckingOut(true)
     setMessage(null)
 
     try {
       // Get current location directly
       const position = await getCurrentPosition()
+      console.log('Check-out GPS data:', {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy: position.accuracy,
+        timestamp: position.timestamp
+      })
 
-      // Get address using reverse geocoding
+      // Get address using reverse geocoding (now returns coordinates as address)
       let address = ""
       try {
         const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lng=${position.longitude}`)
         if (response.ok) {
           const addressData = await response.json()
-          address = addressData.address || ""
+          address = addressData.address || `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
+        } else {
+          console.warn('Reverse geocoding failed, using coordinates as address')
+          address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
         }
       } catch (error) {
-        console.error('Error getting address:', error)
+        console.error('Error getting address, using coordinates as fallback:', error)
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
       // Perform check-out
+      console.log('Attempting checkout with data:', {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        address: address,
+        accuracy: position.accuracy,
+      })
+
       const checkOutResponse = await fetch('/api/attendance/checkout', {
         method: 'POST',
         headers: {
@@ -235,11 +296,14 @@ export default function AttendancePage() {
       })
 
       const data = await checkOutResponse.json()
+      console.log('Checkout response:', data)
 
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
+        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
         await loadTodayAttendance()
       } else {
+        console.error('Checkout failed:', data.error)
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_OUT_FAILED })
       }
     } catch (error) {
@@ -265,6 +329,22 @@ export default function AttendancePage() {
 
   const canCheckIn = !todayAttendance?.checkInTime
   const canCheckOut = todayAttendance?.checkInTime && !todayAttendance?.checkOutTime
+  const hasCheckedOut = todayAttendance?.checkOutTime !== null
+
+  console.log('Attendance state:', {
+    todayAttendance,
+    canCheckIn,
+    canCheckOut,
+    hasCheckedOut,
+    checkInTime: todayAttendance?.checkInTime,
+    checkOutTime: todayAttendance?.checkOutTime,
+    checkInTimeType: typeof todayAttendance?.checkInTime,
+    checkOutTimeType: typeof todayAttendance?.checkOutTime,
+    checkInTimeValue: todayAttendance?.checkInTime,
+    checkOutTimeValue: todayAttendance?.checkOutTime,
+    checkInTimeTruthy: !!todayAttendance?.checkInTime,
+    checkOutTimeFalsy: !todayAttendance?.checkOutTime
+  })
 
   return (
     <div className="space-y-6">
@@ -304,6 +384,13 @@ export default function AttendancePage() {
               </span>
             </Button>
 
+            {console.log('Checkout button debug:', {
+              canCheckOut,
+              isCheckingOut,
+              disabled: !canCheckOut || isCheckingOut,
+              todayAttendanceCheckInTime: todayAttendance?.checkInTime,
+              todayAttendanceCheckOutTime: todayAttendance?.checkOutTime
+            })}
             <Button
               variant="outline"
               size="lg"
@@ -314,7 +401,7 @@ export default function AttendancePage() {
               {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
               {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
               <span className="font-semibold">
-                {todayAttendance?.checkOutTime ? "Sudah Check-out" : "Check Out"}
+                {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
               </span>
               <span className="text-sm opacity-80">
                 {todayAttendance?.checkOutTime ?
@@ -387,12 +474,37 @@ export default function AttendancePage() {
               <div className="text-center">
                 <p className="text-sm font-medium">{TIME_LABELS.WORK_HOURS}</p>
                 <p className="text-sm text-muted-foreground">
-                  {todayAttendance.workHours ?
+                  {todayAttendance.workHours && typeof todayAttendance.workHours === 'number' ?
                     `${todayAttendance.workHours.toFixed(1)}j` :
                     "-"
                   }
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Current Location Map */}
+      {currentLocation && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Lokasi Terakhir
+            </CardTitle>
+            <CardDescription>
+              Peta menunjukkan lokasi check-in atau check-out terakhir Anda
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Map
+              latitude={currentLocation.latitude}
+              longitude={currentLocation.longitude}
+              className="h-64 w-full"
+            />
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
             </div>
           </CardContent>
         </Card>

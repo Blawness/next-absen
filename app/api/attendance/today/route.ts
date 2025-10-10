@@ -32,6 +32,19 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log('API /attendance/today debug:', {
+      userId: session.user.id,
+      today,
+      startToday,
+      endToday,
+      attendance: attendance ? {
+        id: attendance.id,
+        checkInTime: attendance.checkInTime,
+        checkOutTime: attendance.checkOutTime,
+        date: attendance.date
+      } : null
+    })
+
     if (!attendance) {
       return NextResponse.json(null)
     }

@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // GPS accuracy validation disabled for testing - using 1000 meters threshold
-    if (accuracy > 1000) {
+    // GPS accuracy validation relaxed for testing - using 5000 meters threshold
+    if (accuracy > 5000) {
       return NextResponse.json(
         { error: "Akurasi GPS tidak mencukupi. Pastikan GPS aktif dan akurat." },
         { status: 400 }
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const today = new Date()
 
     // Check if user already checked in today
     const existingAttendance = await prisma.absensiRecord.findFirst({

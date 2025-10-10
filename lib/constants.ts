@@ -17,10 +17,10 @@ export const NAVIGATION = {
 } as const
 
 export const STATUS_LABELS = {
-  PRESENT: "Hadir",
-  LATE: "Terlambat",
-  ABSENT: "Tidak Hadir",
-  HALF_DAY: "Setengah Hari"
+  present: "Hadir",
+  late: "Terlambat",
+  absent: "Tidak Hadir",
+  half_day: "Setengah Hari"
 } as const
 
 export const ROLE_LABELS = {
