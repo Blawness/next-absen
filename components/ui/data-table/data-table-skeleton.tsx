@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardHeader } from "@/components/ui/card"
 
 // Loading skeleton component
 export function DataTableSkeleton() {

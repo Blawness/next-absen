@@ -27,7 +27,7 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
 
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
-    let filtered = data.filter(user => {
+    const filtered = data.filter(user => {
       const matchesSearch = searchQuery === "" ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,7 +56,7 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
           comparison = aVal === bVal ? 0 : aVal ? 1 : -1
         } else if (aVal instanceof Date && bVal instanceof Date) {
           comparison = aVal.getTime() - bVal.getTime()
-        } else if (aVal !== null && bVal !== null) {
+        } else if (aVal !== null && bVal !== null && typeof aVal === 'number' && typeof bVal === 'number') {
           comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
         }
 

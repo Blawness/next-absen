@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     if (format === 'csv') {
       return generateCSV(records)
     } else if (format === 'pdf') {
-      return generatePDF(records)
+      return generatePDF(records, startDate, endDate)
     }
 
   } catch (error) {
@@ -209,7 +209,7 @@ function generateCSV(records: any[]): NextResponse {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generatePDF(records: any[]): NextResponse {
+function generatePDF(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
   // For now, we'll create a simple HTML that can be converted to PDF
   // In a real application, you might want to use a library like jsPDF or puppeteer
   const html = `
