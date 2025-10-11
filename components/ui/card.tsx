@@ -1,20 +1,44 @@
 import * as React from "react"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+}
+
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
+  React.HTMLAttributes<HTMLDivElement> & {
+    variant?: "default" | "glass"
+    animate?: boolean
+  }
+>(({ className, variant = "default", animate = true, ...props }, ref) => {
+  const CardComponent = (
+    <div
+      ref={ref}
+      className={cn(
+        variant === "glass"
+          ? "glass-card"
+          : "rounded-lg border bg-card text-card-foreground shadow-sm",
+        animate && "fade-in",
+        className
+      )}
+      {...props}
+    />
+  )
+
+  return animate ? (
+    <motion.div variants={cardVariants} initial="hidden" animate="visible">
+      {CardComponent}
+    </motion.div>
+  ) : CardComponent
+})
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
@@ -36,7 +60,7 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-2xl font-semibold leading-none tracking-tight glass-title",
       className
     )}
     {...props}
@@ -50,7 +74,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-muted-foreground/80", className)}
     {...props}
   />
 ))

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Map } from "@/components/ui/map"
 import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle } from "lucide-react"
+import { motion } from "framer-motion"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus, UserRole } from "@prisma/client"
 import { getCurrentPosition } from "@/lib/location"
@@ -204,13 +205,20 @@ export default function DashboardPage() {
   const hasCheckedOut = todayAttendance?.checkOutTime !== null
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{NAVIGATION.DASHBOARD}</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <motion.div
+        className="space-y-2"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+          {NAVIGATION.DASHBOARD}
+        </h1>
+        <p className="text-white/80 text-lg">
           Selamat datang kembali, {session.user.name}
         </p>
-      </div>
+      </motion.div>
 
       {/* Message Alert */}
       {message && (
@@ -220,247 +228,291 @@ export default function DashboardPage() {
       )}
 
       {/* Today's Status */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Status Hari Ini
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {todayAttendance ? (
-                <Badge
-                  variant={todayAttendance.status === AttendanceStatus.present ? "default" :
-                          todayAttendance.status === AttendanceStatus.late ? "destructive" : "secondary"}
-                >
-                  {STATUS_LABELS[todayAttendance.status]}
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Belum ada data</Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {todayAttendance?.checkInTime && `Check-in: ${format(todayAttendance.checkInTime, 'HH:mm')}`}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+        >
+          <Card variant="glass" className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-white">
+                Status Hari Ini
+              </CardTitle>
+              <Clock className="h-5 w-5 text-white/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white mb-2">
+                {todayAttendance ? (
+                  <Badge
+                    variant={todayAttendance.status === AttendanceStatus.present ? "default" :
+                            todayAttendance.status === AttendanceStatus.late ? "destructive" : "secondary"}
+                    className="text-sm"
+                  >
+                    {STATUS_LABELS[todayAttendance.status]}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-sm">Belum ada data</Badge>
+                )}
+              </div>
+              <p className="text-xs text-white/60">
+                {todayAttendance?.checkInTime && `Check-in: ${format(todayAttendance.checkInTime, 'HH:mm')}`}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {TIME_LABELS.WORK_HOURS} Hari Ini
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {todayAttendance?.workHours ? `${todayAttendance.workHours.toFixed(1)}j` : "0j"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {todayAttendance?.checkOutTime ? "Sudah check-out" : "Belum check-out"}
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <Card variant="glass" className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-white">
+                {TIME_LABELS.WORK_HOURS} Hari Ini
+              </CardTitle>
+              <TrendingUp className="h-5 w-5 text-white/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white mb-2">
+                {todayAttendance?.workHours ? `${todayAttendance.workHours.toFixed(1)}j` : "0j"}
+              </div>
+              <p className="text-xs text-white/60">
+                {todayAttendance?.checkOutTime ? "Sudah check-out" : "Belum check-out"}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {TIME_LABELS.THIS_WEEK}
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              -/5
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Hari kerja minggu ini
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <Card variant="glass" className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-white">
+                {TIME_LABELS.THIS_WEEK}
+              </CardTitle>
+              <Calendar className="h-5 w-5 text-white/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white mb-2">
+                -/5
+              </div>
+              <p className="text-xs text-white/60">
+                Hari kerja minggu ini
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Rata-rata {TIME_LABELS.WORK_HOURS}
-            </CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              -j
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Per hari minggu ini
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Card variant="glass" className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-white">
+                Rata-rata {TIME_LABELS.WORK_HOURS}
+              </CardTitle>
+              <MapPin className="h-5 w-5 text-white/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white mb-2">
+                -j
+              </div>
+              <p className="text-xs text-white/60">
+                Per hari minggu ini
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Aksi Cepat</CardTitle>
-            <CardDescription>
-              Check-in atau check-out dengan sekali klik
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                size="lg"
-                className="h-20 flex-col space-y-2"
-                onClick={handleCheckIn}
-                disabled={!canCheckIn || isCheckingIn}
-              >
-                {isCheckingIn && <Loader2 className="h-6 w-6 animate-spin" />}
-                {!isCheckingIn && <CheckCircle className="h-6 w-6" />}
-                <span className="font-semibold">
-                  {todayAttendance?.checkInTime ? "Sudah Check-in" : "Check In"}
-                </span>
-                <span className="text-sm opacity-80">
-                  {todayAttendance?.checkInTime ?
-                    format(todayAttendance.checkInTime, "HH:mm") :
-                    "Klik untuk absen masuk"
-                  }
-                </span>
-              </Button>
+      <div className="grid gap-6 md:grid-cols-2">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="text-white">Aksi Cepat</CardTitle>
+              <CardDescription className="text-white/70">
+                Check-in atau check-out dengan sekali klik
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="glass"
+                  size="lg"
+                  className="h-24 flex-col space-y-2"
+                  onClick={handleCheckIn}
+                  disabled={!canCheckIn || isCheckingIn}
+                >
+                  {isCheckingIn && <Loader2 className="h-6 w-6 animate-spin" />}
+                  {!isCheckingIn && <CheckCircle className="h-6 w-6" />}
+                  <span className="font-semibold">
+                    {todayAttendance?.checkInTime ? "Sudah Check-in" : "Check In"}
+                  </span>
+                  <span className="text-sm opacity-80">
+                    {todayAttendance?.checkInTime ?
+                      format(todayAttendance.checkInTime, "HH:mm") :
+                      "Klik untuk absen masuk"
+                    }
+                  </span>
+                </Button>
 
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-20 flex-col space-y-2"
-                onClick={handleCheckOut}
-                disabled={!canCheckOut || isCheckingOut}
-              >
-                {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
-                {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
-                <span className="font-semibold">
-                  {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
-                </span>
-                <span className="text-sm opacity-80">
-                  {todayAttendance?.checkOutTime ?
-                    format(todayAttendance.checkOutTime, "HH:mm") :
-                    "Klik untuk absen pulang"
-                  }
-                </span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <Button
+                  variant="glassOutline"
+                  size="lg"
+                  className="h-24 flex-col space-y-2"
+                  onClick={handleCheckOut}
+                  disabled={!canCheckOut || isCheckingOut}
+                >
+                  {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
+                  {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
+                  <span className="font-semibold">
+                    {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
+                  </span>
+                  <span className="text-sm opacity-80">
+                    {todayAttendance?.checkOutTime ?
+                      format(todayAttendance.checkOutTime, "HH:mm") :
+                      "Klik untuk absen pulang"
+                    }
+                  </span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Lokasi Terakhir
-            </CardTitle>
-            <CardDescription>
-              {currentLocation ?
-                `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}` :
-                "Lokasi akan ditampilkan setelah check-in/out"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {currentLocation ? (
-              <div className="space-y-2">
-                <Map
-                  latitude={currentLocation.latitude}
-                  longitude={currentLocation.longitude}
-                  className="aspect-video w-full"
-                />
-                <div className="text-sm text-muted-foreground">
-                  <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
-                  {todayAttendance?.checkInAddress && (
-                    <p>Check-in: {todayAttendance.checkInAddress}</p>
-                  )}
-                  {todayAttendance?.checkOutAddress && (
-                    <p>Check-out: {todayAttendance.checkOutAddress}</p>
-                  )}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <MapPin className="h-5 w-5" />
+                Lokasi Terakhir
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                {currentLocation ?
+                  `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}` :
+                  "Lokasi akan ditampilkan setelah check-in/out"
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {currentLocation ? (
+                <div className="space-y-4">
+                  <Map
+                    latitude={currentLocation.latitude}
+                    longitude={currentLocation.longitude}
+                    className="aspect-video w-full rounded-lg"
+                  />
+                  <div className="text-sm text-white/80 space-y-1">
+                    <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
+                    {todayAttendance?.checkInAddress && (
+                      <p>Check-in: {todayAttendance.checkInAddress}</p>
+                    )}
+                    {todayAttendance?.checkOutAddress && (
+                      <p>Check-out: {todayAttendance.checkOutAddress}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Belum ada lokasi tersimpan
-                  </p>
+              ) : (
+                <div className="aspect-video bg-white/5 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 text-white/40 mx-auto mb-2" />
+                    <p className="text-sm text-white/60">
+                      Belum ada lokasi tersimpan
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Aktivitas Terbaru</CardTitle>
-          <CardDescription>
-            Riwayat absensi terbaru Anda
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {todayAttendance ? (
-              <>
-                {todayAttendance.checkInTime && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Check-in berhasil</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(todayAttendance.checkInTime, 'dd MMM yyyy HH:mm', { locale: id })}
-                      </p>
-                      {todayAttendance.checkInAddress && (
-                        <p className="text-xs text-muted-foreground">
-                          📍 {todayAttendance.checkInAddress}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-white">Aktivitas Terbaru</CardTitle>
+            <CardDescription className="text-white/70">
+              Riwayat absensi terbaru Anda
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {todayAttendance ? (
+                <>
+                  {todayAttendance.checkInTime && (
+                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">Check-in berhasil</p>
+                        <p className="text-xs text-white/70">
+                          {format(todayAttendance.checkInTime, 'dd MMM yyyy HH:mm', { locale: id })}
                         </p>
-                      )}
+                        {todayAttendance.checkInAddress && (
+                          <p className="text-xs text-white/60">
+                            📍 {todayAttendance.checkInAddress}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">Check-in</Badge>
                     </div>
-                    <Badge variant="default">Check-in</Badge>
-                  </div>
-                )}
+                  )}
 
-                {todayAttendance.checkOutTime && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Check-out berhasil</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(todayAttendance.checkOutTime, 'dd MMM yyyy HH:mm', { locale: id })}
-                      </p>
-                      {todayAttendance.checkOutAddress && (
-                        <p className="text-xs text-muted-foreground">
-                          📍 {todayAttendance.checkOutAddress}
+                  {todayAttendance.checkOutTime && (
+                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">Check-out berhasil</p>
+                        <p className="text-xs text-white/70">
+                          {format(todayAttendance.checkOutTime, 'dd MMM yyyy HH:mm', { locale: id })}
                         </p>
-                      )}
+                        {todayAttendance.checkOutAddress && (
+                          <p className="text-xs text-white/60">
+                            📍 {todayAttendance.checkOutAddress}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="border-blue-500/30 text-blue-300">Check-out</Badge>
                     </div>
-                    <Badge variant="outline">Check-out</Badge>
-                  </div>
-                )}
+                  )}
 
-                {!todayAttendance.checkInTime && !todayAttendance.checkOutTime && (
-                  <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Belum ada aktivitas hari ini</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Memuat data aktivitas...</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  {!todayAttendance.checkInTime && !todayAttendance.checkOutTime && (
+                    <div className="text-center py-8">
+                      <Clock className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                      <p className="text-white/60">Belum ada aktivitas hari ini</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                  <p className="text-white/60">Memuat data aktivitas...</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }
