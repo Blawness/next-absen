@@ -225,6 +225,18 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Table Layout Fix */
+.table-fixed {
+  table-layout: fixed;
+}
+
+.table-fixed th,
+.table-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Responsive Glassmorphism */
 @media (max-width: 768px) {
   .glass-card {

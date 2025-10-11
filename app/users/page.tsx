@@ -3,18 +3,16 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { motion } from "framer-motion"
-import { Loader2, Plus, Search, Edit, Trash2, Users, Filter } from "lucide-react"
-import { MESSAGES, NAVIGATION, ROLE_LABELS } from "@/lib/constants"
+import { Loader2, Plus } from "lucide-react"
+import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
+import { MESSAGES, NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 
 interface User {
@@ -45,9 +43,6 @@ export default function UsersPage() {
   const [departments, setDepartments] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
-  const [selectedRole, setSelectedRole] = useState<string>("all")
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -109,14 +104,6 @@ export default function UsersPage() {
     }
   }
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesDepartment = selectedDepartment === "all" || user.department === selectedDepartment
-    const matchesRole = selectedRole === "all" || user.role === selectedRole
-
-    return matchesSearch && matchesDepartment && matchesRole
-  })
 
   const handleCreateUser = () => {
     setEditingUser(null)
@@ -280,153 +267,41 @@ export default function UsersPage() {
         </Alert>
       )}
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1, duration: 0.5 }}
-      >
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Filter className="h-5 w-5" />
-              Filter dan Pencarian
-            </CardTitle>
-          </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama atau email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Semua Departemen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Departemen</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Semua Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Role</SelectItem>
-                <SelectItem value={UserRole.admin}>Admin</SelectItem>
-                <SelectItem value={UserRole.manager}>Manager</SelectItem>
-                <SelectItem value={UserRole.user}>User</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        </Card>
-      </motion.div>
-
       {/* Users Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Users className="h-5 w-5" />
-              Daftar Pengguna ({filteredUsers.length})
-            </CardTitle>
-          </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Departemen</TableHead>
-                  <TableHead>Posisi</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Terakhir Login</TableHead>
-                  <TableHead className="w-[100px]">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.department || '-'}</TableCell>
-                    <TableCell>{user.position || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        user.role === UserRole.admin ? "default" :
-                        user.role === UserRole.manager ? "secondary" : "outline"
-                      }>
-                        {ROLE_LABELS[user.role.toUpperCase() as keyof typeof ROLE_LABELS]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.isActive ? "default" : "destructive"}>
-                        {user.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.lastLogin ? user.lastLogin.toLocaleDateString('id-ID') : 'Belum pernah login'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(user.id, user.isActive)}
-                        >
-                          {user.isActive ? "❌" : "✅"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-        </Card>
+        <AdvancedDataTable
+          data={users.map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            department: user.department,
+            position: user.position,
+            role: user.role as "admin" | "manager" | "user",
+            isActive: user.isActive,
+            lastLogin: user.lastLogin,
+            createdAt: user.createdAt,
+            avatarUrl: null
+          }))}
+          loading={isLoading}
+          onEdit={handleEditUser}
+          onDelete={(user) => handleDeleteUser(user.id)}
+          onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
+        />
       </motion.div>
+
 
       {/* User Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg-gray-900/95 backdrop-blur-md border-white/10">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-white">
               {editingUser ? 'Edit User' : 'Tambah User Baru'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-white/70">
               {editingUser ? 'Perbarui informasi user' : 'Buat user baru dengan informasi lengkap'}
             </DialogDescription>
           </DialogHeader>
@@ -457,12 +332,14 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="department">Departemen</Label>
                 <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
                     <SelectValue placeholder="Pilih Departemen" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
                     {departments.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">
+                        {dept}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -480,13 +357,13 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Select value={formData.role} onValueChange={(value: UserRole) => setFormData({...formData, role: value})}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UserRole.user}>User</SelectItem>
-                  <SelectItem value={UserRole.manager}>Manager</SelectItem>
-                  <SelectItem value={UserRole.admin}>Admin</SelectItem>
+                <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+                  <SelectItem value={UserRole.user} className="text-white hover:bg-white/10 focus:bg-white/10">User</SelectItem>
+                  <SelectItem value={UserRole.manager} className="text-white hover:bg-white/10 focus:bg-white/10">Manager</SelectItem>
+                  <SelectItem value={UserRole.admin} className="text-white hover:bg-white/10 focus:bg-white/10">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -519,10 +396,10 @@ export default function UsersPage() {
             )}
 
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
                 Batal
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} variant="glass">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingUser ? 'Perbarui' : 'Buat User'}
               </Button>

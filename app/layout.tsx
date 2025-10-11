@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
-import { Sidebar } from "@/components/layout/sidebar";
+import { AppLayout } from "@/components/layout/app-layout";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,19 +23,7 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
-          <div className="min-h-screen glassmorphism-bg">
-            {/* Floating Background Elements */}
-            <div className="floating-orb"></div>
-            <div className="floating-orb"></div>
-            <div className="floating-orb"></div>
-
-            <Sidebar />
-            <main className="lg:pl-64 relative z-10">
-              <div className="p-4 lg:p-8">
-                {children}
-              </div>
-            </main>
-          </div>
+          <AppLayout>{children}</AppLayout>
         </SessionProvider>
       </body>
     </html>

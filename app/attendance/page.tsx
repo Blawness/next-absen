@@ -369,6 +369,7 @@ export default function AttendancePage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button
+              variant="glass"
               size="lg"
               className="h-24 flex-col space-y-2"
               onClick={handleCheckIn}
@@ -388,7 +389,7 @@ export default function AttendancePage() {
             </Button>
 
             <Button
-              variant="outline"
+              variant="glassOutline"
               size="lg"
               className="h-24 flex-col space-y-2"
               onClick={handleCheckOut}
