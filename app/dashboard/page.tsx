@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Map } from "@/components/ui/map"
 import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle } from "lucide-react"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus, UserRole } from "@prisma/client"
@@ -367,14 +368,11 @@ export default function DashboardPage() {
           <CardContent>
             {currentLocation ? (
               <div className="space-y-2">
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Peta lokasi tersedia
-                    </p>
-                  </div>
-                </div>
+                <Map
+                  latitude={currentLocation.latitude}
+                  longitude={currentLocation.longitude}
+                  className="aspect-video w-full"
+                />
                 <div className="text-sm text-muted-foreground">
                   <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
                   {todayAttendance?.checkInAddress && (
