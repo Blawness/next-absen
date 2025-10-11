@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { motion } from "framer-motion"
 import {
   Download,
   Filter,
@@ -227,25 +228,37 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{NAVIGATION.REPORTS}</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <motion.div
+        className="space-y-2"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+          {NAVIGATION.REPORTS}
+        </h1>
+        <p className="text-white/80 text-lg">
           Laporan absensi dengan analisis dan statistik komprehensif
         </p>
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter Laporan
-          </CardTitle>
-          <CardDescription>
-            Sesuaikan filter untuk mendapatkan data yang diinginkan
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Filter className="h-5 w-5" />
+              Filter Laporan
+            </CardTitle>
+            <CardDescription className="text-white/70">
+              Sesuaikan filter untuk mendapatkan data yang diinginkan
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <div className="space-y-2">
@@ -360,80 +373,91 @@ export default function ReportsPage() {
             )}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Summary Statistics */}
       {summary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        >
+          <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-white">
                 Total Record
               </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-white/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalRecords}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-white">{summary.totalRecords}</div>
+              <p className="text-xs text-white/60">
                 Data absensi dalam periode
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-white">
                 Total Pengguna
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-white/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-white">{summary.totalUsers}</div>
+              <p className="text-xs text-white/60">
                 Pengguna dengan data absensi
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-white">
                 Total Jam Kerja
               </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-white/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalWorkHours}j</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-white">{summary.totalWorkHours}j</div>
+              <p className="text-xs text-white/60">
                 Rata-rata {summary.averageWorkHours}j per hari
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-white">
                 Lembur
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-white/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalOvertimeHours}j</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-white">{summary.totalOvertimeHours}j</div>
+              <p className="text-xs text-white/60">
                 Total jam lembur
               </p>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       )}
 
       {/* Status and Department Breakdown */}
       {summary && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="grid gap-4 md:grid-cols-2"
+        >
+          <Card variant="glass">
             <CardHeader>
-              <CardTitle>Status Breakdown</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Status Breakdown</CardTitle>
+              <CardDescription className="text-white/70">
                 Distribusi status absensi
               </CardDescription>
             </CardHeader>
@@ -458,10 +482,10 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="glass">
             <CardHeader>
-              <CardTitle>Department Breakdown</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Department Breakdown</CardTitle>
+              <CardDescription className="text-white/70">
                 Distribusi berdasarkan departemen
               </CardDescription>
             </CardHeader>
@@ -484,7 +508,7 @@ export default function ReportsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       )}
 
       {/* Message Alert */}
@@ -495,16 +519,21 @@ export default function ReportsPage() {
       )}
 
       {/* Detailed Records */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Absensi Detail</CardTitle>
-          <CardDescription>
-            {records.length} record ditemukan
-            {summary?.dateRange.startDate && summary?.dateRange.endDate && (
-              <> dari {format(summary.dateRange.startDate, 'dd MMM yyyy', { locale: id })} hingga {format(summary.dateRange.endDate, 'dd MMM yyyy', { locale: id })}</>
-            )}
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-white">Data Absensi Detail</CardTitle>
+            <CardDescription className="text-white/70">
+              {records.length} record ditemukan
+              {summary?.dateRange.startDate && summary?.dateRange.endDate && (
+                <> dari {format(summary.dateRange.startDate, 'dd MMM yyyy', { locale: id })} hingga {format(summary.dateRange.endDate, 'dd MMM yyyy', { locale: id })}</>
+              )}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {records.length > 0 ? (
             <div className="overflow-x-auto">
@@ -565,12 +594,13 @@ export default function ReportsPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Tidak ada data absensi untuk filter yang dipilih</p>
+              <BarChart3 className="h-12 w-12 text-white/40 mx-auto mb-4" />
+              <p className="text-white/60">Tidak ada data absensi untuk filter yang dipilih</p>
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   )
 }

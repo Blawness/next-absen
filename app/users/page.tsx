@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { motion } from "framer-motion"
 import { Loader2, Plus, Search, Edit, Trash2, Users, Filter } from "lucide-react"
 import { MESSAGES, NAVIGATION, ROLE_LABELS } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
@@ -252,19 +253,26 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{NAVIGATION.USERS}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+            {NAVIGATION.USERS}
+          </h1>
+          <p className="text-white/80 text-lg">
             Kelola pengguna sistem dan peran mereka
           </p>
         </div>
-        <Button onClick={handleCreateUser}>
+        <Button onClick={handleCreateUser} variant="glass">
           <Plus className="mr-2 h-4 w-4" />
           Tambah User
         </Button>
-      </div>
+      </motion.div>
 
       {message && (
         <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
@@ -273,13 +281,18 @@ export default function UsersPage() {
       )}
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter dan Pencarian
-          </CardTitle>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Filter className="h-5 w-5" />
+              Filter dan Pencarian
+            </CardTitle>
+          </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -317,16 +330,22 @@ export default function UsersPage() {
             </Select>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Daftar Pengguna ({filteredUsers.length})
-          </CardTitle>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Users className="h-5 w-5" />
+              Daftar Pengguna ({filteredUsers.length})
+            </CardTitle>
+          </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
@@ -397,7 +416,8 @@ export default function UsersPage() {
             </Table>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* User Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

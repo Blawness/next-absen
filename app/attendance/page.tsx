@@ -20,6 +20,7 @@ import { getCurrentPosition } from "@/lib/location"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Map } from "@/components/ui/map"
+import { motion } from "framer-motion"
 
 interface AttendanceData {
   id: string
@@ -337,22 +338,34 @@ export default function AttendancePage() {
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{NAVIGATION.ATTENDANCE}</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <motion.div
+        className="space-y-2"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+          {NAVIGATION.ATTENDANCE}
+        </h1>
+        <p className="text-white/80 text-lg">
           Kelola absensi harian Anda dengan mudah
         </p>
-      </div>
+      </motion.div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Aksi Absensi Hari Ini</CardTitle>
-          <CardDescription>
-            {format(new Date(), "EEEE, d MMMM yyyy", { locale: id })}
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-white">Aksi Absensi Hari Ini</CardTitle>
+            <CardDescription className="text-white/70">
+              {format(new Date(), "EEEE, d MMMM yyyy", { locale: id })}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button
@@ -401,17 +414,23 @@ export default function AttendancePage() {
             </Alert>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Today's Status */}
       {todayAttendance && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Status Hari Ini
-            </CardTitle>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Clock className="h-5 w-5" />
+                Status Hari Ini
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
@@ -465,55 +484,67 @@ export default function AttendancePage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
       )}
 
       {/* Current Location Map */}
       {currentLocation && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Lokasi Terakhir
-            </CardTitle>
-            <CardDescription>
-              Peta menunjukkan lokasi check-in atau check-out terakhir Anda
-            </CardDescription>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <MapPin className="h-5 w-5" />
+                Lokasi Terakhir
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                Peta menunjukkan lokasi check-in atau check-out terakhir Anda
+              </CardDescription>
+            </CardHeader>
           <CardContent>
             <Map
               latitude={currentLocation.latitude}
               longitude={currentLocation.longitude}
               className="h-64 w-full"
             />
-            <div className="mt-4 text-sm text-muted-foreground">
+            <div className="mt-4 text-sm text-white/80">
               <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
       )}
 
       {/* Attendance History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Riwayat Absensi
-          </CardTitle>
-          <CardDescription>
-            Data absensi 7 hari terakhir
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <History className="h-5 w-5" />
+              Riwayat Absensi
+            </CardTitle>
+            <CardDescription className="text-white/70">
+              Data absensi 7 hari terakhir
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {attendanceHistory.length > 0 ? (
             <div className="space-y-3">
               {attendanceHistory.map((record, index) => (
-                <div key={record.id || index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={record.id || index} className="flex items-center justify-between p-3 border border-white/20 rounded-lg bg-white/5">
                   <div className="flex-1">
-                    <p className="font-medium">
+                    <p className="font-medium text-white">
                       {format(record.date, "EEE, d MMM", { locale: id })}
                     </p>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
+                    <div className="flex gap-4 text-sm text-white/70">
                       <span>
                         Masuk: {record.checkInTime ? format(record.checkInTime, "HH:mm") : "-"}
                       </span>
@@ -522,7 +553,7 @@ export default function AttendancePage() {
                       </span>
                     </div>
                     {(record.checkInAddress || record.checkOutAddress) && (
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-white/60 mt-1">
                         {record.checkInAddress && <span>📍 {record.checkInAddress}</span>}
                         {record.checkInAddress && record.checkOutAddress && <span> • </span>}
                         {record.checkOutAddress && <span>📍 {record.checkOutAddress}</span>}
@@ -537,12 +568,13 @@ export default function AttendancePage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Belum ada data riwayat absensi</p>
+              <History className="h-12 w-12 text-white/40 mx-auto mb-4" />
+              <p className="text-white/60">Belum ada data riwayat absensi</p>
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   )
 }

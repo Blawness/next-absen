@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { motion } from "framer-motion"
 import {
   User,
   Edit,
@@ -205,13 +206,20 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{NAVIGATION.PROFILE}</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <motion.div
+        className="space-y-2"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+          {NAVIGATION.PROFILE}
+        </h1>
+        <p className="text-white/80 text-lg">
           Kelola informasi profil dan pengaturan akun Anda
         </p>
-      </div>
+      </motion.div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
@@ -220,16 +228,21 @@ export default function ProfilePage() {
         </TabsList>
 
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Informasi Profil
-              </CardTitle>
-              <CardDescription>
-                Kelola informasi pribadi dan kontak Anda
-              </CardDescription>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            <Card variant="glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <User className="h-5 w-5" />
+                  Informasi Profil
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Kelola informasi pribadi dan kontak Anda
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-6">
               {/* Avatar Section */}
               <div className="flex items-center gap-6">
@@ -348,17 +361,23 @@ export default function ProfilePage() {
                 </Alert>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="password">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ubah Password</CardTitle>
-              <CardDescription>
-                Pastikan password baru Anda kuat dan aman
-              </CardDescription>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <Card variant="glass">
+              <CardHeader>
+                <CardTitle className="text-white">Ubah Password</CardTitle>
+                <CardDescription className="text-white/70">
+                  Pastikan password baru Anda kuat dan aman
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Password Saat Ini</Label>
@@ -441,18 +460,24 @@ export default function ProfilePage() {
                 </Alert>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
 
       {/* Account Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Informasi Akun</CardTitle>
-          <CardDescription>
-            Informasi tambahan tentang akun Anda
-          </CardDescription>
-        </CardHeader>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-white">Informasi Akun</CardTitle>
+            <CardDescription className="text-white/70">
+              Informasi tambahan tentang akun Anda
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -487,7 +512,8 @@ export default function ProfilePage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   )
 }
