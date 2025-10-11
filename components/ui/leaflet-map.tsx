@@ -34,6 +34,7 @@ export default function LeafletMap({ latitude, longitude }: LeafletMapProps) {
     }).addTo(map)
 
     // Add marker for current location
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _marker = L.marker([latitude, longitude])
       .addTo(map)
       .bindPopup(`Lokasi Anda: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
