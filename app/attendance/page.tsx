@@ -384,13 +384,6 @@ export default function AttendancePage() {
               </span>
             </Button>
 
-            {console.log('Checkout button debug:', {
-              canCheckOut,
-              isCheckingOut,
-              disabled: !canCheckOut || isCheckingOut,
-              todayAttendanceCheckInTime: todayAttendance?.checkInTime,
-              todayAttendanceCheckOutTime: todayAttendance?.checkOutTime
-            })}
             <Button
               variant="outline"
               size="lg"

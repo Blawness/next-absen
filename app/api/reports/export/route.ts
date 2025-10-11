@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { UserRole } from "@prisma/client"
+import { UserRole, AttendanceStatus } from "@prisma/client"
 import { format } from "date-fns"
+import { id } from "date-fns/locale"
+
+interface WhereClause {
+  date?: {
+    gte?: Date
+    lte?: Date
+  }
+  userId?: string | { in: string[] }
+  department?: string
+  status?: AttendanceStatus
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +51,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause based on user role and filters
-    let whereClause: any = {}
+    // eslint-disable-next-line prefer-const
+    let whereClause: WhereClause = {}
 
     // Date range filter
     if (startDate || endDate) {
@@ -54,10 +66,10 @@ export async function GET(request: NextRequest) {
     }
 
     // User-based filtering based on role
-    if (session.user.role === UserRole.user) {
+    if ((session.user.role as string) === 'user') {
       // Regular users can only see their own data
       whereClause.userId = session.user.id
-    } else if (session.user.role === UserRole.manager) {
+    } else if ((session.user.role as string) === 'manager') {
       // Managers can see their department data
       if (userId) {
         whereClause.userId = userId
@@ -97,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      whereClause.status = status
+      whereClause.status = status as AttendanceStatus
     }
 
     // Get attendance records
@@ -151,6 +163,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generateCSV(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
   const headers = [
     'Tanggal',
@@ -195,6 +208,7 @@ function generateCSV(records: any[], startDate?: string | null, endDate?: string
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generatePDF(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
   // For now, we'll create a simple HTML that can be converted to PDF
   // In a real application, you might want to use a library like jsPDF or puppeteer
@@ -226,8 +240,8 @@ function generatePDF(records: any[], startDate?: string | null, endDate?: string
     <body>
       <div class="header">
         <h1>Laporan Absensi</h1>
-        <p>Periode: ${startDate ? format(new Date(startDate), 'dd MMM yyyy', { locale: require('date-fns/locale/id') }) : 'Awal'} - ${endDate ? format(new Date(endDate), 'dd MMM yyyy', { locale: require('date-fns/locale/id') }) : 'Akhir'}</p>
-        <p>Generated: ${format(new Date(), 'dd MMM yyyy HH:mm', { locale: require('date-fns/locale/id') })}</p>
+        <p>Periode: ${startDate ? format(new Date(startDate), 'dd MMM yyyy', { locale: id }) : 'Awal'} - ${endDate ? format(new Date(endDate), 'dd MMM yyyy', { locale: id }) : 'Akhir'}</p>
+        <p>Generated: ${format(new Date(), 'dd MMM yyyy HH:mm', { locale: id })}</p>
       </div>
 
       <div class="summary">
@@ -268,7 +282,7 @@ function generatePDF(records: any[], startDate?: string | null, endDate?: string
         <tbody>
           ${records.map(record => `
             <tr>
-              <td>${format(record.date, 'dd MMM yyyy', { locale: require('date-fns/locale/id') })}</td>
+              <td>${format(record.date, 'dd MMM yyyy', { locale: id })}</td>
               <td>${record.user.name}</td>
               <td>${record.user.department || '-'}</td>
               <td>${record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}</td>

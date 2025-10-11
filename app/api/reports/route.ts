@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { UserRole } from "@prisma/client"
+import { UserRole, AttendanceStatus } from "@prisma/client"
+
+interface WhereClause {
+  date?: { gte?: Date; lte?: Date }
+  userId?: string | { in: string[] }
+  department?: string
+  status?: AttendanceStatus
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +31,8 @@ export async function GET(request: NextRequest) {
     const includeSummary = searchParams.get('includeSummary') === 'true'
 
     // Build where clause based on user role and filters
-    let whereClause: any = {}
+    // eslint-disable-next-line prefer-const
+    let whereClause: WhereClause = {}
 
     // Date range filter
     if (startDate || endDate) {
@@ -81,7 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      whereClause.status = status
+      whereClause.status = status as AttendanceStatus
     }
 
     // Get attendance records

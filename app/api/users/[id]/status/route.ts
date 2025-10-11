@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { UserRole } from "@prisma/client"
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // PATCH /api/users/[id]/status - Toggle user active status
@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { isActive } = body
 

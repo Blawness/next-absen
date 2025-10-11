@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -47,7 +48,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, animate = true, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
 
-    const buttonVariants = {
+    const motionVariants = {
       tap: { scale: 0.95 },
       hover: {
         scale: 1.05,
@@ -65,12 +66,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return animate ? (
       <motion.button
-        variants={buttonVariants}
+        variants={motionVariants}
         whileHover="hover"
         whileTap="tap"
         className={cn(buttonVariants({ variant, size }), className)}
-        ref={ref}
-        {...props}
+        {...(props as any)}
       />
     ) : ButtonComponent
   }

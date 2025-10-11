@@ -4,12 +4,46 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@prisma/client'
 
+interface BusinessHoursSettings {
+  startTime: string
+  endTime: string
+  checkInDeadline: string
+  gracePeriodMinutes: number
+}
+
+interface LocationSettings {
+  officeLatitude: number
+  officeLongitude: number
+  geofenceRadius: number
+  requireLocation: boolean
+}
+
+interface NotificationSettings {
+  emailNotifications: boolean
+  lateCheckinReminders: boolean
+  dailySummaryEmail: boolean
+}
+
+interface SecuritySettings {
+  sessionTimeout: number
+  maxLoginAttempts: number
+  passwordExpiryDays: number
+  requireStrongPassword: boolean
+}
+
+interface SystemSettings {
+  businessHours: BusinessHoursSettings
+  location: LocationSettings
+  notifications: NotificationSettings
+  security: SecuritySettings
+}
+
 // GET /api/settings - Retrieve system settings
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || session.user.role !== UserRole.ADMIN) {
+    if (!session || session.user.role !== UserRole.admin) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -51,11 +85,11 @@ export async function GET() {
     }
 
     // Parse the JSON settings from database
-    const parsedSettings = {
-      businessHours: settings.businessHours as any,
-      location: settings.location as any,
-      notifications: settings.notifications as any,
-      security: settings.security as any
+    const parsedSettings: SystemSettings = {
+      businessHours: settings.businessHours as unknown as BusinessHoursSettings,
+      location: settings.location as unknown as LocationSettings,
+      notifications: settings.notifications as unknown as NotificationSettings,
+      security: settings.security as unknown as SecuritySettings
     }
 
     return NextResponse.json(parsedSettings)
@@ -73,7 +107,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || session.user.role !== UserRole.ADMIN) {
+    if (!session || session.user.role !== UserRole.admin) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

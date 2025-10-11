@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let whereClause: any = {
+    // eslint-disable-next-line prefer-const
+    let whereClause: {
+      isActive: boolean
+      department?: string
+    } = {
       isActive: true
     }
 

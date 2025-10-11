@@ -175,7 +175,7 @@ export default function ReportsPage() {
   }, [])
 
   // Memoize handleExport function
-  const handleExport = useCallback(async (format: 'csv' | 'pdf') => {
+  const handleExport = useCallback(async (exportFormat: 'csv' | 'pdf') => {
     setIsExporting(true)
     setMessage(null)
 
@@ -186,7 +186,7 @@ export default function ReportsPage() {
       if (filters.userId) params.append('userId', filters.userId)
       if (filters.department) params.append('department', filters.department)
       if (filters.status) params.append('status', filters.status)
-      params.append('format', format)
+      params.append('format', exportFormat)
 
       const response = await fetch(`/api/reports/export?${params.toString()}`)
 
@@ -196,17 +196,17 @@ export default function ReportsPage() {
         const a = document.createElement('a')
         a.style.display = 'none'
         a.href = url
-        a.download = `attendance-report-${format}-${format(new Date(), 'yyyy-MM-dd')}.${format}`
+        a.download = `attendance-report-${exportFormat}-${format(new Date(), 'yyyy-MM-dd')}.${exportFormat}`
         document.body.appendChild(a)
         a.click()
         window.URL.revokeObjectURL(url)
         setMessage({ type: 'success', text: MESSAGES.EXPORT_SUCCESS })
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: error.error || `Failed to export ${format.toUpperCase()}` })
+        setMessage({ type: 'error', text: error.error || `Failed to export ${exportFormat.toUpperCase()}` })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: `Failed to export ${format.toUpperCase()}` })
+      setMessage({ type: 'error', text: `Failed to export ${exportFormat.toUpperCase()}` })
     } finally {
       setIsExporting(false)
     }

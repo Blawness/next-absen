@@ -6,7 +6,7 @@ import { UserRole } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // PUT /api/users/[id] - Update user
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { name, email, department, position, role } = body
 
@@ -134,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({

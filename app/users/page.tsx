@@ -83,7 +83,7 @@ export default function UsersPage() {
       const response = await fetch('/api/users')
       if (response.ok) {
         const data = await response.json()
-        setUsers(data.map((user: any) => ({
+        setUsers(data.map((user: Omit<User, 'lastLogin' | 'createdAt'> & { lastLogin: string | null; createdAt: string }) => ({
           ...user,
           lastLogin: user.lastLogin ? new Date(user.lastLogin) : null,
           createdAt: new Date(user.createdAt)
@@ -354,7 +354,7 @@ export default function UsersPage() {
                         user.role === UserRole.admin ? "default" :
                         user.role === UserRole.manager ? "secondary" : "outline"
                       }>
-                        {ROLE_LABELS[user.role]}
+                        {ROLE_LABELS[user.role.toUpperCase() as keyof typeof ROLE_LABELS]}
                       </Badge>
                     </TableCell>
                     <TableCell>

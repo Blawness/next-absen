@@ -25,7 +25,12 @@ interface SidebarProps {
   className?: string
 }
 
-const navigationItems = [
+const navigationItems: Array<{
+  href: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  roles: UserRole[]
+}> = [
   {
     href: "/dashboard",
     label: NAVIGATION.DASHBOARD,
@@ -71,9 +76,9 @@ export function Sidebar({ className }: SidebarProps) {
   if (!session) return null
 
   const userRole = session.user.role
-  const filteredNavItems = navigationItems.filter(item =>
-    item.roles.includes(userRole)
-  )
+   const filteredNavItems = navigationItems.filter(item =>
+     item.roles.includes(userRole)
+   )
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/signin" })
@@ -128,7 +133,7 @@ export function Sidebar({ className }: SidebarProps) {
                     {session.user.name}
                   </p>
                   <p className="text-xs text-white/70 truncate">
-                    {ROLE_LABELS[userRole]}
+                    {ROLE_LABELS[userRole.toUpperCase() as keyof typeof ROLE_LABELS]}
                   </p>
                   {session.user.department && (
                     <p className="text-xs text-white/60 truncate">

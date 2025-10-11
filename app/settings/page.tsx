@@ -108,7 +108,7 @@ export default function SettingsPage() {
     }
   }
 
-  const updateSettings = (section: keyof SystemSettings, field: string, value: any) => {
+  const updateSettings = (section: keyof SystemSettings, field: string, value: unknown) => {
     setSettings(prev => {
       if (!prev) return prev
       return {
@@ -249,7 +249,8 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+            </motion.div>
+          </TabsContent>
 
           <TabsContent value="location" className="space-y-6">
             <motion.div
