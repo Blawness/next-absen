@@ -4,7 +4,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import {
   LayoutDashboard,

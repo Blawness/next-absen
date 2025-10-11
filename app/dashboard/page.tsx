@@ -11,7 +11,7 @@ import { Map } from "@/components/ui/map"
 import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
-import { AttendanceStatus, UserRole } from "@prisma/client"
+import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition } from "@/lib/location"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -103,7 +103,7 @@ export default function DashboardPage() {
         } else {
           address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
         }
-      } catch (error) {
+      } catch {
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
@@ -152,7 +152,7 @@ export default function DashboardPage() {
         } else {
           address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
         }
-      } catch (error) {
+      } catch {
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 

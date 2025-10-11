@@ -11,25 +11,15 @@ import {
   Clock,
   MapPin,
   CheckCircle,
-  AlertCircle,
   Loader2,
-  Calendar,
-  Timer,
   History
 } from "lucide-react"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
-import { AttendanceStatus, UserRole } from "@prisma/client"
+import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition } from "@/lib/location"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Map } from "@/components/ui/map"
-
-interface LocationData {
-  latitude: number
-  longitude: number
-  address?: string
-  accuracy: number
-}
 
 interface AttendanceData {
   id: string

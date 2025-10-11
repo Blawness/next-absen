@@ -9,9 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Calendar,
   Download,
   Filter,
   Users,
@@ -19,13 +17,11 @@ import {
   TrendingUp,
   FileText,
   BarChart3,
-  RefreshCw,
   Loader2,
   Search,
-  User,
   Building
 } from "lucide-react"
-import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION, TABLE_HEADERS } from "@/lib/constants"
+import { STATUS_LABELS, MESSAGES, NAVIGATION, TABLE_HEADERS } from "@/lib/constants"
 import { AttendanceStatus, UserRole } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -121,7 +117,7 @@ export default function ReportsPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || MESSAGES.ERROR })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: MESSAGES.ERROR })
     } finally {
       setIsLoading(false)
@@ -160,7 +156,7 @@ export default function ReportsPage() {
     // Load initial data and filter options only once when component mounts
     loadReports()
     loadFilterOptions()
-  }, [status, session]) // Remove loadReports and loadFilterOptions from dependencies
+  }, [status, session, loadReports, loadFilterOptions])
 
   // Separate useEffect to handle filter changes
   useEffect(() => {
@@ -205,7 +201,7 @@ export default function ReportsPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || `Failed to export ${exportFormat.toUpperCase()}` })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: `Failed to export ${exportFormat.toUpperCase()}` })
     } finally {
       setIsExporting(false)

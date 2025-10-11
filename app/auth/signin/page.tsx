@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
-import { FORM_LABELS, MESSAGES, VALIDATION_MESSAGES, NAVIGATION } from "@/lib/constants"
+import { FORM_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -50,7 +50,7 @@ export default function SignInPage() {
           }
         }, 100)
       }
-    } catch (error) {
+    } catch {
       setError(MESSAGES.ERROR)
     } finally {
       setIsLoading(false)

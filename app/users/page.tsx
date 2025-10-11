@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Loader2, Plus, Search, Edit, Trash2, Users, Filter, Eye } from "lucide-react"
+import { Loader2, Plus, Search, Edit, Trash2, Users, Filter } from "lucide-react"
 import { MESSAGES, NAVIGATION, ROLE_LABELS } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 
@@ -184,7 +184,7 @@ export default function UsersPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal menyimpan user' })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Terjadi kesalahan saat menyimpan' })
     } finally {
       setIsSubmitting(false)
@@ -206,7 +206,7 @@ export default function UsersPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal menghapus user' })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Terjadi kesalahan saat menghapus' })
     }
   }
@@ -231,7 +231,7 @@ export default function UsersPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal mengubah status user' })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Terjadi kesalahan saat mengubah status' })
     }
   }

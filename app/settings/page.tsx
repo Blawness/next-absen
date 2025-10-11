@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Settings, Users, Bell, Shield, Clock, MapPin } from "lucide-react"
+import { Loader2, Settings, Bell, Shield, Clock, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
 import { MESSAGES, NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
@@ -101,7 +100,7 @@ export default function SettingsPage() {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal menyimpan pengaturan' })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Terjadi kesalahan saat menyimpan' })
     } finally {
       setIsSaving(false)

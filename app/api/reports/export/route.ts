@@ -149,9 +149,9 @@ export async function GET(request: NextRequest) {
     }))
 
     if (format === 'csv') {
-      return generateCSV(records, startDate, endDate)
+      return generateCSV(records)
     } else if (format === 'pdf') {
-      return generatePDF(records, startDate, endDate)
+      return generatePDF(records)
     }
 
   } catch (error) {
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateCSV(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
+function generateCSV(records: any[]): NextResponse {
   const headers = [
     'Tanggal',
     'Nama',
@@ -209,7 +209,7 @@ function generateCSV(records: any[], startDate?: string | null, endDate?: string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generatePDF(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
+function generatePDF(records: any[]): NextResponse {
   // For now, we'll create a simple HTML that can be converted to PDF
   // In a real application, you might want to use a library like jsPDF or puppeteer
   const html = `

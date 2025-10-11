@@ -12,10 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   User,
-  Mail,
-  Phone,
-  Building,
-  Briefcase,
   Edit,
   Save,
   X,
@@ -128,7 +124,7 @@ export default function ProfilePage() {
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.ERROR })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: MESSAGES.ERROR })
     } finally {
       setIsSaving(false)
@@ -173,7 +169,7 @@ export default function ProfilePage() {
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.ERROR })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: MESSAGES.ERROR })
     } finally {
       setIsChangingPassword(false)

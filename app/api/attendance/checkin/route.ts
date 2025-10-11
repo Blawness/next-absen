@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { startOfDay, endOfDay, isWithinInterval } from "date-fns"
+import { startOfDay, endOfDay } from "date-fns"
 
 export async function POST(request: NextRequest) {
   try {
