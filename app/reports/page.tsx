@@ -286,12 +286,12 @@ export default function ReportsPage() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="userId">Pengguna</Label>
-                  <Select value={filters.userId} onValueChange={(value) => handleFilterChange('userId', value)}>
+                  <Select value={filters.userId || "all"} onValueChange={(value) => handleFilterChange('userId', value === "all" ? "" : value)}>
                     <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
                       <SelectValue placeholder="Semua Pengguna" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                      <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Pengguna</SelectItem>
+                      <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Pengguna</SelectItem>
                       {users.map(user => (
                         <SelectItem key={user.id} value={user.id} className="text-white hover:bg-white/10 focus:bg-white/10">
                           {user.name} ({user.department})
@@ -303,12 +303,12 @@ export default function ReportsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="department">Departemen</Label>
-                  <Select value={filters.department} onValueChange={(value) => handleFilterChange('department', value)}>
+                  <Select value={filters.department || "all"} onValueChange={(value) => handleFilterChange('department', value === "all" ? "" : value)}>
                     <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
                       <SelectValue placeholder="Semua Departemen" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                      <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
+                      <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
                       {departments.map(dept => (
                         <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">
                           {dept}
@@ -322,12 +322,12 @@ export default function ReportsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+              <Select value={filters.status || "all"} onValueChange={(value) => handleFilterChange('status', value === "all" ? "" : value)}>
                 <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                  <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Status</SelectItem>
+                  <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Status</SelectItem>
                   <SelectItem value="present" className="text-white hover:bg-white/10 focus:bg-white/10">Hadir</SelectItem>
                   <SelectItem value="late" className="text-white hover:bg-white/10 focus:bg-white/10">Terlambat</SelectItem>
                   <SelectItem value="absent" className="text-white hover:bg-white/10 focus:bg-white/10">Tidak Hadir</SelectItem>
