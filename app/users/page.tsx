@@ -332,7 +332,7 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="department">Departemen</Label>
                 <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue placeholder="Pilih Departemen" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
@@ -357,7 +357,7 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Select value={formData.role} onValueChange={(value: UserRole) => setFormData({...formData, role: value})}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">

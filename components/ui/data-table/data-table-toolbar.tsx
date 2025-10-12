@@ -64,7 +64,7 @@ export function DataTableToolbar({
             </div>
 
             <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
-              <SelectTrigger className="w-48 bg-white/5 border-white/10">
+              <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
                 <SelectValue placeholder="Semua Departemen" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -80,7 +80,7 @@ export function DataTableToolbar({
             </Select>
 
             <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-              <SelectTrigger className="w-40 bg-white/5 border-white/10">
+              <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
                 <SelectValue placeholder="Semua Role" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -98,7 +98,7 @@ export function DataTableToolbar({
             </Select>
 
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="w-32 bg-white/5 border-white/10">
+              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -111,7 +111,7 @@ export function DataTableToolbar({
 
           <div className="flex items-center gap-2">
             <Select value={density} onValueChange={onDensityChange}>
-              <SelectTrigger className="w-32 bg-white/5 border-white/10">
+              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">

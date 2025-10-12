@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
 import {
   Download,
@@ -285,70 +286,73 @@ export default function ReportsPage() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="userId">Pengguna</Label>
-                  <select
-                    id="userId"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={filters.userId}
-                    onChange={(e) => handleFilterChange('userId', e.target.value)}
-                  >
-                    <option value="">Semua Pengguna</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.department})
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={filters.userId} onValueChange={(value) => handleFilterChange('userId', value)}>
+                    <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
+                      <SelectValue placeholder="Semua Pengguna" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+                      <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Pengguna</SelectItem>
+                      {users.map(user => (
+                        <SelectItem key={user.id} value={user.id} className="text-white hover:bg-white/10 focus:bg-white/10">
+                          {user.name} ({user.department})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="department">Departemen</Label>
-                  <select
-                    id="department"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={filters.department}
-                    onChange={(e) => handleFilterChange('department', e.target.value)}
-                  >
-                    <option value="">Semua Departemen</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
+                  <Select value={filters.department} onValueChange={(value) => handleFilterChange('department', value)}>
+                    <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
+                      <SelectValue placeholder="Semua Departemen" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+                      <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-              >
-                <option value="">Semua Status</option>
-                <option value="present">Hadir</option>
-                <option value="late">Terlambat</option>
-                <option value="absent">Tidak Hadir</option>
-                <option value="half_day">Setengah Hari</option>
-              </select>
+              <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+                  <SelectItem value="" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Status</SelectItem>
+                  <SelectItem value="present" className="text-white hover:bg-white/10 focus:bg-white/10">Hadir</SelectItem>
+                  <SelectItem value="late" className="text-white hover:bg-white/10 focus:bg-white/10">Terlambat</SelectItem>
+                  <SelectItem value="absent" className="text-white hover:bg-white/10 focus:bg-white/10">Tidak Hadir</SelectItem>
+                  <SelectItem value="half_day" className="text-white hover:bg-white/10 focus:bg-white/10">Setengah Hari</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <Button onClick={loadReports}>
+          <div className="flex gap-3 mt-6">
+            <Button onClick={loadReports} variant="glass" className="bg-white/10 hover:bg-white/20 border-white/20">
               <Search className="h-4 w-4 mr-2" />
               Terapkan Filter
             </Button>
-            <Button variant="outline" onClick={() => setFilters(initialFilters)}>
+            <Button variant="outline" onClick={() => setFilters(initialFilters)} className="border-white/20 bg-white/5 hover:bg-white/10 text-white">
               Reset Filter
             </Button>
 
             {canExport && (
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex gap-3">
                 <Button
-                  variant="outline"
+                  variant="glass"
                   onClick={() => handleExport('csv')}
                   disabled={isExporting || records.length === 0}
+                  className="bg-white/10 hover:bg-white/20 border-white/20"
                 >
                   {isExporting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -358,9 +362,10 @@ export default function ReportsPage() {
                   Export CSV
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="glass"
                   onClick={() => handleExport('pdf')}
                   disabled={isExporting || records.length === 0}
+                  className="bg-white/10 hover:bg-white/20 border-white/20"
                 >
                   {isExporting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -462,18 +467,22 @@ export default function ReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {Object.entries(summary.statusBreakdown).map(([status, count]) => (
-                  <div key={status} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={status === 'present' ? 'default' : 'secondary'}>
+                  <div key={status} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${status === 'present' ? 'bg-emerald-400' : status === 'late' ? 'bg-yellow-400' : 'bg-gray-400'}`}></div>
+                      <Badge
+                        variant={status === 'present' ? 'default' : 'secondary'}
+                        className={status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
+                      >
                         {STATUS_LABELS[status as AttendanceStatus]}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-white/60">
                         {count} record
                       </span>
                     </div>
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {((count / summary.totalRecords) * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -490,17 +499,18 @@ export default function ReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {Object.entries(summary.departmentBreakdown).map(([dept, count]) => (
-                  <div key={dept} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{dept}</span>
-                      <span className="text-sm text-muted-foreground">
+                  <div key={dept} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                      <Building className="h-4 w-4 text-blue-400" />
+                      <span className="text-sm font-medium text-white">{dept}</span>
+                      <span className="text-sm text-white/60">
                         {count} record
                       </span>
                     </div>
-                    <span className="font-medium">
+                    <span className="font-semibold text-white">
                       {((count / summary.totalRecords) * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -539,51 +549,60 @@ export default function ReportsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">{TABLE_HEADERS.DATE}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.USER}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.CHECK_IN}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.CHECK_OUT}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.WORK_HOURS}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.STATUS}</th>
-                    <th className="text-left p-2">{TABLE_HEADERS.LOCATION}</th>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.DATE}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.USER}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_IN}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_OUT}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.WORK_HOURS}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.STATUS}</th>
+                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.LOCATION}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map((record) => (
-                    <tr key={record.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2">
+                    <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
+                      <td className="p-3 text-white">
                         {format(record.date, 'dd MMM yyyy', { locale: id })}
                       </td>
-                      <td className="p-2">
+                      <td className="p-3">
                         <div>
-                          <p className="font-medium">{record.user.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-medium text-white">{record.user.name}</p>
+                          <p className="text-sm text-white/60">
                             {record.user.department} • {record.user.position}
                           </p>
                         </div>
                       </td>
-                      <td className="p-2">
+                      <td className="p-3 text-white">
                         {record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}
                       </td>
-                      <td className="p-2">
+                      <td className="p-3 text-white">
                         {record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}
                       </td>
-                      <td className="p-2">
+                      <td className="p-3 text-white">
                         {record.workHours ? `${record.workHours}j` : '-'}
                       </td>
-                      <td className="p-2">
-                        <Badge variant={record.status === 'present' ? 'default' : 'secondary'}>
+                      <td className="p-3">
+                        <Badge
+                          variant={record.status === 'present' ? 'default' : 'secondary'}
+                          className={record.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
+                        >
                           {STATUS_LABELS[record.status]}
                         </Badge>
                       </td>
-                      <td className="p-2">
-                        <div className="text-sm">
+                      <td className="p-3 text-white/80">
+                        <div className="text-sm space-y-1">
                           {record.checkInAddress && (
-                            <div>📍 Masuk: {record.checkInAddress}</div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-emerald-400">📍</span>
+                              <span>Masuk: {record.checkInAddress}</span>
+                            </div>
                           )}
                           {record.checkOutAddress && (
-                            <div>📍 Pulang: {record.checkOutAddress}</div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-blue-400">📍</span>
+                              <span>Pulang: {record.checkOutAddress}</span>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -593,9 +612,12 @@ export default function ReportsPage() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <BarChart3 className="h-12 w-12 text-white/40 mx-auto mb-4" />
-              <p className="text-white/60">Tidak ada data absensi untuk filter yang dipilih</p>
+            <div className="text-center py-12">
+              <div className="bg-white/5 backdrop-blur-sm rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <BarChart3 className="h-12 w-12 text-white/40" />
+              </div>
+              <p className="text-white/60 text-lg">Tidak ada data absensi untuk filter yang dipilih</p>
+              <p className="text-white/40 text-sm mt-2">Coba ubah filter atau periode waktu untuk melihat data</p>
             </div>
           )}
         </CardContent>
