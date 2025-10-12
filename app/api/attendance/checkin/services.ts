@@ -1,4 +1,4 @@
-import { type AbsensiRecord } from "@prisma/client"
+import { type AbsensiRecord, Prisma } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -26,7 +26,7 @@ export async function logCheckInActivity(
       details: {
         location: checkInData,
         status: attendance.status,
-      } as { [key: string]: any },
+      } as unknown as Prisma.InputJsonValue,
     },
   })
 }

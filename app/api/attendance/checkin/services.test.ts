@@ -9,7 +9,21 @@ import {
   logCheckInActivity,
   HttpError,
 } from "./services"
-import { startOfDay, endOfDay } from "date-fns"
+
+// Type definitions for testing
+interface LocationData {
+  latitude: number
+  longitude: number
+  accuracy: number
+  address?: string
+}
+
+interface AttendanceRecord {
+  id: string
+  checkInTime?: Date
+  checkOutTime?: Date
+  status: string
+}
 
 // Mock dependencies
 jest.mock("next-auth")
@@ -70,8 +84,8 @@ describe("Check-in Service", () => {
 
     it("should throw an HttpError for missing location data", () => {
       const invalidData = { latitude: 1, longitude: 1 }
-      expect(() => validateLocationData(invalidData as any)).toThrow(HttpError)
-      expect(() => validateLocationData(invalidData as any)).toThrow("Location data is required")
+      expect(() => validateLocationData(invalidData as Partial<LocationData>)).toThrow(HttpError)
+      expect(() => validateLocationData(invalidData as Partial<LocationData>)).toThrow("Location data is required")
     })
 
     it("should throw an HttpError for inaccurate GPS data", () => {
@@ -127,7 +141,7 @@ describe("Check-in Service", () => {
       const result = await createOrUpdateAttendance(
         "user-1",
         checkInData,
-        existingRecord as any
+        existingRecord as AttendanceRecord
       )
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(prisma.absensiRecord.create).not.toHaveBeenCalled()
@@ -137,7 +151,7 @@ describe("Check-in Service", () => {
 
   describe("logCheckInActivity", () => {
     it("should create an activity log for the check-in event", async () => {
-      const attendance = { id: "att-1", status: "present" } as any
+      const attendance = { id: "att-1", status: "present" } as AttendanceRecord
       const checkInData = { latitude: 1, longitude: 1, address: "test", accuracy: 1 }
 
       await logCheckInActivity("user-1", attendance, checkInData)

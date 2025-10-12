@@ -10,6 +10,21 @@ import {
   HttpError,
 } from "./services"
 
+// Type definitions for testing
+interface LocationData {
+  latitude: number
+  longitude: number
+  accuracy: number
+  address?: string
+}
+
+interface AttendanceRecord {
+  id: string
+  checkInTime?: Date
+  checkOutTime?: Date
+  status: string
+}
+
 // Mock dependencies
 jest.mock("next-auth")
 jest.mock("@/lib/prisma", () => ({
@@ -58,7 +73,7 @@ describe("Checkout Service", () => {
 
     it("should throw an HttpError for missing location data", () => {
       const invalidData = { latitude: 1, longitude: 1 }
-      expect(() => validateLocationData(invalidData as any)).toThrow(
+      expect(() => validateLocationData(invalidData as Partial<LocationData>)).toThrow(
         new HttpError("Location data is required", 400)
       )
     })
@@ -118,7 +133,7 @@ describe("Checkout Service", () => {
       const updatedRecord = { ...mockAttendance, checkOutTime: new Date() }
       ;(prisma.absensiRecord.update as jest.Mock).mockResolvedValue(updatedRecord)
 
-      const result = await processCheckout(mockAttendance as any, checkoutData)
+      const result = await processCheckout(mockAttendance as AttendanceRecord, checkoutData)
 
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(result.checkOutTime).not.toBeNull()
@@ -133,14 +148,14 @@ describe("Checkout Service", () => {
       )
 
       await expect(
-        processCheckout(mockAttendance as any, checkoutData)
+        processCheckout(mockAttendance as AttendanceRecord, checkoutData)
       ).rejects.toThrow("Gagal melakukan check-out. Silakan coba lagi.")
     })
   })
 
   describe("logCheckoutActivity", () => {
     it("should create an activity log for the check-out event", async () => {
-      const attendance = { id: "att-1", status: "present" } as any
+      const attendance = { id: "att-1", status: "present" } as AttendanceRecord
       const checkoutData = { latitude: 1, longitude: 1, address: "test", accuracy: 1 }
 
       await logCheckoutActivity("user-1", attendance, checkoutData)

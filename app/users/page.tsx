@@ -13,7 +13,7 @@ import { motion } from "framer-motion"
 import { Loader2, Plus } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { MESSAGES, NAVIGATION } from "@/lib/constants"
+import { NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 
 interface User {

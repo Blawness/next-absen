@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Settings, Bell, Shield, Clock, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
-import { MESSAGES, NAVIGATION } from "@/lib/constants"
+import { NAVIGATION } from "@/lib/constants"
 import { SettingsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { UserRole } from "@prisma/client"
 
