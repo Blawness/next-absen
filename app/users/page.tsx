@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { motion } from "framer-motion"
 import { Loader2, Plus } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
+import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { MESSAGES, NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 
@@ -225,14 +226,7 @@ export default function UsersPage() {
   }
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{MESSAGES.LOADING}</p>
-        </div>
-      </div>
-    )
+    return <UsersSkeleton />
   }
 
   if (!session || session.user.role !== UserRole.admin) {

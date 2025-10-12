@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Map } from "@/components/ui/map"
+import { DashboardSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
@@ -186,14 +187,7 @@ export default function DashboardPage() {
   }
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{MESSAGES.LOADING}</p>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   if (!session) {

@@ -18,6 +18,7 @@ import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constant
 import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition } from "@/lib/location"
 import { format } from "date-fns"
+import { AttendanceSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { id } from "date-fns/locale"
 import { Map } from "@/components/ui/map"
 import { motion } from "framer-motion"
@@ -306,16 +307,7 @@ export default function AttendancePage() {
 
   // Show loading while session is loading or data is loading
   if (status === "loading" || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {status === "loading" ? "Memuat sesi..." : MESSAGES.LOADING}
-          </p>
-        </div>
-      </div>
-    )
+    return <AttendanceSkeleton />
   }
 
   const canCheckIn = !todayAttendance?.checkInTime

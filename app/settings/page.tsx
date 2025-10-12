@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Settings, Bell, Shield, Clock, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
 import { MESSAGES, NAVIGATION } from "@/lib/constants"
+import { SettingsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { UserRole } from "@prisma/client"
 
 interface SystemSettings {
@@ -121,14 +122,7 @@ export default function SettingsPage() {
   }
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{MESSAGES.LOADING}</p>
-        </div>
-      </div>
-    )
+    return <SettingsSkeleton />
   }
 
   if (!session || session.user.role !== UserRole.admin) {
