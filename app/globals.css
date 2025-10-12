@@ -1,48 +1,48 @@
 @import "tailwindcss";
 
-/* Glassmorphism CSS Variables */
+/* Dark Green Glassmorphism CSS Variables */
 @layer base {
   :root {
-    /* Glassmorphism Colors */
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-shadow: rgba(0, 0, 0, 0.1);
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    /* Glassmorphism Colors - Dark Green Theme */
+    --glass-bg: rgba(0, 255, 157, 0.1);
+    --glass-border: rgba(0, 255, 157, 0.2);
+    --glass-shadow: rgba(0, 100, 50, 0.2);
+    --gradient-primary: linear-gradient(135deg, #1a5f3f 0%, #2d8659 100%);
+    --gradient-secondary: linear-gradient(135deg, #0a4d2e 0%, #1a6b47 100%);
+    --gradient-accent: linear-gradient(135deg, #00ff9d 0%, #00cc7a 100%);
 
-    /* Dark theme colors for glassmorphism */
-    --background: 20 20% 5%;
-    --foreground: 210 40% 98%;
-    --card: rgba(255, 255, 255, 0.1);
-    --card-foreground: 210 40% 98%;
-    --popover: rgba(255, 255, 255, 0.1);
-    --popover-foreground: 210 40% 98%;
+    /* Dark green theme colors for glassmorphism */
+    --background: 160 30% 3%;
+    --foreground: 120 20% 95%;
+    --card: rgba(0, 255, 157, 0.1);
+    --card-foreground: 120 20% 95%;
+    --popover: rgba(0, 255, 157, 0.1);
+    --popover-foreground: 120 20% 95%;
     --primary: 160 84% 39%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --primary-foreground: 120 20% 95%;
+    --secondary: 160 20% 15%;
+    --secondary-foreground: 120 20% 95%;
+    --muted: 160 20% 15%;
+    --muted-foreground: 120 15% 65%;
+    --accent: 160 20% 15%;
+    --accent-foreground: 120 20% 95%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: rgba(255, 255, 255, 0.2);
-    --input: rgba(255, 255, 255, 0.1);
+    --destructive-foreground: 120 20% 95%;
+    --border: rgba(0, 255, 157, 0.2);
+    --input: rgba(0, 255, 157, 0.1);
     --ring: 160 84% 39%;
     --radius: 0.75rem;
     --chart-1: 160 84% 39%;
-    --chart-2: 200 80% 50%;
-    --chart-3: 280 65% 60%;
-    --chart-4: 340 75% 55%;
-    --chart-5: 20 80% 60%;
+    --chart-2: 140 70% 50%;
+    --chart-3: 180 65% 60%;
+    --chart-4: 120 75% 55%;
+    --chart-5: 100 80% 60%;
   }
 }
 
-/* Glassmorphism Background */
+/* Dark Green Liquid Glassmorphism Background */
 .glassmorphism-bg {
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  background: linear-gradient(135deg, #0a1f0f 0%, #1a3d1a 50%, #0f2d0f 100%);
   position: relative;
   overflow: hidden;
 }
@@ -55,35 +55,51 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(120, 198, 255, 0.2) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(0, 255, 157, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 204, 122, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(26, 159, 63, 0.2) 0%, transparent 50%);
   pointer-events: none;
 }
 
-/* Floating Orbs Animation */
+/* Simple Glass Background Layers */
+.glassmorphism-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 25%, rgba(0, 255, 157, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 400px 600px at 85% 75%, rgba(26, 159, 63, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Simple Floating Circle Animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
 
 @keyframes float-reverse {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(20px) rotate(-5deg); }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(20px); }
 }
 
+/* Simple Floating Glass Circles */
 .floating-orb {
   position: absolute;
   border-radius: 50%;
-  background: linear-gradient(45deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
-  animation: float 6s ease-in-out infinite;
-  filter: blur(1px);
+  background: linear-gradient(135deg, rgba(0, 255, 157, 0.3), rgba(26, 159, 63, 0.2));
+  animation: float 8s ease-in-out infinite;
+  border: 1px solid rgba(0, 255, 157, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 255, 157, 0.15);
 }
 
 .floating-orb:nth-child(1) {
   width: 100px;
   height: 100px;
-  top: 10%;
+  top: 15%;
   left: 10%;
   animation-delay: 0s;
 }
@@ -93,8 +109,8 @@
   height: 150px;
   top: 60%;
   right: 20%;
-  animation: float-reverse 8s ease-in-out infinite;
-  animation-delay: -2s;
+  animation: float-reverse 10s ease-in-out infinite;
+  animation-delay: -3s;
 }
 
 .floating-orb:nth-child(3) {
@@ -102,21 +118,29 @@
   height: 80px;
   bottom: 20%;
   left: 80%;
-  animation: float 7s ease-in-out infinite;
-  animation-delay: -4s;
+  animation: float 6s ease-in-out infinite;
+  animation-delay: -6s;
 }
 
-/* Glassmorphism Card Effect */
+/* Optimized Liquid Glassmorphism Card Effect */
 .glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 255, 157, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 255, 157, 0.2);
   border-radius: 16px;
   box-shadow:
-    0 8px 32px 0 rgba(31, 38, 135, 0.37),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 16px 0 rgba(0, 100, 50, 0.2),
+    inset 0 1px 0 rgba(0, 255, 157, 0.1);
   position: relative;
   overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  box-shadow:
+    0 6px 20px 0 rgba(0, 100, 50, 0.3),
+    inset 0 1px 0 rgba(0, 255, 157, 0.15);
+  transform: translateY(-1px);
 }
 
 .glass-card::before {
@@ -126,28 +150,28 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.4), transparent);
 }
 
-/* Enhanced Button Styles */
+/* Dark Green Enhanced Button Styles */
 .glass-button {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(26, 159, 63, 0.8), rgba(0, 204, 122, 0.8));
+  border: 1px solid rgba(0, 255, 157, 0.2);
   border-radius: 12px;
   backdrop-filter: blur(10px);
   box-shadow:
-    0 4px 16px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 4px 16px rgba(26, 159, 63, 0.3),
+    inset 0 1px 0 rgba(0, 255, 157, 0.2);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
 .glass-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow:
-    0 8px 25px rgba(102, 126, 234, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 6px 20px rgba(26, 159, 63, 0.3),
+    inset 0 1px 0 rgba(0, 255, 157, 0.2);
 }
 
 .glass-button::before {
@@ -157,7 +181,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -165,33 +189,33 @@
   left: 100%;
 }
 
-/* Input Styles */
+/* Dark Green Input Styles */
 .glass-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 255, 157, 0.05);
+  border: 1px solid rgba(0, 255, 157, 0.2);
   border-radius: 12px;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }
 
 .glass-input:focus {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(102, 126, 234, 0.5);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: rgba(0, 255, 157, 0.1);
+  border-color: rgba(26, 159, 63, 0.5);
+  box-shadow: 0 0 0 3px rgba(26, 159, 63, 0.1);
 }
 
-/* Navigation Styles */
+/* Dark Green Navigation Styles */
 .glass-nav {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 255, 157, 0.1);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 157, 0.1);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 100, 50, 0.1);
 }
 
-/* Typography */
+/* Dark Green Typography */
 .glass-title {
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  background: linear-gradient(135deg, #00ff9d 0%, rgba(0, 255, 157, 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -237,15 +261,39 @@
   white-space: nowrap;
 }
 
-/* Responsive Glassmorphism */
+/* Responsive Simple Glass Circles */
 @media (max-width: 768px) {
   .glass-card {
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
     margin: 0.5rem;
   }
 
   .floating-orb {
+    width: 50px !important;
+    height: 50px !important;
+    animation-duration: 15s !important;
+  }
+
+  /* Show only one circle on mobile for better performance */
+  .floating-orb:nth-child(1) {
+    display: block;
+  }
+
+  .floating-orb:nth-child(2),
+  .floating-orb:nth-child(3) {
     display: none;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .floating-orb,
+  .glassmorphism-bg::after {
+    animation: none !important;
+  }
+
+  .glass-card {
+    transition: none !important;
   }
 }
 
@@ -254,7 +302,7 @@
     border-color: hsl(var(--border));
   }
   body {
-    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    background: linear-gradient(135deg, #0a1f0f 0%, #1a3d1a 50%, #0f2d0f 100%);
     color: hsl(var(--foreground));
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }

@@ -461,8 +461,8 @@ export default function DashboardPage() {
               {todayAttendance ? (
                 <>
                   {todayAttendance.checkInTime && (
-                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-white">Check-in berhasil</p>
                         <p className="text-xs text-white/70">
@@ -474,13 +474,13 @@ export default function DashboardPage() {
                           </p>
                         )}
                       </div>
-                      <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">Check-in</Badge>
+                      <Badge variant="default" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">Check-in</Badge>
                     </div>
                   )}
 
                   {todayAttendance.checkOutTime && (
-                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                      <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                    <div className="flex items-center space-x-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-white">Check-out berhasil</p>
                         <p className="text-xs text-white/70">
@@ -492,7 +492,7 @@ export default function DashboardPage() {
                           </p>
                         )}
                       </div>
-                      <Badge variant="outline" className="border-blue-500/30 text-blue-300">Check-out</Badge>
+                      <Badge variant="outline" className="border-emerald-500/30 text-emerald-300">Check-out</Badge>
                     </div>
                   )}
 

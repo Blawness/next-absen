@@ -10,7 +10,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen glassmorphism-bg">
-      {/* Floating Background Elements */}
+      {/* Simple Floating Glass Circles */}
       <div className="floating-orb"></div>
       <div className="floating-orb"></div>
       <div className="floating-orb"></div>
