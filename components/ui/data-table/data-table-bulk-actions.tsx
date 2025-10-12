@@ -59,3 +59,4 @@ export function DataTableBulkActions({
     </motion.div>
   )
 }
+
