@@ -59,7 +59,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 grid place-items-center">
+    <div className="min-h-screen px-4 py-8 grid place-items-center">
       <div className="w-full max-w-md mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
