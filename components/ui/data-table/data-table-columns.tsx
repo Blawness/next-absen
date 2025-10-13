@@ -107,7 +107,8 @@ export const columns: Column[] = [
 
       return (
         <span className="text-white/80 cursor-help" title={user.lastLogin.toLocaleString("id-ID")}>
-          {relativeTime}
+          <span className="hidden sm:inline">{relativeTime}</span>
+          <span className="sm:hidden">{diffDays === 0 ? "Hari ini" : diffDays === 1 ? "Kemarin" : `${diffDays}d`}</span>
         </span>
       )
     },

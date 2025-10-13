@@ -52,8 +52,8 @@ export function DataTableContent({
 
   return (
     <Card variant="glass" className="rounded-2xl overflow-hidden">
-      <div className="relative">
-        <Table className="table-fixed">
+      <div className="relative overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow className="border-gray-600/40 hover:bg-transparent bg-gray-900/60 sticky top-0 z-20 backdrop-blur-md">
               {visibleColumnsArray.map((column) => (
@@ -61,8 +61,8 @@ export function DataTableContent({
                   key={column.id}
                   className={cn(
                     "text-white/95 font-semibold border-gray-600/30",
-                    column.pinned === "left" && "sticky left-0 z-30 bg-gray-900/85 backdrop-blur-sm border-r border-gray-500/50",
-                    column.pinned === "right" && "sticky right-0 z-30 bg-gray-900/85 backdrop-blur-sm border-l border-gray-500/50",
+                    column.pinned === "left" && "md:sticky md:left-0 md:z-30 md:bg-gray-900/85 md:backdrop-blur-sm md:border-r md:border-gray-500/50",
+                    column.pinned === "right" && "md:sticky md:right-0 md:z-30 md:bg-gray-900/85 md:backdrop-blur-sm md:border-l md:border-gray-500/50",
                     !column.sortable && "cursor-default"
                   )}
                   style={{ width: column.width }}
@@ -144,8 +144,8 @@ export function DataTableContent({
                       key={column.id}
                       className={cn(
                         "text-white/98 border-gray-700/30 py-4",
-                        column.pinned === "left" && "sticky left-0 z-20 bg-inherit backdrop-blur-sm border-r border-gray-600/40",
-                        column.pinned === "right" && "sticky right-0 z-20 bg-inherit backdrop-blur-sm border-l border-gray-600/40",
+                        column.pinned === "left" && "md:sticky md:left-0 md:z-20 md:bg-inherit md:backdrop-blur-sm md:border-r md:border-gray-600/40",
+                        column.pinned === "right" && "md:sticky md:right-0 md:z-20 md:bg-inherit md:backdrop-blur-sm md:border-l md:border-gray-600/40",
                         density === "compact" && "py-2"
                       )}
                       style={{ width: column.width }}
@@ -163,7 +163,7 @@ export function DataTableContent({
                             variant="ghost"
                             size="sm"
                             onClick={() => onEdit?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-white/10"
+                            className="h-8 w-8 p-0 hover:bg-white/10 md:h-8 md:w-8"
                             title="Edit"
                           >
                             <Edit className="h-3 w-3" />
@@ -173,7 +173,7 @@ export function DataTableContent({
                             variant="ghost"
                             size="sm"
                             onClick={() => onToggleStatus?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-white/10"
+                            className="h-8 w-8 p-0 hover:bg-white/10 md:h-8 md:w-8"
                             title={user.isActive ? "Nonaktifkan" : "Aktifkan"}
                           >
                             {user.isActive ? (
@@ -187,7 +187,7 @@ export function DataTableContent({
                             variant="ghost"
                             size="sm"
                             onClick={() => onDelete?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400"
+                            className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 md:h-8 md:w-8"
                             title="Hapus"
                           >
                             <Trash2 className="h-3 w-3" />

@@ -47,8 +47,8 @@ export function DataTableToolbar({
   return (
     <Card variant="glass" className="rounded-2xl">
       <CardHeader className="pb-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-1 items-center gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1 max-w-sm">
               <Input
                 placeholder="Cari pengguna..."
@@ -63,10 +63,11 @@ export function DataTableToolbar({
               </div>
             </div>
 
-            <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
-              <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
-                <SelectValue placeholder="Semua Departemen" />
-              </SelectTrigger>
+            <div className="flex flex-wrap gap-2 sm:gap-4">
+              <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
+                <SelectTrigger className="w-full min-w-0 sm:w-48 bg-white/10 border-white/20 text-white">
+                  <SelectValue placeholder="Semua Departemen" />
+                </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
                 <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
                 {departments.length > 0 ? (
@@ -80,7 +81,7 @@ export function DataTableToolbar({
             </Select>
 
             <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-              <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="w-full min-w-0 sm:w-40 bg-white/10 border-white/20 text-white">
                 <SelectValue placeholder="Semua Role" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -98,7 +99,7 @@ export function DataTableToolbar({
             </Select>
 
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="w-full min-w-0 sm:w-32 bg-white/10 border-white/20 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -108,10 +109,11 @@ export function DataTableToolbar({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <Select value={density} onValueChange={onDensityChange}>
-              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="w-full min-w-0 sm:w-32 bg-white/10 border-white/20 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
@@ -124,10 +126,11 @@ export function DataTableToolbar({
               variant="outline"
               size="sm"
               onClick={onToggleColumnVisibility}
-              className="bg-white/5 border-white/10"
+              className="bg-white/5 border-white/10 w-full sm:w-auto"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Kolom
+              <span className="hidden sm:inline">Kolom</span>
+              <span className="sm:hidden">Kolom</span>
             </Button>
           </div>
         </div>
