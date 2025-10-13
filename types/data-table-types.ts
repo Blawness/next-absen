@@ -32,3 +32,5 @@ export interface DataTableProps<T = User> {
 export type SortDirection = "asc" | "desc" | null
 export type Density = "comfortable" | "compact"
 
+
+

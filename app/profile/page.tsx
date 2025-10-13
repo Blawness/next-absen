@@ -206,9 +206,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Floating Orbs Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb" style={{ top: '20%', left: '15%', animationDelay: '0s' }}></div>
+        <div className="floating-orb" style={{ top: '60%', right: '25%', animationDelay: '-4s' }}></div>
+        <div className="floating-orb" style={{ bottom: '30%', left: '80%', animationDelay: '-8s' }}></div>
+        <div className="floating-orb" style={{ top: '10%', right: '10%', animationDelay: '-2s', width: '60px', height: '60px' }}></div>
+      </div>
+
       <motion.div
-        className="space-y-2"
+        className="space-y-2 relative z-10"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -222,9 +230,9 @@ export default function ProfilePage() {
       </motion.div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="profile">Informasi Profil</TabsTrigger>
-          <TabsTrigger value="password">Ubah Password</TabsTrigger>
+        <TabsList variant="glass" className="grid w-full grid-cols-2">
+          <TabsTrigger variant="glass" value="profile">Informasi Profil</TabsTrigger>
+          <TabsTrigger variant="glass" value="password">Ubah Password</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -245,17 +253,22 @@ export default function ProfilePage() {
               </CardHeader>
             <CardContent className="space-y-6">
               {/* Avatar Section */}
-              <div className="flex items-center gap-6">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={profile.avatarUrl || ""} alt={profile.name} />
-                  <AvatarFallback className="text-lg">
-                    {profile.name?.charAt(0)?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{profile.name}</h3>
-                  <p className="text-muted-foreground">{profile.email}</p>
-                  <p className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-6 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 shadow-lg">
+                <div className="relative">
+                  <Avatar className="h-20 w-20 ring-2 ring-white/20">
+                    <AvatarImage src={profile.avatarUrl || ""} alt={profile.name} />
+                    <AvatarFallback className="text-lg bg-white/10 text-white">
+                      {profile.name?.charAt(0)?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-green-500 border-2 border-white/20 flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-white"></div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-white">{profile.name}</h3>
+                  <p className="text-white/70">{profile.email}</p>
+                  <p className="text-sm text-white/60">
                     {profile.department} • {profile.position}
                   </p>
                 </div>
@@ -267,6 +280,7 @@ export default function ProfilePage() {
                   <Label htmlFor="name">{FORM_LABELS.NAME}</Label>
                   <Input
                     id="name"
+                    variant="glass"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     disabled={!isEditing}
@@ -277,11 +291,12 @@ export default function ProfilePage() {
                   <Label htmlFor="email">{FORM_LABELS.EMAIL}</Label>
                   <Input
                     id="email"
+                    variant="glass"
                     value={profile.email}
                     disabled
-                    className="bg-muted"
+                    className="opacity-50"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/60">
                     Email tidak dapat diubah
                   </p>
                 </div>
@@ -290,6 +305,7 @@ export default function ProfilePage() {
                   <Label htmlFor="phone">{FORM_LABELS.PHONE}</Label>
                   <Input
                     id="phone"
+                    variant="glass"
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     disabled={!isEditing}
@@ -301,6 +317,7 @@ export default function ProfilePage() {
                   <Label htmlFor="department">{FORM_LABELS.DEPARTMENT}</Label>
                   <Input
                     id="department"
+                    variant="glass"
                     value={formData.department}
                     onChange={(e) => handleInputChange("department", e.target.value)}
                     disabled={!isEditing}
@@ -311,6 +328,7 @@ export default function ProfilePage() {
                   <Label htmlFor="position">{FORM_LABELS.POSITION}</Label>
                   <Input
                     id="position"
+                    variant="glass"
                     value={formData.position}
                     onChange={(e) => handleInputChange("position", e.target.value)}
                     disabled={!isEditing}
@@ -320,34 +338,35 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
+                    variant="glass"
                     value={
                       profile.role === UserRole.admin ? "Admin" :
                       profile.role === UserRole.manager ? "Manager" : "Pengguna"
                     }
                     disabled
-                    className="bg-muted"
+                    className="opacity-50"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/60">
                     Role tidak dapat diubah
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)}>
+                  <Button variant="glass" onClick={() => setIsEditing(true)} className="px-6">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Profil
                   </Button>
                 ) : (
                   <>
-                    <Button onClick={handleSaveProfile} disabled={isSaving}>
+                    <Button variant="glass" onClick={handleSaveProfile} disabled={isSaving} className="px-6">
                       {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Save className="mr-2 h-4 w-4" />
                       {isSaving ? "Menyimpan..." : "Simpan"}
                     </Button>
-                    <Button variant="outline" onClick={handleCancelEdit}>
+                    <Button variant="glassOutline" onClick={handleCancelEdit} className="px-6">
                       <X className="mr-2 h-4 w-4" />
                       Batal
                     </Button>
@@ -384,6 +403,7 @@ export default function ProfilePage() {
                 <div className="relative">
                   <Input
                     id="currentPassword"
+                    variant="glass"
                     type={showPasswords.current ? "text" : "password"}
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
@@ -393,7 +413,7 @@ export default function ProfilePage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
                     onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
                   >
                     {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -406,6 +426,7 @@ export default function ProfilePage() {
                 <div className="relative">
                   <Input
                     id="newPassword"
+                    variant="glass"
                     type={showPasswords.new ? "text" : "password"}
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
@@ -415,7 +436,7 @@ export default function ProfilePage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
                     onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
                   >
                     {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -428,6 +449,7 @@ export default function ProfilePage() {
                 <div className="relative">
                   <Input
                     id="confirmPassword"
+                    variant="glass"
                     type={showPasswords.confirm ? "text" : "password"}
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -437,7 +459,7 @@ export default function ProfilePage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
                     onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
                   >
                     {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -446,9 +468,10 @@ export default function ProfilePage() {
               </div>
 
               <Button
+                variant="glass"
                 onClick={handlePasswordChange}
                 disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                className="w-full"
+                className="w-full py-3"
               >
                 {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isChangingPassword ? "Mengubah Password..." : "Ubah Password"}
