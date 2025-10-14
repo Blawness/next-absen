@@ -43,6 +43,10 @@ export async function getAttendanceHistory(
     checkOutTime: record.checkOutTime,
     checkInAddress: record.checkInAddress,
     checkOutAddress: record.checkOutAddress,
+    checkInLatitude: record.checkInLatitude,
+    checkInLongitude: record.checkInLongitude,
+    checkOutLatitude: record.checkOutLatitude,
+    checkOutLongitude: record.checkOutLongitude,
     status: record.status,
   }))
 }

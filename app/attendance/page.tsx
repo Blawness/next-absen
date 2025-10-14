@@ -61,7 +61,22 @@ export default function AttendancePage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null)
+
+  // Helper function to format address display
+  const formatAddress = (address?: string) => {
+    if (!address) return null
+
+    // If address starts with "Koordinat:", extract the coordinates part
+    if (address.startsWith('Koordinat:')) {
+      const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+      if (coordsMatch) {
+        return `${coordsMatch[1]}, ${coordsMatch[2]}`
+      }
+    }
+
+    return address
+  }
 
   useEffect(() => {
     // Wait for session to be loaded
@@ -214,7 +229,7 @@ export default function AttendancePage() {
 
       if (checkInResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
-        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
+        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
         await loadTodayAttendance()
         // Small delay to ensure state is properly updated
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -292,7 +307,7 @@ export default function AttendancePage() {
 
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
-        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
+        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
         await loadTodayAttendance()
       } else {
         console.error('Checkout failed:', data.error)
@@ -446,7 +461,7 @@ export default function AttendancePage() {
                 </p>
                 {todayAttendance.checkInAddress && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    📍 {todayAttendance.checkInAddress}
+                    📍 {formatAddress(todayAttendance.checkInAddress)}
                   </p>
                 )}
               </div>
@@ -461,7 +476,7 @@ export default function AttendancePage() {
                 </p>
                 {todayAttendance.checkOutAddress && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    📍 {todayAttendance.checkOutAddress}
+                    📍 {formatAddress(todayAttendance.checkOutAddress)}
                   </p>
                 )}
               </div>
@@ -502,10 +517,11 @@ export default function AttendancePage() {
             <Map
               latitude={currentLocation.latitude}
               longitude={currentLocation.longitude}
+              address={currentLocation.address}
               className="h-64 w-full"
             />
             <div className="mt-4 text-sm text-white/80">
-              <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
+              <p>Alamat: {formatAddress(currentLocation.address) || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}</p>
             </div>
           </CardContent>
           </Card>
@@ -547,9 +563,9 @@ export default function AttendancePage() {
                     </div>
                     {(record.checkInAddress || record.checkOutAddress) && (
                       <div className="text-xs text-white/60 mt-1">
-                        {record.checkInAddress && <span>📍 {record.checkInAddress}</span>}
+                        {record.checkInAddress && <span>📍 {formatAddress(record.checkInAddress)}</span>}
                         {record.checkInAddress && record.checkOutAddress && <span> • </span>}
-                        {record.checkOutAddress && <span>📍 {record.checkOutAddress}</span>}
+                        {record.checkOutAddress && <span>📍 {formatAddress(record.checkOutAddress)}</span>}
                       </div>
                     )}
                   </div>

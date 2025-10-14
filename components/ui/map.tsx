@@ -15,13 +15,14 @@ const DynamicMap = dynamic(() => import('./leaflet-map'), {
 interface MapProps {
   latitude: number
   longitude: number
+  address?: string
   className?: string
 }
 
-export function Map({ latitude, longitude, className = "h-64 w-full" }: MapProps) {
+export function Map({ latitude, longitude, address, className = "h-64 w-full" }: MapProps) {
   return (
     <div className={className}>
-      <DynamicMap latitude={latitude} longitude={longitude} />
+      <DynamicMap latitude={latitude} longitude={longitude} address={address} />
     </div>
   )
 }

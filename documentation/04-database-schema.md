@@ -493,8 +493,8 @@ VALUES (
   '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HSyK8m2', -- password: admin123
   'System Administrator',
   'admin',
-  'IT',
-  'System Admin',
+  'Human Resource',
+  'HR Manager',
   true
 );
 

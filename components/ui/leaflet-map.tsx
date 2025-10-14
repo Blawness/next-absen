@@ -15,9 +15,10 @@ L.Icon.Default.mergeOptions({
 interface LeafletMapProps {
   latitude: number
   longitude: number
+  address?: string
 }
 
-export default function LeafletMap({ latitude, longitude }: LeafletMapProps) {
+export default function LeafletMap({ latitude, longitude, address }: LeafletMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
 
@@ -37,7 +38,7 @@ export default function LeafletMap({ latitude, longitude }: LeafletMapProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _marker = L.marker([latitude, longitude])
       .addTo(map)
-      .bindPopup(`Lokasi Anda: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
+      .bindPopup(`Lokasi Anda: ${address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`}`)
       .openPopup()
 
     mapInstanceRef.current = map
@@ -49,7 +50,7 @@ export default function LeafletMap({ latitude, longitude }: LeafletMapProps) {
         mapInstanceRef.current = null
       }
     }
-  }, [latitude, longitude])
+  }, [latitude, longitude, address])
 
   return (
     <div className="h-full w-full rounded-lg">

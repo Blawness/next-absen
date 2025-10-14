@@ -29,6 +29,21 @@ import { AttendanceStatus, UserRole } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
+// Helper function to format address display
+const formatAddress = (address?: string | null) => {
+  if (!address) return null
+
+  // If address starts with "Koordinat:", extract the coordinates part
+  if (address.startsWith('Koordinat:')) {
+    const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+    if (coordsMatch) {
+      return `${coordsMatch[1]}, ${coordsMatch[2]}`
+    }
+  }
+
+  return address
+}
+
 interface ReportRecord {
   id: string
   date: Date
@@ -589,13 +604,13 @@ export default function ReportsPage() {
                           {record.checkInAddress && (
                             <div className="flex items-center gap-1">
                               <span className="text-emerald-400">📍</span>
-                              <span>Masuk: {record.checkInAddress}</span>
+                              <span>Masuk: {formatAddress(record.checkInAddress)}</span>
                             </div>
                           )}
                           {record.checkOutAddress && (
                             <div className="flex items-center gap-1">
                               <span className="text-blue-400">📍</span>
-                              <span>Pulang: {record.checkOutAddress}</span>
+                              <span>Pulang: {formatAddress(record.checkOutAddress)}</span>
                             </div>
                           )}
                         </div>

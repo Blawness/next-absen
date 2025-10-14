@@ -37,14 +37,38 @@ interface AttendanceData {
   notes: string | null
 }
 
+interface LastLocationData {
+  checkInAddress: string | null
+  checkOutAddress: string | null
+  checkInLatitude: number | null
+  checkInLongitude: number | null
+  checkOutLatitude: number | null
+  checkOutLongitude: number | null
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const [todayAttendance, setTodayAttendance] = useState<AttendanceData | null>(null)
+  const [lastLocation, setLastLocation] = useState<LastLocationData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+
+  // Helper function to format address display
+  const formatAddress = (address?: string) => {
+    if (!address) return null
+
+    // If address starts with "Koordinat:", extract the coordinates part
+    if (address.startsWith('Koordinat:')) {
+      const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+      if (coordsMatch) {
+        return `${coordsMatch[1]}, ${coordsMatch[2]}`
+      }
+    }
+
+    return address
+  }
 
   useEffect(() => {
     if (status === "loading") return
@@ -54,8 +78,9 @@ export default function DashboardPage() {
       return
     }
 
-    // Load today's attendance data
+    // Load today's attendance data and last location
     loadTodayAttendance()
+    loadLastLocation()
   }, [status, session])
 
   const loadTodayAttendance = async () => {
@@ -85,6 +110,28 @@ export default function DashboardPage() {
       console.error('Error loading today attendance:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadLastLocation = async () => {
+    try {
+      const response = await fetch('/api/attendance/history?limit=1&offset=0')
+      if (response.ok) {
+        const history = await response.json()
+        if (history && history.length > 0) {
+          const lastRecord = history[0]
+          setLastLocation({
+            checkInAddress: lastRecord.checkInAddress,
+            checkOutAddress: lastRecord.checkOutAddress,
+            checkInLatitude: lastRecord.checkInLatitude ? Number(lastRecord.checkInLatitude) : null,
+            checkInLongitude: lastRecord.checkInLongitude ? Number(lastRecord.checkInLongitude) : null,
+            checkOutLatitude: lastRecord.checkOutLatitude ? Number(lastRecord.checkOutLatitude) : null,
+            checkOutLongitude: lastRecord.checkOutLongitude ? Number(lastRecord.checkOutLongitude) : null,
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading last location:', error)
     }
   }
 
@@ -125,8 +172,8 @@ export default function DashboardPage() {
 
       if (checkInResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
-        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
         await loadTodayAttendance()
+        await loadLastLocation() // Refresh last location after check-in
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_IN_FAILED })
       }
@@ -174,8 +221,8 @@ export default function DashboardPage() {
 
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
-        setCurrentLocation({ latitude: position.latitude, longitude: position.longitude })
         await loadTodayAttendance()
+        await loadLastLocation() // Refresh last location after check-out
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_OUT_FAILED })
       }
@@ -398,27 +445,39 @@ export default function DashboardPage() {
                 Lokasi Terakhir
               </CardTitle>
               <CardDescription className="text-white/70">
-                {currentLocation ?
-                  `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}` :
-                  "Lokasi akan ditampilkan setelah check-in/out"
+                {lastLocation ?
+                  "Lokasi check-in atau check-out terakhir Anda" :
+                  "Belum ada data lokasi tersimpan"
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {currentLocation ? (
+              {lastLocation ? (
                 <div className="space-y-4">
-                  <Map
-                    latitude={currentLocation.latitude}
-                    longitude={currentLocation.longitude}
-                    className="aspect-video w-full rounded-lg"
-                  />
+                  {/* Show map for the most recent location (check-out if available, otherwise check-in) */}
+                  {lastLocation.checkOutLatitude && lastLocation.checkOutLongitude ? (
+                    <Map
+                      latitude={lastLocation.checkOutLatitude}
+                      longitude={lastLocation.checkOutLongitude}
+                      address={lastLocation.checkOutAddress || undefined}
+                      className="aspect-video w-full rounded-lg"
+                    />
+                  ) : lastLocation.checkInLatitude && lastLocation.checkInLongitude ? (
+                    <Map
+                      latitude={lastLocation.checkInLatitude}
+                      longitude={lastLocation.checkInLongitude}
+                      address={lastLocation.checkInAddress || undefined}
+                      className="aspect-video w-full rounded-lg"
+                    />
+                  ) : null}
+
                   <div className="text-sm text-white/80 space-y-1">
-                    <p>Koordinat: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}</p>
-                    {todayAttendance?.checkInAddress && (
-                      <p>Check-in: {todayAttendance.checkInAddress}</p>
+                    <p>Peta menunjukkan lokasi check-in atau check-out terakhir Anda</p>
+                    {lastLocation.checkInAddress && (
+                      <p>Check-in: {formatAddress(lastLocation.checkInAddress)}</p>
                     )}
-                    {todayAttendance?.checkOutAddress && (
-                      <p>Check-out: {todayAttendance.checkOutAddress}</p>
+                    {lastLocation.checkOutAddress && (
+                      <p>Check-out: {formatAddress(lastLocation.checkOutAddress)}</p>
                     )}
                   </div>
                 </div>
@@ -427,7 +486,7 @@ export default function DashboardPage() {
                   <div className="text-center">
                     <MapPin className="h-12 w-12 text-white/40 mx-auto mb-2" />
                     <p className="text-sm text-white/60">
-                      Belum ada lokasi tersimpan
+                      Belum ada data lokasi tersimpan
                     </p>
                   </div>
                 </div>
@@ -464,7 +523,7 @@ export default function DashboardPage() {
                         </p>
                         {todayAttendance.checkInAddress && (
                           <p className="text-xs text-white/60">
-                            📍 {todayAttendance.checkInAddress}
+                            📍 {formatAddress(todayAttendance.checkInAddress)}
                           </p>
                         )}
                       </div>
@@ -482,7 +541,7 @@ export default function DashboardPage() {
                         </p>
                         {todayAttendance.checkOutAddress && (
                           <p className="text-xs text-white/60">
-                            📍 {todayAttendance.checkOutAddress}
+                            📍 {formatAddress(todayAttendance.checkOutAddress)}
                           </p>
                         )}
                       </div>

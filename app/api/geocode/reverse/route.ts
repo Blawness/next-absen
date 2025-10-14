@@ -23,11 +23,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // For now, return coordinates as address since we're using Leaflet
-    // In a production app, you might want to use a different geocoding service
-    // like OpenStreetMap Nominatim API or a paid service
+    // Use OpenStreetMap Nominatim API for reverse geocoding (free, no API key required)
+    let address: string
 
-    const address = `Koordinat: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    try {
+      const nominatimResponse = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'next-absen-app/1.0'
+          }
+        }
+      )
+
+      if (nominatimResponse.ok) {
+        const nominatimData = await nominatimResponse.json()
+        if (nominatimData && nominatimData.display_name) {
+          address = nominatimData.display_name
+        } else {
+          throw new Error('No address found from Nominatim')
+        }
+      } else {
+        throw new Error(`Nominatim API request failed with status: ${nominatimResponse.status}`)
+      }
+    } catch (nominatimError) {
+      console.error('Nominatim reverse geocoding failed:', nominatimError)
+      // Fallback to coordinates
+      address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    }
 
     return NextResponse.json({
       address: address,
