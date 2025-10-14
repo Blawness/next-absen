@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReportsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { PDFPreviewDialog } from "@/components/ui/pdf-preview-dialog"
 import { motion } from "framer-motion"
 import {
   Download,
@@ -96,7 +95,6 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   // Memoize initial filter values to prevent recreation on every render
   const initialFilters = useMemo(() => ({
@@ -226,6 +224,28 @@ export default function ReportsPage() {
       setMessage({ type: 'error', text: `Failed to export ${exportFormat.toUpperCase()}` })
     } finally {
       setIsExporting(false)
+    }
+  }, [filters])
+
+  // Handle PDF preview in new tab
+  const handlePreview = useCallback(async () => {
+    setMessage(null)
+
+    try {
+      const params = new URLSearchParams()
+      if (filters.startDate) params.append('startDate', filters.startDate)
+      if (filters.endDate) params.append('endDate', filters.endDate)
+      if (filters.userId) params.append('userId', filters.userId)
+      if (filters.department) params.append('department', filters.department)
+      if (filters.status) params.append('status', filters.status)
+      params.append('format', 'pdf')
+      params.append('preview', 'true')
+
+      // Open PDF preview in new tab
+      const previewUrl = `/api/reports/export?${params.toString()}`
+      window.open(previewUrl, '_blank', 'noopener,noreferrer')
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to open PDF preview' })
     }
   }, [filters])
 
@@ -375,7 +395,7 @@ export default function ReportsPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setIsPreviewOpen(true)}
+                  onClick={handlePreview}
                   disabled={isExporting || records.length === 0}
                   className="border-white/20 bg-white/5 hover:bg-white/10 text-white"
                 >
@@ -644,16 +664,6 @@ export default function ReportsPage() {
         </CardContent>
         </Card>
       </motion.div>
-
-      {/* PDF Preview Dialog */}
-      <PDFPreviewDialog
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        records={records}
-        filters={filters}
-        onExport={handleExport}
-        isExporting={isExporting}
-      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { UserRole, AttendanceStatus } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import puppeteer from "puppeteer"
+import { chromium } from "playwright"
 
 interface WhereClause {
   date?: {
@@ -216,8 +216,8 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
   const htmlContent = generatePDFHTML(records, startDate, endDate)
 
   try {
-    // Launch puppeteer browser
-    const browser = await puppeteer.launch({
+    // Launch Playwright browser (more reliable than Puppeteer in server environments)
+    const browser = await chromium.launch({
       headless: true,
       args: [
         '--no-sandbox',
@@ -226,34 +226,61 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-web-security'
       ]
     })
 
     const page = await browser.newPage()
 
-    // Set content and wait for it to load
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
+    // Set viewport for consistent rendering
+    await page.setViewportSize({ width: 1200, height: 800 })
 
-    // Generate PDF buffer
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px'
-      }
-    })
+    // Set content with timeout and better error handling
+    try {
+      await page.setContent(htmlContent, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      })
+
+      // Wait for fonts and images to load
+      await page.waitForLoadState('networkidle', { timeout: 5000 })
+    } catch (contentError) {
+      console.error('Error setting page content:', contentError)
+      await browser.close()
+      throw new Error('Failed to load HTML content for PDF generation')
+    }
+
+    // Add a small delay to ensure all resources are loaded
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Generate PDF buffer with better error handling
+    let pdfBuffer: Buffer
+    try {
+      pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20px',
+          right: '20px',
+          bottom: '20px',
+          left: '20px'
+        },
+        preferCSSPageSize: true,
+        displayHeaderFooter: false
+      })
+    } catch (pdfError) {
+      console.error('Error generating PDF:', pdfError)
+      await browser.close()
+      throw new Error('Failed to generate PDF from content')
+    }
 
     await browser.close()
 
     const timestamp = format(new Date(), 'yyyy-MM-dd')
     const filename = `attendance-report-${timestamp}.pdf`
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': isPreview
@@ -263,7 +290,17 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
     })
   } catch (error) {
     console.error('Error generating PDF:', error)
-    throw new Error('Failed to generate PDF')
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('spawn') || error.message.includes('Executable')) {
+        throw new Error('Browser executable not found. Please install browser dependencies.')
+      } else if (error.message.includes('Protocol') || error.message.includes('Target')) {
+        throw new Error('Browser communication error. Please check browser installation.')
+      }
+    }
+
+    throw new Error('Failed to generate PDF. Please try again or contact support.')
   }
 }
 

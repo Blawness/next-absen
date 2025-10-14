@@ -6,7 +6,7 @@
     "schema": "./prisma/schema.prisma"
   },
   "scripts": {
-    "dev": "prisma generate && prisma db push && next dev --port 3002 --hostname 0.0.0.0",
+    "dev": "prisma generate && prisma db push && next dev --port 3004 --hostname 0.0.0.0",
     "build": "prisma generate && next build",
     "start": "node start.mjs",
     "lint": "next lint",
@@ -38,8 +38,8 @@
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
     "next-auth": "^4.24.11",
+    "playwright": "^1.56.0",
     "prisma": "^6.17.0",
-    "puppeteer": "^24.24.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
@@ -51,7 +51,6 @@
     "@tailwindcss/postcss": "^4.1.14",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
-    "@types/puppeteer": "^5.4.7",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",

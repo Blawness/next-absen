@@ -1,6 +1,7 @@
 // app/api/attendance/checkout/services.test.ts
 import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
+import { type AbsensiRecord } from "@prisma/client"
 import {
   validateSession,
   validateLocationData,
@@ -18,12 +19,6 @@ interface LocationData {
   address?: string
 }
 
-interface AttendanceRecord {
-  id: string
-  checkInTime?: Date
-  checkOutTime?: Date
-  status: string
-}
 
 // Mock dependencies
 jest.mock("next-auth")
@@ -133,7 +128,7 @@ describe("Checkout Service", () => {
       const updatedRecord = { ...mockAttendance, checkOutTime: new Date() }
       ;(prisma.absensiRecord.update as jest.Mock).mockResolvedValue(updatedRecord)
 
-      const result = await processCheckout(mockAttendance as AttendanceRecord, checkoutData)
+      const result = await processCheckout(mockAttendance as AbsensiRecord, checkoutData)
 
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(result.checkOutTime).not.toBeNull()
@@ -148,14 +143,14 @@ describe("Checkout Service", () => {
       )
 
       await expect(
-        processCheckout(mockAttendance as AttendanceRecord, checkoutData)
+        processCheckout(mockAttendance as AbsensiRecord, checkoutData)
       ).rejects.toThrow("Gagal melakukan check-out. Silakan coba lagi.")
     })
   })
 
   describe("logCheckoutActivity", () => {
     it("should create an activity log for the check-out event", async () => {
-      const attendance = { id: "att-1", status: "present" } as AttendanceRecord
+      const attendance = { id: "att-1", status: "present" } as AbsensiRecord
       const checkoutData = { latitude: 1, longitude: 1, address: "test", accuracy: 1 }
 
       await logCheckoutActivity("user-1", attendance, checkoutData)

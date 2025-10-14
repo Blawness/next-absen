@@ -1,6 +1,7 @@
 // app/api/attendance/checkin/services.test.ts
 import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
+import { type AbsensiRecord } from "@prisma/client"
 import {
   validateSession,
   validateLocationData,
@@ -16,13 +17,6 @@ interface LocationData {
   longitude: number
   accuracy: number
   address?: string
-}
-
-interface AttendanceRecord {
-  id: string
-  checkInTime?: Date
-  checkOutTime?: Date
-  status: string
 }
 
 // Mock dependencies
@@ -134,14 +128,14 @@ describe("Check-in Service", () => {
     })
 
     it("should update an existing attendance record", async () => {
-      const existingRecord = { id: "att-1" }
-      const updatedRecord = { id: "att-1", checkInTime: new Date() }
+      const existingRecord = { id: "att-1" } as AbsensiRecord
+      const updatedRecord = { id: "att-1", checkInTime: new Date() } as AbsensiRecord
       ;(prisma.absensiRecord.update as jest.Mock).mockResolvedValue(updatedRecord)
 
       const result = await createOrUpdateAttendance(
         "user-1",
         checkInData,
-        existingRecord as AttendanceRecord
+        existingRecord
       )
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(prisma.absensiRecord.create).not.toHaveBeenCalled()
@@ -151,7 +145,7 @@ describe("Check-in Service", () => {
 
   describe("logCheckInActivity", () => {
     it("should create an activity log for the check-in event", async () => {
-      const attendance = { id: "att-1", status: "present" } as AttendanceRecord
+      const attendance = { id: "att-1", status: "present" } as AbsensiRecord
       const checkInData = { latitude: 1, longitude: 1, address: "test", accuracy: 1 }
 
       await logCheckInActivity("user-1", attendance, checkInData)
