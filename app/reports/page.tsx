@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReportsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
+import { PDFPreviewDialog } from "@/components/ui/pdf-preview-dialog"
 import { motion } from "framer-motion"
 import {
   Download,
@@ -22,7 +23,8 @@ import {
   BarChart3,
   Loader2,
   Search,
-  Building
+  Building,
+  Eye
 } from "lucide-react"
 import { STATUS_LABELS, MESSAGES, NAVIGATION, TABLE_HEADERS } from "@/lib/constants"
 import { AttendanceStatus, UserRole } from "@prisma/client"
@@ -94,6 +96,7 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   // Memoize initial filter values to prevent recreation on every render
   const initialFilters = useMemo(() => ({
@@ -371,6 +374,15 @@ export default function ReportsPage() {
                   Export CSV
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() => setIsPreviewOpen(true)}
+                  disabled={isExporting || records.length === 0}
+                  className="border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview PDF
+                </Button>
+                <Button
                   variant="glass"
                   onClick={() => handleExport('pdf')}
                   disabled={isExporting || records.length === 0}
@@ -632,6 +644,16 @@ export default function ReportsPage() {
         </CardContent>
         </Card>
       </motion.div>
+
+      {/* PDF Preview Dialog */}
+      <PDFPreviewDialog
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        records={records}
+        filters={filters}
+        onExport={handleExport}
+        isExporting={isExporting}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { UserRole, AttendanceStatus } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import puppeteer from "puppeteer"
 
 interface WhereClause {
   date?: {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const department = searchParams.get('department')
     const status = searchParams.get('status')
+    const isPreview = searchParams.get('preview') === 'true'
 
     if (!format || (format !== 'csv' && format !== 'pdf')) {
       return NextResponse.json(
@@ -151,7 +153,7 @@ export async function GET(request: NextRequest) {
     if (format === 'csv') {
       return generateCSV(records)
     } else if (format === 'pdf') {
-      return generatePDF(records, startDate, endDate)
+      return await generatePDF(records, startDate, endDate, isPreview)
     }
 
   } catch (error) {
@@ -209,59 +211,277 @@ function generateCSV(records: any[]): NextResponse {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generatePDF(records: any[], startDate?: string | null, endDate?: string | null): NextResponse {
-  // For now, we'll create a simple HTML that can be converted to PDF
-  // In a real application, you might want to use a library like jsPDF or puppeteer
-  const html = `
+async function generatePDF(records: any[], startDate?: string | null, endDate?: string | null, isPreview?: boolean): Promise<NextResponse> {
+  // Generate HTML content for PDF
+  const htmlContent = generatePDFHTML(records, startDate, endDate)
+
+  try {
+    // Launch puppeteer browser
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    })
+
+    const page = await browser.newPage()
+
+    // Set content and wait for it to load
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
+
+    // Generate PDF buffer
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20px',
+        right: '20px',
+        bottom: '20px',
+        left: '20px'
+      }
+    })
+
+    await browser.close()
+
+    const timestamp = format(new Date(), 'yyyy-MM-dd')
+    const filename = `attendance-report-${timestamp}.pdf`
+
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': isPreview
+          ? `inline; filename="${filename}"`
+          : `attachment; filename="${filename}"`
+      }
+    })
+  } catch (error) {
+    console.error('Error generating PDF:', error)
+    throw new Error('Failed to generate PDF')
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function generatePDFHTML(records: any[], startDate?: string | null, endDate?: string | null): string {
+  const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
+  const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
+  const uniqueUsers = new Set(records.map(r => r.user.id)).size
+
+  return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <title>Laporan Absensi</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { margin: 0; color: #333; }
-        .header p { margin: 5px 0; color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f5f5f5; font-weight: bold; }
-        .status-present { color: #10b981; }
-        .status-late { color: #f59e0b; }
-        .status-absent { color: #ef4444; }
-        .status-half_day { color: #8b5cf6; }
-        .summary { margin-bottom: 20px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .summary-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
-        .summary-card h3 { margin: 0 0 10px 0; color: #333; }
-        .summary-card p { margin: 5px 0; }
+        @page {
+          margin: 20px;
+          size: A4;
+        }
+
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          margin: 0;
+          padding: 20px;
+          color: #333;
+          line-height: 1.6;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 2px solid #2563eb;
+          padding-bottom: 20px;
+        }
+
+        .header h1 {
+          margin: 0;
+          color: #2563eb;
+          font-size: 28px;
+          font-weight: 700;
+        }
+
+        .header .subtitle {
+          margin: 8px 0;
+          color: #64748b;
+          font-size: 14px;
+        }
+
+        .header .generated {
+          margin: 5px 0;
+          color: #64748b;
+          font-size: 12px;
+        }
+
+        .summary {
+          margin-bottom: 30px;
+          background: #f8fafc;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .summary h2 {
+          margin: 0 0 20px 0;
+          color: #334155;
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+        }
+
+        .summary-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          padding: 15px;
+          border-radius: 6px;
+          text-align: center;
+        }
+
+        .summary-card h3 {
+          margin: 0 0 8px 0;
+          color: #475569;
+          font-size: 14px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .summary-card .value {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+          color: #2563eb;
+        }
+
+        .summary-card .label {
+          margin: 5px 0 0 0;
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+          font-size: 12px;
+        }
+
+        th, td {
+          border: 1px solid #e2e8f0;
+          padding: 8px 12px;
+          text-align: left;
+          vertical-align: top;
+        }
+
+        th {
+          background: linear-gradient(135deg, #2563eb, #3b82f6);
+          color: white;
+          font-weight: 600;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) {
+          background-color: #f8fafc;
+        }
+
+        tr:hover {
+          background-color: #f1f5f9;
+        }
+
+        .status-present {
+          color: #059669;
+          font-weight: 600;
+        }
+
+        .status-late {
+          color: #d97706;
+          font-weight: 600;
+        }
+
+        .status-absent {
+          color: #dc2626;
+          font-weight: 600;
+        }
+
+        .status-half_day {
+          color: #7c3aed;
+          font-weight: 600;
+        }
+
+        .text-center {
+          text-align: center;
+        }
+
+        .text-right {
+          text-align: right;
+        }
+
+        .font-medium {
+          font-weight: 500;
+        }
+
+        .footer {
+          margin-top: 40px;
+          text-align: center;
+          font-size: 10px;
+          color: #94a3b8;
+          border-top: 1px solid #e2e8f0;
+          padding-top: 15px;
+        }
+
+        @media print {
+          body { -webkit-print-color-adjust: exact; }
+          .summary-card { break-inside: avoid; }
+          tr { break-inside: avoid; }
+        }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>Laporan Absensi</h1>
-        <p>Periode: ${startDate ? format(new Date(startDate), 'dd MMM yyyy', { locale: id }) : 'Awal'} - ${endDate ? format(new Date(endDate), 'dd MMM yyyy', { locale: id }) : 'Akhir'}</p>
-        <p>Generated: ${format(new Date(), 'dd MMM yyyy HH:mm', { locale: id })}</p>
+        <h1>Laporan Absensi Karyawan</h1>
+        <div class="subtitle">
+          Periode: ${startDate ? format(new Date(startDate), 'dd MMMM yyyy', { locale: id }) : 'Awal'} - ${endDate ? format(new Date(endDate), 'dd MMMM yyyy', { locale: id }) : 'Akhir'}
+        </div>
+        <div class="generated">
+          Laporan dibuat pada: ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: id })}
+        </div>
       </div>
 
       <div class="summary">
-        <h2>Ringkasan</h2>
+        <h2>Ringkasan Laporan</h2>
         <div class="summary-grid">
           <div class="summary-card">
             <h3>Total Record</h3>
-            <p>${records.length}</p>
+            <p class="value">${records.length}</p>
+            <p class="label">Data absensi</p>
           </div>
           <div class="summary-card">
             <h3>Total Pengguna</h3>
-            <p>${new Set(records.map(r => r.user.id)).size}</p>
+            <p class="value">${uniqueUsers}</p>
+            <p class="label">Pengguna aktif</p>
           </div>
           <div class="summary-card">
             <h3>Total Jam Kerja</h3>
-            <p>${records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0).toFixed(1)}j</p>
+            <p class="value">${totalWorkHours.toFixed(1)}j</p>
+            <p class="label">Jam kerja keseluruhan</p>
           </div>
           <div class="summary-card">
             <h3>Total Lembur</h3>
-            <p>${records.reduce((sum, r) => sum + Number(r.overtimeHours), 0).toFixed(1)}j</p>
+            <p class="value">${totalOvertimeHours.toFixed(1)}j</p>
+            <p class="label">Jam lembur keseluruhan</p>
           </div>
         </div>
       </div>
@@ -269,41 +489,57 @@ function generatePDF(records: any[], startDate?: string | null, endDate?: string
       <table>
         <thead>
           <tr>
-            <th>Tanggal</th>
-            <th>Nama</th>
-            <th>Departemen</th>
-            <th>Check-in</th>
-            <th>Check-out</th>
-            <th>Jam Kerja</th>
-            <th>Lembur</th>
-            <th>Status</th>
+            <th style="width: 10%;">Tanggal</th>
+            <th style="width: 15%;">Nama</th>
+            <th style="width: 12%;">Departemen</th>
+            <th style="width: 8%;">Check-in</th>
+            <th style="width: 8%;">Check-out</th>
+            <th style="width: 10%;">Jam Kerja</th>
+            <th style="width: 10%;">Lembur</th>
+            <th style="width: 10%;">Status</th>
+            <th style="width: 17%;">Lokasi</th>
           </tr>
         </thead>
         <tbody>
           ${records.map(record => `
             <tr>
-              <td>${format(record.date, 'dd MMM yyyy', { locale: id })}</td>
-              <td>${record.user.name}</td>
+              <td>${format(record.date, 'dd/MM/yyyy', { locale: id })}</td>
+              <td class="font-medium">${record.user.name}</td>
               <td>${record.user.department || '-'}</td>
-              <td>${record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}</td>
-              <td>${record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}</td>
-              <td>${record.workHours ? `${record.workHours}j` : '-'}</td>
-              <td>${record.overtimeHours || 0}j</td>
-              <td><span class="status-${record.status}">${getStatusLabel(record.status)}</span></td>
+              <td class="text-center">${record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}</td>
+              <td class="text-center">${record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}</td>
+              <td class="text-right">${record.workHours ? `${record.workHours}j` : '-'}</td>
+              <td class="text-right">${record.overtimeHours || 0}j</td>
+              <td class="text-center status-${record.status}">${getStatusLabel(record.status)}</td>
+              <td class="text-sm">
+                ${record.checkInAddress ? `<div><strong>In:</strong> ${formatAddress(record.checkInAddress)}</div>` : ''}
+                ${record.checkOutAddress ? `<div><strong>Out:</strong> ${formatAddress(record.checkOutAddress)}</div>` : ''}
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
+
+      <div class="footer">
+        Laporan ini dibuat secara otomatis oleh sistem absensi. Untuk pertanyaan lebih lanjut, silakan hubungi administrator.
+      </div>
     </body>
     </html>
   `
+}
 
-  return new NextResponse(html, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Content-Disposition': `attachment; filename="attendance-report-${format(new Date(), 'yyyy-MM-dd')}.html"`
+function formatAddress(address?: string | null): string {
+  if (!address) return '-'
+
+  // If address starts with "Koordinat:", extract the coordinates part
+  if (address.startsWith('Koordinat:')) {
+    const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+    if (coordsMatch) {
+      return `${coordsMatch[1]}, ${coordsMatch[2]}`
     }
-  })
+  }
+
+  return address.length > 30 ? address.substring(0, 30) + '...' : address
 }
 
 function getStatusLabel(status: string): string {
