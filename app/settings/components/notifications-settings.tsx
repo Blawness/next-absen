@@ -50,6 +50,7 @@ export const NotificationsSettings = ({ settings, isSaving, onUpdateSettings, on
                 id="emailNotifications"
                 checked={settings?.notifications.emailNotifications || false}
                 onCheckedChange={(checked) => onUpdateSettings('notifications', 'emailNotifications', checked)}
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20 [&>span]:bg-white [&>span]:shadow-lg [&>span]:border-2 [&>span]:border-white/30"
               />
             </div>
 
@@ -69,6 +70,7 @@ export const NotificationsSettings = ({ settings, isSaving, onUpdateSettings, on
                 id="lateCheckinReminders"
                 checked={settings?.notifications.lateCheckinReminders || false}
                 onCheckedChange={(checked) => onUpdateSettings('notifications', 'lateCheckinReminders', checked)}
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20 [&>span]:bg-white [&>span]:shadow-lg [&>span]:border-2 [&>span]:border-white/30"
               />
             </div>
 
@@ -88,6 +90,7 @@ export const NotificationsSettings = ({ settings, isSaving, onUpdateSettings, on
                 id="dailySummaryEmail"
                 checked={settings?.notifications.dailySummaryEmail || false}
                 onCheckedChange={(checked) => onUpdateSettings('notifications', 'dailySummaryEmail', checked)}
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20 [&>span]:bg-white [&>span]:shadow-lg [&>span]:border-2 [&>span]:border-white/30"
               />
             </div>
           </div>

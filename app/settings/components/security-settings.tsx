@@ -94,6 +94,7 @@ export const SecuritySettings = ({ settings, isSaving, onUpdateSettings, onSave 
                   id="requireStrongPassword"
                   checked={settings?.security.requireStrongPassword || false}
                   onCheckedChange={(checked) => onUpdateSettings('security', 'requireStrongPassword', checked)}
+                  className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20 [&>span]:bg-white [&>span]:shadow-lg [&>span]:border-2 [&>span]:border-white/30"
                 />
               </div>
             </div>

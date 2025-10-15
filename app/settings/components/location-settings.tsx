@@ -86,6 +86,7 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
               id="requireLocation"
               checked={settings?.location.requireLocation || false}
               onCheckedChange={(checked) => onUpdateSettings('location', 'requireLocation', checked)}
+              className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20 [&>span]:bg-white [&>span]:shadow-lg [&>span]:border-2 [&>span]:border-white/30"
             />
           </div>
 
