@@ -1,260 +1,36 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReportsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { motion } from "framer-motion"
-import {
-  Download,
-  Filter,
-  Users,
-  Clock,
-  TrendingUp,
-  FileText,
-  BarChart3,
-  Loader2,
-  Search,
-  Building,
-  Eye
-} from "lucide-react"
-import { STATUS_LABELS, MESSAGES, NAVIGATION, TABLE_HEADERS } from "@/lib/constants"
-import { AttendanceStatus, UserRole } from "@prisma/client"
-import { format } from "date-fns"
-import { id } from "date-fns/locale"
+import { ReportsFilter } from "./components/reports-filter"
+import { StatCards } from "./components/stat-cards"
+import { ReportsTable } from "./components/reports-table"
+import { BreakdownCards } from "./components/breakdown-cards"
+import { useReports } from "./hooks/use-reports"
+import { NAVIGATION } from "@/lib/constants"
 
-// Helper function to format address display
-const formatAddress = (address?: string | null) => {
-  if (!address) return null
-
-  // If address starts with "Koordinat:", extract the coordinates part
-  if (address.startsWith('Koordinat:')) {
-    const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
-    if (coordsMatch) {
-      return `${coordsMatch[1]}, ${coordsMatch[2]}`
-    }
-  }
-
-  return address
-}
-
-interface ReportRecord {
-  id: string
-  date: Date
-  user: {
-    id: string
-    name: string
-    department: string | null
-    position: string | null
-    email: string
-  }
-  checkInTime: Date | null
-  checkOutTime: Date | null
-  checkInAddress: string | null
-  checkOutAddress: string | null
-  workHours: number | null
-  overtimeHours: number | null
-  lateMinutes: number | null
-  status: AttendanceStatus
-  notes: string | null
-}
-
-interface ReportSummary {
-  totalRecords: number
-  totalUsers: number
-  totalWorkHours: number
-  totalOvertimeHours: number
-  averageWorkHours: number
-  statusBreakdown: Record<string, number>
-  departmentBreakdown: Record<string, number>
-  dateRange: {
-    startDate: Date | null
-    endDate: Date | null
-  }
-}
-
-interface ReportFilters {
-  startDate: string
-  endDate: string
-  userId: string
-  department: string
-  status: string
-}
 
 export default function ReportsPage() {
-  const { data: session, status } = useSession()
-  const [records, setRecords] = useState<ReportRecord[]>([])
-  const [summary, setSummary] = useState<ReportSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isExporting, setIsExporting] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
-  // Memoize initial filter values to prevent recreation on every render
-  const initialFilters = useMemo(() => ({
-    startDate: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 30 days ago
-    endDate: format(new Date(), 'yyyy-MM-dd'),
-    userId: '',
-    department: '',
-    status: ''
-  }), [])
-
-  // Filter states
-  const [filters, setFilters] = useState<ReportFilters>(initialFilters)
-
-  // Available departments and users for filtering
-  const [departments, setDepartments] = useState<string[]>([])
-  const [users, setUsers] = useState<{ id: string; name: string; department: string }[]>([])
-
-  // Memoize loadReports function to prevent recreation on every render
-  const loadReports = useCallback(async () => {
-    setIsLoading(true)
-    setMessage(null)
-
-    try {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
-      params.append('includeSummary', 'true')
-
-      const response = await fetch(`/api/reports?${params.toString()}`)
-
-      if (response.ok) {
-        const data = await response.json()
-        setRecords(data.records)
-        setSummary(data.summary)
-      } else {
-        const error = await response.json()
-        setMessage({ type: 'error', text: error.error || MESSAGES.ERROR })
-      }
-    } catch {
-      setMessage({ type: 'error', text: MESSAGES.ERROR })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [filters])
-
-  // Memoize loadFilterOptions function
-  const loadFilterOptions = useCallback(async () => {
-    try {
-      // Load departments
-      const deptResponse = await fetch('/api/users/departments')
-      if (deptResponse.ok) {
-        const depts = await deptResponse.json()
-        setDepartments(depts)
-      }
-
-      // Load users based on role
-      const usersResponse = await fetch('/api/users')
-      if (usersResponse.ok) {
-        const userList = await usersResponse.json()
-        setUsers(userList)
-      }
-    } catch (error) {
-      console.error('Error loading filter options:', error)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (status === "loading") return
-
-    if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
-      return
-    }
-
-    // Load initial data and filter options only once when component mounts
-    loadReports()
-    loadFilterOptions()
-  }, [status, session, loadReports, loadFilterOptions])
-
-  // Separate useEffect to handle filter changes
-  useEffect(() => {
-    if (status === "authenticated" && session) {
-      loadReports()
-    }
-  }, [filters, status, session, loadReports])
-
-  // Memoize handleFilterChange to prevent recreation on every render
-  const handleFilterChange = useCallback((field: keyof ReportFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }))
-  }, [])
-
-  // Memoize handleExport function
-  const handleExport = useCallback(async (exportFormat: 'csv' | 'pdf') => {
-    setIsExporting(true)
-    setMessage(null)
-
-    try {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
-      params.append('format', exportFormat)
-
-      const response = await fetch(`/api/reports/export?${params.toString()}`)
-
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.style.display = 'none'
-        a.href = url
-        a.download = `attendance-report-${exportFormat}-${format(new Date(), 'yyyy-MM-dd')}.${exportFormat}`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        setMessage({ type: 'success', text: MESSAGES.EXPORT_SUCCESS })
-      } else {
-        const error = await response.json()
-        setMessage({ type: 'error', text: error.error || `Failed to export ${exportFormat.toUpperCase()}` })
-      }
-    } catch {
-      setMessage({ type: 'error', text: `Failed to export ${exportFormat.toUpperCase()}` })
-    } finally {
-      setIsExporting(false)
-    }
-  }, [filters])
-
-  // Handle PDF preview in new tab
-  const handlePreview = useCallback(async () => {
-    setMessage(null)
-
-    try {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
-      params.append('format', 'pdf')
-      params.append('preview', 'true')
-
-      // Open PDF preview in new tab
-      const previewUrl = `/api/reports/export?${params.toString()}`
-      window.open(previewUrl, '_blank', 'noopener,noreferrer')
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to open PDF preview' })
-    }
-  }, [filters])
-
-  // Memoize canExport to prevent recreation on every render
-  const canExport = useMemo(() =>
-    session?.user.role === UserRole.admin ||
-    session?.user.role === UserRole.manager,
-    [session?.user.role]
-  )
+  // Use the custom hook for all reports logic
+  const {
+    records,
+    summary,
+    isLoading,
+    isExporting,
+    message,
+    filters,
+    departments,
+    users,
+    canExport,
+    loadReports,
+    handleFilterChange,
+    handleExport,
+    handlePreview,
+    setFilters,
+    initialFilters
+  } = useReports()
 
   if (status === "loading" || isLoading) {
     return <ReportsSkeleton />
@@ -262,6 +38,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-8">
+      {/* Page Header */}
       <motion.div
         className="space-y-2"
         initial={{ opacity: 0, y: -20 }}
@@ -276,296 +53,24 @@ export default function ReportsPage() {
         </p>
       </motion.div>
 
-      {/* Filters */}
+      {/* Filter Component */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}
       >
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Filter className="h-5 w-5" />
-              Filter Laporan
-            </CardTitle>
-            <CardDescription className="text-white/70">
-              Sesuaikan filter untuk mendapatkan data yang diinginkan
-            </CardDescription>
-          </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Date Range Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-              <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-              <Label className="text-sm font-semibold text-white/90">Periode Tanggal</Label>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate" className="text-sm font-medium text-white/80">
-                  Tanggal Mulai
-                </Label>
-                <div className="relative">
-                  <input
-                    id="startDate"
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                    className="flex h-11 w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-white cursor-pointer"
-                    onClick={(e) => {
-                      // Ensure the date picker opens when clicking anywhere on the input
-                      if (e.currentTarget.showPicker) {
-                        e.currentTarget.showPicker();
-                      } else {
-                        // Fallback for browsers that don't support showPicker
-                        e.currentTarget.focus();
-                      }
-                    }}
-                    onFocus={(e) => {
-                      // Additional fallback to ensure picker opens on focus
-                      if (!e.currentTarget.showPicker) {
-                        // For older browsers, we can try to simulate a click on the calendar icon
-                        setTimeout(() => {
-                          const calendarIcon = e.currentTarget.parentElement?.querySelector('::-webkit-calendar-picker-indicator');
-                          if (calendarIcon) {
-                            (calendarIcon as HTMLElement).click();
-                          }
-                        }, 10);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endDate" className="text-sm font-medium text-white/80">
-                  Tanggal Akhir
-                </Label>
-                <div className="relative">
-                  <input
-                    id="endDate"
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                    className="flex h-11 w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-white cursor-pointer"
-                    onClick={(e) => {
-                      // Ensure the date picker opens when clicking anywhere on the input
-                      if (e.currentTarget.showPicker) {
-                        e.currentTarget.showPicker();
-                      } else {
-                        // Fallback for browsers that don't support showPicker
-                        e.currentTarget.focus();
-                      }
-                    }}
-                    onFocus={(e) => {
-                      // Additional fallback to ensure picker opens on focus
-                      if (!e.currentTarget.showPicker) {
-                        // For older browsers, we can try to simulate a click on the calendar icon
-                        setTimeout(() => {
-                          const calendarIcon = e.currentTarget.parentElement?.querySelector('::-webkit-calendar-picker-indicator');
-                          if (calendarIcon) {
-                            (calendarIcon as HTMLElement).click();
-                          }
-                        }, 10);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Date Range Buttons */}
-            <div className="space-y-2">
-              <span className="text-xs text-white/60 block">Pilih periode:</span>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date()
-                    const sevenDaysAgo = new Date(today)
-                    sevenDaysAgo.setDate(today.getDate() - 7)
-                    setFilters(prev => ({
-                      ...prev,
-                      startDate: format(sevenDaysAgo, 'yyyy-MM-dd'),
-                      endDate: format(today, 'yyyy-MM-dd')
-                    }))
-                  }}
-                  className="h-8 px-3 text-xs border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 hover:text-emerald-100 transition-all duration-200 cursor-pointer"
-                >
-                  7 Hari Terakhir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date()
-                    const thirtyDaysAgo = new Date(today)
-                    thirtyDaysAgo.setDate(today.getDate() - 30)
-                    setFilters(prev => ({
-                      ...prev,
-                      startDate: format(thirtyDaysAgo, 'yyyy-MM-dd'),
-                      endDate: format(today, 'yyyy-MM-dd')
-                    }))
-                  }}
-                  className="h-8 px-3 text-xs border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 hover:text-emerald-100 transition-all duration-200 cursor-pointer"
-                >
-                  30 Hari Terakhir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date()
-                    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-                    setFilters(prev => ({
-                      ...prev,
-                      startDate: format(currentMonthStart, 'yyyy-MM-dd'),
-                      endDate: format(today, 'yyyy-MM-dd')
-                    }))
-                  }}
-                  className="h-8 px-3 text-xs border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 hover:text-emerald-100 transition-all duration-200 cursor-pointer"
-                >
-                  Bulan Ini
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Filters Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status" className="text-sm font-medium text-white/80">
-                Status
-              </Label>
-              <Select value={filters.status || "all"} onValueChange={(value) => handleFilterChange('status', value === "all" ? "" : value)}>
-                <SelectTrigger
-                  data-select-id="status"
-                  className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50 h-11 cursor-pointer"
-                >
-                  <SelectValue placeholder="Semua Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                  <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Status</SelectItem>
-                  <SelectItem value="present" className="text-white hover:bg-white/10 focus:bg-white/10">Hadir</SelectItem>
-                  <SelectItem value="late" className="text-white hover:bg-white/10 focus:bg-white/10">Terlambat</SelectItem>
-                  <SelectItem value="absent" className="text-white hover:bg-white/10 focus:bg-white/10">Tidak Hadir</SelectItem>
-                  <SelectItem value="half_day" className="text-white hover:bg-white/10 focus:bg-white/10">Setengah Hari</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {session?.user.role !== UserRole.user && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="userId" className="text-sm font-medium text-white/80">
-                    Pengguna
-                  </Label>
-                  <Select value={filters.userId || "all"} onValueChange={(value) => handleFilterChange('userId', value === "all" ? "" : value)}>
-                    <SelectTrigger
-                      data-select-id="userId"
-                      className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50 h-11 cursor-pointer"
-                    >
-                      <SelectValue placeholder="Semua Pengguna" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                      <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Pengguna</SelectItem>
-                      {users.map(user => (
-                        <SelectItem key={user.id} value={user.id} className="text-white hover:bg-white/10 focus:bg-white/10">
-                          {user.name} ({user.department})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="department" className="text-sm font-medium text-white/80">
-                    Departemen
-                  </Label>
-                  <Select value={filters.department || "all"} onValueChange={(value) => handleFilterChange('department', value === "all" ? "" : value)}>
-                    <SelectTrigger
-                      data-select-id="department"
-                      className="w-full bg-white/10 border-white/20 text-white backdrop-blur-md focus:ring-emerald-400/50 focus:border-emerald-400/50 h-11 cursor-pointer"
-                    >
-                      <SelectValue placeholder="Semua Departemen" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                      <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
-                      {departments.map(dept => (
-                        <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
-            <div className="flex gap-3">
-              <Button
-                onClick={loadReports}
-                variant="glass"
-                className="bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/30 text-emerald-100 hover:text-white"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Terapkan Filter
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setFilters(initialFilters)}
-                className="border-white/20 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-              >
-                Reset Filter
-              </Button>
-            </div>
-
-            {canExport && (
-              <div className="flex gap-3 sm:ml-auto">
-                <Button
-                  variant="outline"
-                  onClick={() => handleExport('csv')}
-                  disabled={isExporting || records.length === 0}
-                  className="border-white/20 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  Export CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handlePreview}
-                  disabled={isExporting || records.length === 0}
-                  className="border-white/20 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview PDF
-                </Button>
-                <Button
-                  variant="glass"
-                  onClick={() => handleExport('pdf')}
-                  disabled={isExporting || records.length === 0}
-                  className="bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/30 text-emerald-100 hover:text-white"
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
-                  Export PDF
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        </Card>
+        <ReportsFilter
+          filters={filters}
+          departments={departments}
+          users={users}
+          canExport={canExport}
+          isExporting={isExporting}
+          onFilterChange={handleFilterChange}
+          onLoadReports={loadReports}
+          onExport={handleExport}
+          onPreview={handlePreview}
+          onResetFilters={() => setFilters(initialFilters)}
+        />
       </motion.div>
 
       {/* Summary Statistics */}
@@ -574,137 +79,19 @@ export default function ReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
         >
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Total Record
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-white/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{summary.totalRecords}</div>
-              <p className="text-xs text-white/60">
-                Data absensi dalam periode
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Total Pengguna
-              </CardTitle>
-              <Users className="h-4 w-4 text-white/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{summary.totalUsers}</div>
-              <p className="text-xs text-white/60">
-                Pengguna dengan data absensi
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Total Jam Kerja
-              </CardTitle>
-              <Clock className="h-4 w-4 text-white/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{summary.totalWorkHours}j</div>
-              <p className="text-xs text-white/60">
-                Rata-rata {summary.averageWorkHours}j per hari
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card variant="glass">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Lembur
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-white/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{summary.totalOvertimeHours}j</div>
-              <p className="text-xs text-white/60">
-                Total jam lembur
-              </p>
-            </CardContent>
-          </Card>
+          <StatCards summary={summary} />
         </motion.div>
       )}
 
-      {/* Status and Department Breakdown */}
+      {/* Breakdown Cards */}
       {summary && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="grid gap-4 md:grid-cols-2"
         >
-          <Card variant="glass">
-            <CardHeader>
-              <CardTitle className="text-white">Status Breakdown</CardTitle>
-              <CardDescription className="text-white/70">
-                Distribusi status absensi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(summary.statusBreakdown).map(([status, count]) => (
-                  <div key={status} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${status === 'present' ? 'bg-emerald-400' : status === 'late' ? 'bg-yellow-400' : 'bg-gray-400'}`}></div>
-                      <Badge
-                        variant={status === 'present' ? 'default' : 'secondary'}
-                        className={status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
-                      >
-                        {STATUS_LABELS[status as AttendanceStatus]}
-                      </Badge>
-                      <span className="text-sm text-white/60">
-                        {count} record
-                      </span>
-                    </div>
-                    <span className="font-semibold text-white">
-                      {((count / summary.totalRecords) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card variant="glass">
-            <CardHeader>
-              <CardTitle className="text-white">Department Breakdown</CardTitle>
-              <CardDescription className="text-white/70">
-                Distribusi berdasarkan departemen
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(summary.departmentBreakdown).map(([dept, count]) => (
-                  <div key={dept} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                      <Building className="h-4 w-4 text-blue-400" />
-                      <span className="text-sm font-medium text-white">{dept}</span>
-                      <span className="text-sm text-white/60">
-                        {count} record
-                      </span>
-                    </div>
-                    <span className="font-semibold text-white">
-                      {((count / summary.totalRecords) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <BreakdownCards summary={summary} />
         </motion.div>
       )}
 
@@ -715,100 +102,16 @@ export default function ReportsPage() {
         </Alert>
       )}
 
-      {/* Detailed Records */}
+      {/* Data Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.5 }}
       >
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="text-white">Data Absensi Detail</CardTitle>
-            <CardDescription className="text-white/70">
-              {records.length} record ditemukan
-              {summary?.dateRange.startDate && summary?.dateRange.endDate && (
-                <> dari {format(summary.dateRange.startDate, 'dd MMM yyyy', { locale: id })} hingga {format(summary.dateRange.endDate, 'dd MMM yyyy', { locale: id })}</>
-              )}
-            </CardDescription>
-          </CardHeader>
-        <CardContent>
-          {records.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.DATE}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.USER}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_IN}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_OUT}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.WORK_HOURS}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.STATUS}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.LOCATION}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((record) => (
-                    <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
-                      <td className="p-3 text-white">
-                        {format(record.date, 'dd MMM yyyy', { locale: id })}
-                      </td>
-                      <td className="p-3">
-                        <div>
-                          <p className="font-medium text-white">{record.user.name}</p>
-                          <p className="text-sm text-white/60">
-                            {record.user.department} • {record.user.position}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.workHours ? `${record.workHours}j` : '-'}
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant={record.status === 'present' ? 'default' : 'secondary'}
-                          className={record.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
-                        >
-                          {STATUS_LABELS[record.status]}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-white/80">
-                        <div className="text-sm space-y-1">
-                          {record.checkInAddress && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-emerald-400">📍</span>
-                              <span>Masuk: {formatAddress(record.checkInAddress)}</span>
-                            </div>
-                          )}
-                          {record.checkOutAddress && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-blue-400">📍</span>
-                              <span>Pulang: {formatAddress(record.checkOutAddress)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="bg-white/5 backdrop-blur-sm rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <BarChart3 className="h-12 w-12 text-white/40" />
-              </div>
-              <p className="text-white/60 text-lg">Tidak ada data absensi untuk filter yang dipilih</p>
-              <p className="text-white/40 text-sm mt-2">Coba ubah filter atau periode waktu untuk melihat data</p>
-            </div>
-          )}
-        </CardContent>
-        </Card>
+        <ReportsTable
+          records={records}
+          summary={summary}
+        />
       </motion.div>
     </div>
   )
