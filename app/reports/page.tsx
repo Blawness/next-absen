@@ -32,7 +32,7 @@ export default function ReportsPage() {
     initialFilters
   } = useReports()
 
-  if (status === "loading" || isLoading) {
+  if (isLoading) {
     return <ReportsSkeleton />
   }
 
