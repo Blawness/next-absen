@@ -333,13 +333,13 @@ function generatePDFHTML(records: any[], startDate?: string | null, endDate?: st
         .header {
           text-align: center;
           margin-bottom: 30px;
-          border-bottom: 2px solid #2563eb;
+          border-bottom: 2px solid #059669;
           padding-bottom: 20px;
         }
 
         .header h1 {
           margin: 0;
-          color: #2563eb;
+          color: #059669;
           font-size: 28px;
           font-weight: 700;
         }
@@ -398,7 +398,7 @@ function generatePDFHTML(records: any[], startDate?: string | null, endDate?: st
           margin: 0;
           font-size: 24px;
           font-weight: 700;
-          color: #2563eb;
+          color: #059669;
         }
 
         .summary-card .label {
@@ -422,7 +422,7 @@ function generatePDFHTML(records: any[], startDate?: string | null, endDate?: st
         }
 
         th {
-          background: linear-gradient(135deg, #2563eb, #3b82f6);
+          background: linear-gradient(135deg, #059669, #10b981);
           color: white;
           font-weight: 600;
           font-size: 11px;
