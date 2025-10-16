@@ -12,6 +12,20 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Absensi Standalone",
   description: "Sistem manajemen absensi dengan GPS tracking",
+  icons: {
+    icon: "/icons/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
+    other: [
+      {
+        rel: "android-chrome-192x192",
+        url: "/icons/android-chrome-192x192.png",
+      },
+      {
+        rel: "android-chrome-512x512",
+        url: "/icons/android-chrome-512x512.png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -21,6 +35,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
+      <head>
+        {/* Additional meta tags for better icon support */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/android-chrome-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icons/android-chrome-512x512.png" />
+        <meta name="theme-color" content="#000000" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
           <AppLayout>{children}</AppLayout>
