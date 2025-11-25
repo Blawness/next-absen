@@ -27,6 +27,8 @@ export interface DataTableProps<T = User> {
   onEdit?: (user: T) => void
   onDelete?: (user: T) => void
   onToggleStatus?: (user: T) => void
+  onPasswordReset?: (user: T) => void
+  onViewActivity?: (user: T) => void
 }
 
 export type SortDirection = "asc" | "desc" | null

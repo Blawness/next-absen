@@ -219,6 +219,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  padding-bottom: 0.2em; /* Prevent descenders from being cut off */
 }
 
 /* Animation Classes */

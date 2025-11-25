@@ -10,11 +10,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
-import { Loader2, Plus } from "lucide-react"
+import { Loader2, Plus, Download } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
+import { UserStatistics } from "@/components/users/user-statistics"
+import { PasswordResetDialog } from "@/components/users/password-reset-dialog"
+import { UserActivityDialog } from "@/components/users/user-activity-dialog"
+import { BulkActionsToolbar } from "@/components/users/bulk-actions-toolbar"
 
 interface User {
   id: string
@@ -47,6 +51,11 @@ export default function UsersPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
+  const [isActivityLogOpen, setIsActivityLogOpen] = useState(false)
+  const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
@@ -225,6 +234,76 @@ export default function UsersPage() {
     }
   }
 
+  const handleExportUsers = async () => {
+    setIsExporting(true)
+    try {
+      const response = await fetch('/api/users/export?format=csv')
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        setMessage({ type: 'success', text: 'Users exported successfully' })
+      } else {
+        setMessage({ type: 'error', text: 'Failed to export users' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'An error occurred during export' })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handlePasswordReset = (user: User) => {
+    setSelectedUserForAction(user)
+    setIsPasswordResetOpen(true)
+  }
+
+  const handleViewActivity = (user: User) => {
+    setSelectedUserForAction(user)
+    setIsActivityLogOpen(true)
+  }
+
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedUsers.length === 0) return
+
+    const confirmMessage = `Are you sure you want to ${action} ${selectedUsers.length} user(s)?`
+    if (!confirm(confirmMessage)) return
+
+    try {
+      const response = await fetch('/api/users/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          userIds: selectedUsers
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMessage({
+          type: 'success',
+          text: `${data.successCount} user(s) ${action}d successfully`
+        })
+        setSelectedUsers([])
+        loadUsers()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || `Failed to ${action} users` })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'An error occurred' })
+    }
+  }
+
   if (status === "loading" || isLoading) {
     return <UsersSkeleton />
   }
@@ -249,17 +328,44 @@ export default function UsersPage() {
             Kelola pengguna sistem dan peran mereka
           </p>
         </div>
-        <Button onClick={handleCreateUser} variant="glass">
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah User
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExportUsers}
+            variant="outline"
+            disabled={isExporting}
+            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Export
+          </Button>
+          <Button onClick={handleCreateUser} variant="glass">
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah User
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Statistics Dashboard */}
+      <UserStatistics />
 
       {message && (
         <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
           <AlertDescription>{message.text}</AlertDescription>
         </Alert>
       )}
+
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedUsers.length}
+        onClearSelection={() => setSelectedUsers([])}
+        onActivate={() => handleBulkAction('activate')}
+        onDeactivate={() => handleBulkAction('deactivate')}
+        onDelete={() => handleBulkAction('delete')}
+      />
 
       {/* Users Table */}
       <motion.div
@@ -284,6 +390,8 @@ export default function UsersPage() {
           onEdit={handleEditUser}
           onDelete={(user) => handleDeleteUser(user.id)}
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
+          onPasswordReset={handlePasswordReset}
+          onViewActivity={handleViewActivity}
         />
       </motion.div>
 
@@ -306,7 +414,7 @@ export default function UsersPage() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
               </div>
@@ -316,7 +424,7 @@ export default function UsersPage() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                 />
               </div>
@@ -325,7 +433,7 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="department">Departemen</Label>
-                <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
+                <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue placeholder="Pilih Departemen" />
                   </SelectTrigger>
@@ -343,14 +451,14 @@ export default function UsersPage() {
                 <Input
                   id="position"
                   value={formData.position}
-                  onChange={(e) => setFormData({...formData, position: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(value: UserRole) => setFormData({...formData, role: value})}>
+              <Select value={formData.role} onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}>
                 <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -370,7 +478,7 @@ export default function UsersPage() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required={!editingUser}
                     minLength={8}
                   />
@@ -381,7 +489,7 @@ export default function UsersPage() {
                     id="confirmPassword"
                     type="password"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     required={!editingUser}
                     minLength={8}
                   />
@@ -401,6 +509,29 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Password Reset Dialog */}
+      {selectedUserForAction && (
+        <PasswordResetDialog
+          open={isPasswordResetOpen}
+          onOpenChange={setIsPasswordResetOpen}
+          userId={selectedUserForAction.id}
+          userName={selectedUserForAction.name}
+          onSuccess={() => {
+            setMessage({ type: 'success', text: 'Password reset successfully' })
+          }}
+        />
+      )}
+
+      {/* User Activity Dialog */}
+      {selectedUserForAction && (
+        <UserActivityDialog
+          open={isActivityLogOpen}
+          onOpenChange={setIsActivityLogOpen}
+          userId={selectedUserForAction.id}
+          userName={selectedUserForAction.name}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, ChevronUp, ChevronsUpDown, ArrowUpDown, Edit, X, Trash2, UserCheck } from "lucide-react"
+import { ChevronDown, ChevronUp, ChevronsUpDown, ArrowUpDown, Edit, X, Trash2, UserCheck, Key, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -28,6 +28,8 @@ interface DataTableContentProps {
   onEdit?: (user: User) => void
   onDelete?: (user: User) => void
   onToggleStatus?: (user: User) => void
+  onPasswordReset?: (user: User) => void
+  onViewActivity?: (user: User) => void
 }
 
 export function DataTableContent({
@@ -44,6 +46,8 @@ export function DataTableContent({
   onEdit,
   onDelete,
   onToggleStatus,
+  onPasswordReset,
+  onViewActivity,
 }: DataTableContentProps) {
   const visibleColumnsArray = columns.filter(col => visibleColumns.has(col.id))
 
@@ -191,6 +195,26 @@ export function DataTableContent({
                             title="Hapus"
                           >
                             <Trash2 className="h-3 w-3" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onPasswordReset?.(user)}
+                            className="h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 md:h-8 md:w-8"
+                            title="Reset Password"
+                          >
+                            <Key className="h-3 w-3" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onViewActivity?.(user)}
+                            className="h-8 w-8 p-0 hover:bg-purple-500/20 hover:text-purple-400 md:h-8 md:w-8"
+                            title="Lihat Aktivitas"
+                          >
+                            <Activity className="h-3 w-3" />
                           </Button>
                         </div>
                       ) : column.cell ? (

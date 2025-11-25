@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/data-table"
 import { DataTableProps, SortDirection, Density } from "@/types/data-table-types"
 
-export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleStatus }: DataTableProps) {
+export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleStatus, onPasswordReset, onViewActivity }: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -178,6 +178,8 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
         onEdit={onEdit}
         onDelete={onDelete}
         onToggleStatus={onToggleStatus}
+        onPasswordReset={onPasswordReset}
+        onViewActivity={onViewActivity}
       />
     </div>
   )
