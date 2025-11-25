@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { AttendanceStatus, UserRole } from "@prisma/client"
+import { AttendanceStatus, UserRole, Prisma } from "@prisma/client"
 
 export class HttpError extends Error {
   status: number
@@ -103,8 +103,9 @@ export interface KpiQuery {
 async function getGracePeriodMinutes(): Promise<number> {
   try {
     const settings = await prisma.systemSettings.findFirst()
-    const minutes = (settings?.businessHours as any)?.gracePeriodMinutes
-    const num = typeof minutes === "number" ? minutes : parseInt(minutes)
+    const businessHours = settings?.businessHours as Record<string, unknown> | null
+    const minutes = businessHours?.gracePeriodMinutes
+    const num = typeof minutes === "number" ? minutes : parseInt(String(minutes || 0))
     return Number.isFinite(num) && num >= 0 ? num : 15
   } catch {
     return 15
@@ -123,7 +124,7 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const { start, end } = resolveRange(query.period, new Date(), query.start, query.end)
   const businessDays = countBusinessDays({ start, end })
 
-  const where: any = {
+  const where: Prisma.AbsensiRecordWhereInput = {
     date: {
       gte: start,
       lte: end,

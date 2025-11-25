@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getKpi, HttpError } from "./services"
+import { getKpi, HttpError, ScopeType } from "./services"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ period: string }> }) {
   try {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ peri
 
     const data = await getKpi({
       period: periodParam,
-      scope: scope as any,
+      scope: scope as ScopeType,
       department,
       userId,
       start,

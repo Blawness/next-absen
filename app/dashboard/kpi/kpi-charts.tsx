@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Users, Clock, AlertTriangle, CheckCircle } from "lucide-react"
-import { KpiResponse } from "../api/kpi/[period]/types"
+import { KpiResponse } from "../../api/kpi/[period]/types"
 
 interface KpiChartsProps {
   data: KpiResponse | null
@@ -135,9 +135,8 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
                   <p className="text-xs text-white/60">
                     {metric.description}
                   </p>
-                  <div className={`flex items-center text-xs ${
-                    metric.trend.direction === "up" ? "text-green-400" : "text-red-400"
-                  }`}>
+                  <div className={`flex items-center text-xs ${metric.trend.direction === "up" ? "text-green-400" : "text-red-400"
+                    }`}>
                     <TrendIcon className="w-3 h-3 mr-1" />
                     {metric.trend.change}%
                   </div>
@@ -171,7 +170,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
               <div className="text-white/60">Scope</div>
               <div className="text-white font-medium capitalize">
                 {data.scope === "org" ? "Organisasi" :
-                 data.scope === "department" ? "Divisi" : "Personal"}
+                  data.scope === "department" ? "Divisi" : "Personal"}
               </div>
             </div>
             <div>

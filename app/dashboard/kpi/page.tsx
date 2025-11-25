@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+
 import { KpiFilters } from "./kpi-filters"
 import { KpiCharts } from "./kpi-charts"
-import { KpiResponse } from "../api/kpi/[period]/types"
+import { KpiResponse } from "../../api/kpi/[period]/types"
 import { UserRole } from "@prisma/client"
 
 interface SessionUser {

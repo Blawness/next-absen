@@ -185,7 +185,7 @@ export function PasswordResetDialog({
                                     </Button>
                                 </div>
                                 <p className="text-xs text-white/60">
-                                    Make sure to save this password. It won't be shown again.
+                                    Make sure to save this password. It won&apos;t be shown again.
                                 </p>
                             </AlertDescription>
                         </Alert>
