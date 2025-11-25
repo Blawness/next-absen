@@ -122,7 +122,7 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
                   <Link href={item.href}>
                     <Button
                       variant="glassOutline"
-                      className="w-full justify-start text-white hover:bg-white/20 backdrop-blur-md"
+                      className="w-full justify-start text-white hover:bg-white/20 backdrop-blur-md rounded-xl"
                       onClick={() => setIsOpen(false)}
                     >
                       <Icon className="mr-3 h-5 w-5" />
@@ -143,7 +143,7 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
             >
               <Button
                 variant="glassOutline"
-                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/20 border-red-400/30"
+                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/20 border-red-400/30 rounded-xl"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-3 h-5 w-5" />
@@ -316,7 +316,7 @@ export function Sidebar({ className }: SidebarProps) {
                   <Link href={item.href}>
                     <Button
                       variant="glassOutline"
-                      className="w-full justify-start text-white hover:bg-white/20 backdrop-blur-md"
+                      className="w-full justify-start text-white hover:bg-white/20 backdrop-blur-md rounded-xl"
                       onClick={() => setIsOpen(false)}
                     >
                       <Icon className="mr-3 h-5 w-5" />
@@ -337,7 +337,7 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <Button
                 variant="glassOutline"
-                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/20 border-red-400/30"
+                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/20 border-red-400/30 rounded-xl"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-3 h-5 w-5" />

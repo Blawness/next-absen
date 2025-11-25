@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         {/* Additional meta tags for better icon support */}
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
@@ -42,7 +42,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="512x512" href="/icons/android-chrome-512x512.png" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <SessionProvider>
           <AppLayout>{children}</AppLayout>
         </SessionProvider>

@@ -86,73 +86,74 @@ export default function SignInPage() {
                 Masuk ke sistem absensi dengan GPS tracking
               </CardDescription>
             </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">{FORM_LABELS.EMAIL}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">{FORM_LABELS.PASSWORD}</Label>
-                <div className="relative">
+            <CardContent className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">{FORM_LABELS.EMAIL}</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="w-full pr-10"
+                    className="w-full glass-input text-white placeholder:text-white/40 placeholder:drop-shadow-md"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">{FORM_LABELS.PASSWORD}</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="w-full pr-10 glass-input text-white placeholder:text-white/40 placeholder:drop-shadow-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70 hover:text-white"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="glass"
+                  className="w-full h-12 text-base font-medium"
+                  disabled={isLoading || !email || !password}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {NAVIGATION.LOGIN}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm text-white/60">
+                <p>Sistem manajemen absensi dengan GPS tracking</p>
+                <p className="mt-1">Pastikan GPS Anda aktif untuk check-in/out</p>
               </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-medium bg-primary hover:bg-primary/90"
-                disabled={isLoading || !email || !password}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {NAVIGATION.LOGIN}
-              </Button>
-            </form>
-
-            <div className="text-center text-sm text-white/60">
-              <p>Sistem manajemen absensi dengan GPS tracking</p>
-              <p className="mt-1">Pastikan GPS Anda aktif untuk check-in/out</p>
-            </div>
-          </CardContent>
+            </CardContent>
           </Card>
         </motion.div>
       </div>

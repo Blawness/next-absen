@@ -43,6 +43,7 @@ export default function KpiPage() {
   const fetchKpiData = async (filters: {
     period: "weekly" | "monthly"
     department?: string
+    userId?: string
     startDate?: string
     endDate?: string
   }) => {
@@ -55,10 +56,14 @@ export default function KpiPage() {
       // Build query parameters
       const params = new URLSearchParams()
       params.set("scope", session.role === UserRole.admin ? "org" :
-                        session.role === UserRole.manager ? "department" : "user")
+        session.role === UserRole.manager ? "department" : "user")
 
       if (filters.department) {
         params.set("department", filters.department)
+      }
+
+      if (filters.userId) {
+        params.set("userId", filters.userId)
       }
 
       if (filters.startDate) {
@@ -94,6 +99,7 @@ export default function KpiPage() {
   const handleFiltersChange = (filters: {
     period: "weekly" | "monthly"
     department?: string
+    userId?: string
     startDate?: string
     endDate?: string
   }) => {
@@ -117,8 +123,15 @@ export default function KpiPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 relative">
+      {/* Floating Orbs Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="floating-orb"></div>
+        <div className="floating-orb"></div>
+        <div className="floating-orb"></div>
+      </div>
+
+      <div className="flex items-center justify-between relative z-10">
         <h1 className="text-2xl font-semibold tracking-tight">KPI Dashboard</h1>
         <div className="text-xs text-muted-foreground">
           Role: {session.role} {session.department && `(${session.department})`}
