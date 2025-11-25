@@ -1,16 +1,5 @@
 import * as React from "react"
-import { motion } from "framer-motion"
-
 import { cn } from "@/lib/utils"
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5 }
-  }
-}
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -18,8 +7,8 @@ const Card = React.forwardRef<
     variant?: "default" | "glass"
     animate?: boolean
   }
->(({ className, variant = "default", animate = true, ...props }, ref) => {
-  const CardComponent = (
+>(({ className, variant = "default", animate = false, ...props }, ref) => {
+  return (
     <div
       ref={ref}
       className={cn(
@@ -32,12 +21,6 @@ const Card = React.forwardRef<
       {...props}
     />
   )
-
-  return animate ? (
-    <motion.div variants={cardVariants} initial="hidden" animate="visible">
-      {CardComponent}
-    </motion.div>
-  ) : CardComponent
 })
 Card.displayName = "Card"
 

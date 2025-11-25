@@ -14,7 +14,8 @@ import {
   User,
   LogOut,
   Menu,
-  X
+  X,
+  TrendingUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAVIGATION, ROLE_LABELS } from "@/lib/constants"
@@ -185,6 +186,12 @@ const navigationItems: Array<{
     href: "/dashboard",
     label: NAVIGATION.DASHBOARD,
     icon: LayoutDashboard,
+    roles: [UserRole.admin, UserRole.manager, UserRole.user]
+  },
+  {
+    href: "/dashboard/kpi",
+    label: "KPI",
+    icon: TrendingUp,
     roles: [UserRole.admin, UserRole.manager, UserRole.user]
   },
   {
