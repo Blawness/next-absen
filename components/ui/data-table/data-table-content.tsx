@@ -176,40 +176,6 @@ export function DataTableContent({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onToggleStatus?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-white/10 md:h-8 md:w-8"
-                            title={user.isActive ? "Nonaktifkan" : "Aktifkan"}
-                          >
-                            {user.isActive ? (
-                              <UserCheck className="h-3 w-3 text-green-400" />
-                            ) : (
-                              <X className="h-3 w-3 text-red-400" />
-                            )}
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDelete?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 md:h-8 md:w-8"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onPasswordReset?.(user)}
-                            className="h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 md:h-8 md:w-8"
-                            title="Reset Password"
-                          >
-                            <Key className="h-3 w-3" />
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => onViewActivity?.(user)}
                             className="h-8 w-8 p-0 hover:bg-purple-500/20 hover:text-purple-400 md:h-8 md:w-8"
                             title="Lihat Aktivitas"
@@ -235,7 +201,7 @@ export function DataTableContent({
           </TableBody>
         </Table>
       </div>
-    </Card>
+    </Card >
   )
 }
 

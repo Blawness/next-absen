@@ -27,11 +27,9 @@ export async function GET(_request: NextRequest) {
 
     // eslint-disable-next-line prefer-const
     let whereClause: {
-      isActive: boolean
+      isActive?: boolean
       department?: string
-    } = {
-      isActive: true
-    }
+    } = {}
 
     // Managers can only see users in their department
     if (session.user.role === UserRole.manager) {

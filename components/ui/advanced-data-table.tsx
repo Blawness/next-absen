@@ -21,7 +21,7 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [density, setDensity] = useState<Density>("comfortable")
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(columns.filter(col => col.id !== "select" && col.id !== "actions").map(col => col.id))
+    new Set(columns.map(col => col.id))
   )
   const [showBulkActions, setShowBulkActions] = useState(false)
 
@@ -127,7 +127,7 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
   }
 
   const toggleColumnVisibility = () => {
-    const allColumns = columns.filter(col => col.id !== "select" && col.id !== "actions").map(col => col.id)
+    const allColumns = columns.map(col => col.id)
     if (visibleColumns.size === allColumns.length) {
       setVisibleColumns(new Set())
     } else {

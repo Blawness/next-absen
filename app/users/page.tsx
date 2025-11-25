@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
-import { Loader2, Plus, Download } from "lucide-react"
+import { Loader2, Plus, Download, Trash2, Key, UserCheck, X } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { NAVIGATION } from "@/lib/constants"
@@ -225,6 +225,11 @@ export default function UsersPage() {
           text: `User berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`
         })
         loadUsers()
+
+        // Update editingUser state if it exists to reflect changes in the modal
+        if (editingUser && editingUser.id === userId) {
+          setEditingUser({ ...editingUser, isActive: !currentStatus })
+        }
       } else {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal mengubah status user' })
@@ -507,6 +512,52 @@ export default function UsersPage() {
               </Button>
             </div>
           </form>
+
+          {editingUser && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4">User Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleToggleStatus(editingUser.id, editingUser.isActive)}
+                  className={`w-full justify-start ${editingUser.isActive ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-green-500/30 text-green-400 hover:bg-green-500/10'}`}
+                >
+                  {editingUser.isActive ? (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Nonaktifkan
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Aktifkan
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handlePasswordReset(editingUser)}
+                  className="w-full justify-start border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                >
+                  <Key className="mr-2 h-4 w-4" />
+                  Reset Password
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDeleteUser(editingUser.id)}
+                  className="w-full justify-start border-red-500/30 text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Hapus User
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
