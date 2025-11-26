@@ -39,7 +39,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
   const formatPercent = (n: number) => `${Math.round(n * 100)}%`
 
   // Calculate trends (mock for now - in real app would compare with previous period)
-  const getTrend = (value: number) => {
+  const getTrend = (_value: number) => {
     // Simple mock logic - in real app would compare with previous period
     const mockTrend = Math.random() > 0.5 ? "up" : "down"
     const mockChange = Math.round((Math.random() - 0.5) * 20)

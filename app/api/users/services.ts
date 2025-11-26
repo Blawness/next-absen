@@ -52,7 +52,16 @@ export async function getUsers(currentUser: { id: string; role: string }) {
     return users
 }
 
-export async function createUser(currentUser: { id: string; role: string }, data: any) {
+interface CreateUserData {
+    name: string
+    email: string
+    password?: string
+    department?: string | null
+    position?: string | null
+    role: UserRole
+}
+
+export async function createUser(currentUser: { id: string; role: string }, data: CreateUserData) {
     if (currentUser.role !== UserRole.admin) {
         throw new HttpError("Insufficient permissions", 403)
     }
@@ -108,7 +117,15 @@ export async function createUser(currentUser: { id: string; role: string }, data
     return newUser
 }
 
-export async function updateUser(currentUser: { id: string; role: string }, userId: string, data: any) {
+interface UpdateUserData {
+    name: string
+    email: string
+    department?: string | null
+    position?: string | null
+    role: UserRole
+}
+
+export async function updateUser(currentUser: { id: string; role: string }, userId: string, data: UpdateUserData) {
     if (currentUser.role !== UserRole.admin) {
         throw new HttpError("Insufficient permissions", 403)
     }

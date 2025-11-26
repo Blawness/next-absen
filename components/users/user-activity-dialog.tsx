@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -35,17 +35,7 @@ export function UserActivityDialog({
     const [offset, setOffset] = useState(0)
     const limit = 20
 
-    useEffect(() => {
-        if (open) {
-            loadActivities(0)
-        } else {
-            // Reset when dialog closes
-            setActivities([])
-            setOffset(0)
-        }
-    }, [open, userId])
-
-    const loadActivities = async (currentOffset: number) => {
+    const loadActivities = useCallback(async (currentOffset: number) => {
         setIsLoading(true)
         try {
             const response = await fetch(
@@ -66,7 +56,17 @@ export function UserActivityDialog({
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [userId, limit])
+
+    useEffect(() => {
+        if (open) {
+            loadActivities(0)
+        } else {
+            // Reset when dialog closes
+            setActivities([])
+            setOffset(0)
+        }
+    }, [open, loadActivities])
 
     const loadMore = () => {
         loadActivities(offset + limit)
@@ -124,7 +124,7 @@ export function UserActivityDialog({
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {activities.map((activity, index) => (
+                            {activities.map((activity) => (
                                 <div
                                     key={activity.id}
                                     className="relative pl-6 pb-3 border-l-2 border-white/10 last:border-l-0"
