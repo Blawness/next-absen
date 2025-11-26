@@ -29,6 +29,8 @@ export interface DataTableProps<T = User> {
   onToggleStatus?: (user: T) => void
   onPasswordReset?: (user: T) => void
   onViewActivity?: (user: T) => void
+  onBulkDelete?: (userIds: string[]) => void
+  onBulkToggleStatus?: (userIds: string[]) => void
 }
 
 export type SortDirection = "asc" | "desc" | null

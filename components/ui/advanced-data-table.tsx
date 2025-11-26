@@ -11,7 +11,17 @@ import {
 } from "@/components/ui/data-table"
 import { DataTableProps, SortDirection, Density } from "@/types/data-table-types"
 
-export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleStatus, onPasswordReset, onViewActivity }: DataTableProps) {
+export function AdvancedDataTable({
+  data,
+  loading,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+  onPasswordReset,
+  onViewActivity,
+  onBulkDelete,
+  onBulkToggleStatus
+}: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -109,19 +119,27 @@ export function AdvancedDataTable({ data, loading, onEdit, onDelete, onToggleSta
   }
 
   const handleBulkDelete = () => {
-    selectedRows.forEach(userId => {
-      const user = data.find(u => u.id === userId)
-      if (user) onDelete?.(user)
-    })
+    if (onBulkDelete) {
+      onBulkDelete(Array.from(selectedRows))
+    } else {
+      selectedRows.forEach(userId => {
+        const user = data.find(u => u.id === userId)
+        if (user) onDelete?.(user)
+      })
+    }
     setSelectedRows(new Set())
     setShowBulkActions(false)
   }
 
   const handleBulkToggleStatus = () => {
-    selectedRows.forEach(userId => {
-      const user = data.find(u => u.id === userId)
-      if (user) onToggleStatus?.(user)
-    })
+    if (onBulkToggleStatus) {
+      onBulkToggleStatus(Array.from(selectedRows))
+    } else {
+      selectedRows.forEach(userId => {
+        const user = data.find(u => u.id === userId)
+        if (user) onToggleStatus?.(user)
+      })
+    }
     setSelectedRows(new Set())
     setShowBulkActions(false)
   }

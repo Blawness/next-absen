@@ -18,7 +18,7 @@ import { UserRole } from "@prisma/client"
 import { UserStatistics } from "@/components/users/user-statistics"
 import { PasswordResetDialog } from "@/components/users/password-reset-dialog"
 import { UserActivityDialog } from "@/components/users/user-activity-dialog"
-import { BulkActionsToolbar } from "@/components/users/bulk-actions-toolbar"
+
 
 interface User {
   id: string
@@ -51,7 +51,6 @@ export default function UsersPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false)
   const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null)
@@ -274,10 +273,10 @@ export default function UsersPage() {
     setIsActivityLogOpen(true)
   }
 
-  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
-    if (selectedUsers.length === 0) return
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete', userIds: string[]) => {
+    if (userIds.length === 0) return
 
-    const confirmMessage = `Are you sure you want to ${action} ${selectedUsers.length} user(s)?`
+    const confirmMessage = `Are you sure you want to ${action} ${userIds.length} user(s)?`
     if (!confirm(confirmMessage)) return
 
     try {
@@ -288,7 +287,7 @@ export default function UsersPage() {
         },
         body: JSON.stringify({
           action,
-          userIds: selectedUsers
+          userIds
         }),
       })
 
@@ -298,7 +297,6 @@ export default function UsersPage() {
           type: 'success',
           text: `${data.successCount} user(s) ${action}d successfully`
         })
-        setSelectedUsers([])
         loadUsers()
       } else {
         const error = await response.json()
@@ -363,14 +361,7 @@ export default function UsersPage() {
         </Alert>
       )}
 
-      {/* Bulk Actions Toolbar */}
-      <BulkActionsToolbar
-        selectedCount={selectedUsers.length}
-        onClearSelection={() => setSelectedUsers([])}
-        onActivate={() => handleBulkAction('activate')}
-        onDeactivate={() => handleBulkAction('deactivate')}
-        onDelete={() => handleBulkAction('delete')}
-      />
+
 
       {/* Users Table */}
       <motion.div
@@ -397,6 +388,7 @@ export default function UsersPage() {
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
           onPasswordReset={handlePasswordReset}
           onViewActivity={handleViewActivity}
+          onBulkDelete={(ids) => handleBulkAction('delete', ids)}
         />
       </motion.div>
 
