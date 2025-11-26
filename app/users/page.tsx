@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
-import { Loader2, Plus, Download, Trash2, Key, UserCheck, X } from "lucide-react"
+import { Loader2, Plus, Download, Key, UserCheck, X } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { NAVIGATION } from "@/lib/constants"
@@ -188,25 +188,6 @@ export default function UsersPage() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus user ini?')) return
-
-    try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'User berhasil dihapus' })
-        loadUsers()
-      } else {
-        const error = await response.json()
-        setMessage({ type: 'error', text: error.error || 'Gagal menghapus user' })
-      }
-    } catch {
-      setMessage({ type: 'error', text: 'Terjadi kesalahan saat menghapus' })
-    }
-  }
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
@@ -384,7 +365,6 @@ export default function UsersPage() {
           }))}
           loading={isLoading}
           onEdit={handleEditUser}
-          onDelete={(user) => handleDeleteUser(user.id)}
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
           onPasswordReset={handlePasswordReset}
           onViewActivity={handleViewActivity}
@@ -538,15 +518,6 @@ export default function UsersPage() {
                   Reset Password
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleDeleteUser(editingUser.id)}
-                  className="w-full justify-start border-red-500/30 text-red-400 hover:bg-red-500/10"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Hapus User
-                </Button>
               </div>
             </div>
           )}

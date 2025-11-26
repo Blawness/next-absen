@@ -16,7 +16,9 @@ export async function getUsers(currentUser: { id: string; role: string }) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
-    const whereClause: Prisma.UserWhereInput = {}
+    const whereClause: Prisma.UserWhereInput = {
+        isActive: true // Only show active users (not soft deleted)
+    }
 
     // Managers can only see users in their department
     if (currentUser.role === UserRole.manager) {
@@ -189,43 +191,3 @@ export async function updateUser(currentUser: { id: string; role: string }, user
     return updatedUser
 }
 
-export async function deleteUser(currentUser: { id: string; role: string }, userId: string) {
-    if (currentUser.role !== UserRole.admin) {
-        throw new HttpError("Insufficient permissions", 403)
-    }
-
-    const existingUser = await prisma.user.findUnique({
-        where: { id: userId }
-    })
-
-    if (!existingUser) {
-        throw new HttpError("User not found", 404)
-    }
-
-    if (userId === currentUser.id) {
-        throw new HttpError("Cannot delete your own account", 400)
-    }
-
-    const deletedUser = await prisma.user.update({
-        where: { id: userId },
-        data: { isActive: false },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            isActive: true
-        }
-    })
-
-    await prisma.activityLog.create({
-        data: {
-            userId: currentUser.id,
-            action: "DELETE_USER",
-            resourceType: "USER",
-            resourceId: userId,
-            details: { targetUser: existingUser.email }
-        }
-    })
-
-    return deletedUser
-}
