@@ -26,6 +26,9 @@ interface DataTableContentProps {
   onRowSelect: (userId: string, checked: boolean) => void
   onSelectAll: (checked: boolean) => void
   onEdit?: (user: User) => void
+  onDelete?: (user: User) => void
+  onToggleStatus?: (user: User) => void
+  onPasswordReset?: (user: User) => void
   onViewActivity?: (user: User) => void
 }
 
@@ -41,6 +44,9 @@ export function DataTableContent({
   onRowSelect,
   onSelectAll,
   onEdit,
+  onDelete, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onToggleStatus, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onPasswordReset, // eslint-disable-line @typescript-eslint/no-unused-vars
   onViewActivity,
 }: DataTableContentProps) {
   const visibleColumnsArray = columns.filter(col => visibleColumns.has(col.id))
