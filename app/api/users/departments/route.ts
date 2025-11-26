@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
 import { UserRole } from "@prisma/client"
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -24,23 +23,14 @@ export async function GET(_request: NextRequest) {
       )
     }
 
-    // Get unique departments
-    const departments = await prisma.user.findMany({
-      where: {
-        department: {
-          not: null
-        }
-      },
-      select: {
-        department: true
-      },
-      distinct: ['department']
-    })
-
-    const departmentList = departments
-      .map(d => d.department)
-      .filter(Boolean)
-      .sort()
+    // Return predefined list of departments
+    const departmentList = [
+      "Legal",
+      "Human Resource",
+      "Operational",
+      "Finance",
+      "IT"
+    ]
 
     return NextResponse.json(departmentList)
   } catch (error) {

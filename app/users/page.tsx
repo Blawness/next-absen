@@ -373,6 +373,7 @@ export default function UsersPage() {
           }))}
           loading={isLoading}
           statusFilter={statusFilter}
+          departments={departments}
           onFilterChange={(filters) => {
             setStatusFilter(filters.status)
           }}

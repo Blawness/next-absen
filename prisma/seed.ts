@@ -58,7 +58,7 @@ async function main() {
       password: hashedPassword,
       name: 'Employee Three',
       role: 'user' as const,
-      department: 'Surveyor',
+      department: 'Operational',
       position: 'Field Surveyor',
       phone: '+62-815-6789-0123',
       isActive: true,

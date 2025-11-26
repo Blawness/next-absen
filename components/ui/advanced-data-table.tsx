@@ -15,6 +15,7 @@ export function AdvancedDataTable({
   data,
   loading,
   statusFilter = 'all',
+  departments: propDepartments,
   onFilterChange,
   onEdit,
   onDelete,
@@ -78,10 +79,10 @@ export function AdvancedDataTable({
     return filtered
   }, [data, searchQuery, departmentFilter, roleFilter, statusFilter, sortColumn, sortDirection])
 
-  // Get unique values for filters
+  // Get unique values for filters - use prop if available, otherwise generate from data
   const departments = useMemo(() =>
-    Array.from(new Set(data.map(user => user.department).filter((dept): dept is string => Boolean(dept)))),
-    [data]
+    propDepartments || Array.from(new Set(data.map(user => user.department).filter((dept): dept is string => Boolean(dept)))),
+    [propDepartments, data]
   )
 
   const roles = useMemo(() =>
