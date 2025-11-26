@@ -14,6 +14,8 @@ import { DataTableProps, SortDirection, Density } from "@/types/data-table-types
 export function AdvancedDataTable({
   data,
   loading,
+  statusFilter = 'all',
+  onFilterChange,
   onEdit,
   onDelete,
   onToggleStatus,
@@ -28,7 +30,6 @@ export function AdvancedDataTable({
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [roleFilter, setRoleFilter] = useState<string>("all")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [density, setDensity] = useState<Density>("comfortable")
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(columns.map(col => col.id))
@@ -167,7 +168,7 @@ export function AdvancedDataTable({
         roleFilter={roleFilter}
         onRoleFilterChange={setRoleFilter}
         statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onStatusFilterChange={(status) => onFilterChange?.({ status: status as 'all' | 'active' | 'inactive' })}
         density={density}
         onDensityChange={setDensity}
         onToggleColumnVisibility={toggleColumnVisibility}

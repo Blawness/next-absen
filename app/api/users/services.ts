@@ -10,15 +10,21 @@ export class HttpError extends Error {
     }
 }
 
-export async function getUsers(currentUser: { id: string; role: string }) {
+export async function getUsers(currentUser: { id: string; role: string }, statusFilter?: 'all' | 'active' | 'inactive') {
     // Only admin and manager can access
     if (currentUser.role !== UserRole.admin && currentUser.role !== UserRole.manager) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
-    const whereClause: Prisma.UserWhereInput = {
-        isActive: true // Only show active users (not soft deleted)
+    const whereClause: Prisma.UserWhereInput = {}
+
+    // Apply status filter
+    if (statusFilter === 'active') {
+        whereClause.isActive = true
+    } else if (statusFilter === 'inactive') {
+        whereClause.isActive = false
     }
+    // If statusFilter is 'all' or undefined, don't filter by isActive (show all users)
 
     // Managers can only see users in their department
     if (currentUser.role === UserRole.manager) {

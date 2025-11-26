@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { getUsers, createUser, HttpError } from "./services"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -14,10 +14,14 @@ export async function GET() {
       )
     }
 
+    // Parse query parameters
+    const searchParams = request.nextUrl.searchParams
+    const status = searchParams.get('status') as 'all' | 'active' | 'inactive' | null
+
     const users = await getUsers({
       id: session.user.id,
       role: session.user.role
-    })
+    }, status || undefined)
 
     return NextResponse.json(users)
   } catch (error) {

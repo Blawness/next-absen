@@ -55,6 +55,7 @@ export default function UsersPage() {
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false)
   const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
@@ -79,13 +80,20 @@ export default function UsersPage() {
       return
     }
 
-    loadUsers()
+    loadUsers(statusFilter)
     loadDepartments()
-  }, [status, session])
+  }, [status, session, statusFilter])
 
-  const loadUsers = async () => {
+  const loadUsers = async (status: 'all' | 'active' | 'inactive' = 'active') => {
     try {
-      const response = await fetch('/api/users')
+      const params = new URLSearchParams()
+      if (status !== 'active') {
+        params.append('status', status)
+      }
+
+      const url = `/api/users${params.toString() ? `?${params.toString()}` : ''}`
+      const response = await fetch(url)
+
       if (response.ok) {
         const data = await response.json()
         setUsers(data.map((user: Omit<User, 'lastLogin' | 'createdAt'> & { lastLogin: string | null; createdAt: string }) => ({
@@ -176,7 +184,7 @@ export default function UsersPage() {
           text: editingUser ? 'User berhasil diperbarui' : 'User berhasil dibuat'
         })
         setIsDialogOpen(false)
-        loadUsers()
+        loadUsers(statusFilter)
       } else {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Gagal menyimpan user' })
@@ -204,7 +212,7 @@ export default function UsersPage() {
           type: 'success',
           text: `User berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`
         })
-        loadUsers()
+        loadUsers(statusFilter)
 
         // Update editingUser state if it exists to reflect changes in the modal
         if (editingUser && editingUser.id === userId) {
@@ -278,7 +286,7 @@ export default function UsersPage() {
           type: 'success',
           text: `${data.successCount} user(s) ${action}d successfully`
         })
-        loadUsers()
+        loadUsers(statusFilter)
       } else {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || `Failed to ${action} users` })
@@ -364,6 +372,10 @@ export default function UsersPage() {
             avatarUrl: null
           }))}
           loading={isLoading}
+          statusFilter={statusFilter}
+          onFilterChange={(filters) => {
+            setStatusFilter(filters.status)
+          }}
           onEdit={handleEditUser}
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
           onPasswordReset={handlePasswordReset}

@@ -24,6 +24,8 @@ export interface Column<T = User> {
 export interface DataTableProps<T = User> {
   data: T[]
   loading?: boolean
+  statusFilter?: 'all' | 'active' | 'inactive'
+  onFilterChange?: (filters: { status: 'all' | 'active' | 'inactive' }) => void
   onEdit?: (user: T) => void
   onDelete?: (user: T) => void
   onToggleStatus?: (user: T) => void
