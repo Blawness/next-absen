@@ -131,6 +131,7 @@ interface UpdateUserData {
     department?: string | null
     position?: string | null
     role: UserRole
+    password?: string
 }
 
 export async function updateUser(currentUser: { id: string; role: string }, userId: string, data: UpdateUserData) {
@@ -138,7 +139,7 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         throw new HttpError("Insufficient permissions", 403)
     }
 
-    const { name, email, department, position, role } = data
+    const { name, email, department, position, role, password } = data
 
     if (!name || !email || !role) {
         throw new HttpError("Missing required fields", 400)
@@ -162,15 +163,21 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         }
     }
 
+    const updateData: Prisma.UserUpdateInput = {
+        name,
+        email,
+        department,
+        position,
+        role
+    }
+
+    if (password) {
+        updateData.password = await bcrypt.hash(password, 12)
+    }
+
     const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: {
-            name,
-            email,
-            department,
-            position,
-            role
-        },
+        data: updateData,
         select: {
             id: true,
             name: true,
@@ -190,10 +197,51 @@ export async function updateUser(currentUser: { id: string; role: string }, user
             action: "UPDATE_USER",
             resourceType: "USER",
             resourceId: userId,
-            details: { targetUser: email }
+            details: { targetUser: email, passwordUpdated: !!password }
         }
     })
 
     return updatedUser
+}
+
+export async function deleteUser(currentUser: { id: string; role: string }, userId: string) {
+    if (currentUser.role !== UserRole.admin) {
+        throw new HttpError("Insufficient permissions", 403)
+    }
+
+    if (userId === currentUser.id) {
+        throw new HttpError("Cannot delete your own account", 400)
+    }
+
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId }
+    })
+
+    if (!existingUser) {
+        throw new HttpError("User not found", 404)
+    }
+
+    // Soft delete
+    const deletedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+        select: {
+            id: true,
+            email: true,
+            isActive: true
+        }
+    })
+
+    await prisma.activityLog.create({
+        data: {
+            userId: currentUser.id,
+            action: "DELETE_USER",
+            resourceType: "USER",
+            resourceId: userId,
+            details: { targetUser: existingUser.email }
+        }
+    })
+
+    return deletedUser
 }
 

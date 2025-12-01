@@ -16,7 +16,7 @@ import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 import { UserStatistics } from "@/components/users/user-statistics"
-import { PasswordResetDialog } from "@/components/users/password-reset-dialog"
+
 import { UserActivityDialog } from "@/components/users/user-activity-dialog"
 
 
@@ -51,7 +51,7 @@ export default function UsersPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
+
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false)
   const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -153,14 +153,17 @@ export default function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (formData.password !== formData.confirmPassword) {
-      setMessage({ type: 'error', text: 'Password tidak cocok' })
-      return
-    }
+    // Validate password
+    if (!editingUser || formData.password) {
+      if (formData.password !== formData.confirmPassword) {
+        setMessage({ type: 'error', text: 'Password tidak cocok' })
+        return
+      }
 
-    if (formData.password.length < 8) {
-      setMessage({ type: 'error', text: 'Password minimal 8 karakter' })
-      return
+      if (formData.password.length < 8) {
+        setMessage({ type: 'error', text: 'Password minimal 8 karakter' })
+        return
+      }
     }
 
     setIsSubmitting(true)
@@ -252,10 +255,7 @@ export default function UsersPage() {
     }
   }
 
-  const handlePasswordReset = (user: User) => {
-    setSelectedUserForAction(user)
-    setIsPasswordResetOpen(true)
-  }
+
 
   const handleViewActivity = (user: User) => {
     setSelectedUserForAction(user)
@@ -379,7 +379,6 @@ export default function UsersPage() {
           }}
           onEdit={handleEditUser}
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
-          onPasswordReset={handlePasswordReset}
           onViewActivity={handleViewActivity}
           onBulkDelete={(ids) => handleBulkAction('delete', ids)}
         />
@@ -460,32 +459,32 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            {!editingUser && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required={!editingUser}
-                    minLength={8}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required={!editingUser}
-                    minLength={8}
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  Password {editingUser && <span className="text-xs text-white/50">(kosongkan jika tetap)</span>}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required={!editingUser}
+                  minLength={8}
+                />
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  required={!editingUser}
+                  minLength={8}
+                />
+              </div>
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
@@ -521,15 +520,7 @@ export default function UsersPage() {
                   )}
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handlePasswordReset(editingUser)}
-                  className="w-full justify-start border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                >
-                  <Key className="mr-2 h-4 w-4" />
-                  Reset Password
-                </Button>
+
 
               </div>
             </div>
@@ -537,18 +528,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Password Reset Dialog */}
-      {selectedUserForAction && (
-        <PasswordResetDialog
-          open={isPasswordResetOpen}
-          onOpenChange={setIsPasswordResetOpen}
-          userId={selectedUserForAction.id}
-          userName={selectedUserForAction.name}
-          onSuccess={() => {
-            setMessage({ type: 'success', text: 'Password reset successfully' })
-          }}
-        />
-      )}
+
 
       {/* User Activity Dialog */}
       {selectedUserForAction && (

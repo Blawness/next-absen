@@ -164,6 +164,25 @@ describe("User Management Service", () => {
             expect(prisma.activityLog.create).toHaveBeenCalled()
             expect(result).toEqual(expect.objectContaining({ name: "Updated Name" }))
         })
+
+        it("should update password if provided", async () => {
+            (prisma.user.findUnique as jest.Mock).mockImplementation((args) => {
+                if (args.where.id === "user1") return Promise.resolve({ id: "user1", email: "old@example.com" });
+                if (args.where.email === "updated@example.com") return Promise.resolve(null);
+                return Promise.resolve(null);
+            });
+            (bcrypt.hash as jest.Mock).mockResolvedValue("new_hashed_password");
+            (prisma.user.update as jest.Mock).mockResolvedValue({ ...updateData, id: "user1" });
+
+            await updateUser({ id: "admin1", role: UserRole.admin }, "user1", { ...updateData, password: "newpassword" });
+
+            expect(bcrypt.hash).toHaveBeenCalledWith("newpassword", 12);
+            expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.objectContaining({
+                    password: "new_hashed_password"
+                })
+            }));
+        })
     })
 
     describe("deleteUser", () => {
