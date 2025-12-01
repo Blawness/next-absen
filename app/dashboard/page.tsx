@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Map } from "@/components/ui/map"
 import { DashboardSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle } from "lucide-react"
+import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
-import { getCurrentPosition } from "@/lib/location"
+import { getCurrentPosition, calculateDistance } from "@/lib/location"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
@@ -54,6 +54,16 @@ export default function DashboardPage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number
+    longitude: number
+    address: string
+  } | null>(null)
+  const [gpsLocation, setGpsLocation] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(null)
+  const [isReloadingLocation, setIsReloadingLocation] = useState(false)
 
   // Helper function to format address display
   const formatAddress = (address?: string) => {
@@ -135,13 +145,10 @@ export default function DashboardPage() {
     }
   }
 
-  const handleCheckIn = async () => {
-    setIsCheckingIn(true)
-    setMessage(null)
-
+  const handleReloadLocation = async () => {
+    setIsReloadingLocation(true)
     try {
       const position = await getCurrentPosition()
-
       let address = ""
       try {
         const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lng=${position.longitude}`)
@@ -155,16 +162,104 @@ export default function DashboardPage() {
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
+      setCurrentLocation({
+        latitude: position.latitude,
+        longitude: position.longitude,
+        address: address
+      })
+      setGpsLocation({
+        latitude: position.latitude,
+        longitude: position.longitude
+      })
+    } catch (error) {
+      console.error('Error reloading location:', error)
+      setMessage({ type: 'error', text: 'Gagal memuat lokasi terkini' })
+    } finally {
+      setIsReloadingLocation(false)
+    }
+  }
+
+  const handleLocationChange = async (lat: number, lng: number) => {
+    if (!currentLocation || !gpsLocation) return
+
+    // Validate distance from GPS location (max 100m)
+    const distance = calculateDistance(
+      { latitude: lat, longitude: lng },
+      { latitude: gpsLocation.latitude, longitude: gpsLocation.longitude }
+    )
+
+    if (distance > 100) {
+      setMessage({ type: 'error', text: 'Lokasi tidak boleh lebih dari 100m dari titik GPS asli' })
+      // Force re-render to snap back marker if needed (though React state didn't change, Leaflet might need reset)
+      // In this implementation, since we don't update state, the props to Map don't change.
+      // The Map component's useEffect will detect that the marker position (from drag) differs from the prop position
+      // and will reset it.
+      return
+    }
+
+    // Update coordinates immediately
+    setCurrentLocation({
+      ...currentLocation,
+      latitude: lat,
+      longitude: lng,
+    })
+
+    // Update address in background
+    try {
+      const response = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
+      if (response.ok) {
+        const addressData = await response.json()
+        setCurrentLocation(prev => prev ? {
+          ...prev,
+          address: addressData.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        } : null)
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error)
+    }
+  }
+
+  const handleCheckIn = async () => {
+    setIsCheckingIn(true)
+    setMessage(null)
+
+    try {
+      let lat: number, lng: number, acc: number, addr: string
+
+      if (currentLocation) {
+        lat = currentLocation.latitude
+        lng = currentLocation.longitude
+        addr = currentLocation.address
+        acc = 10 // Default accuracy for manual pin
+      } else {
+        const position = await getCurrentPosition()
+        lat = position.latitude
+        lng = position.longitude
+        acc = position.accuracy
+
+        try {
+          const response = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
+          if (response.ok) {
+            const addressData = await response.json()
+            addr = addressData.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          } else {
+            addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          }
+        } catch {
+          addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        }
+      }
+
       const checkInResponse = await fetch('/api/attendance/checkin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          latitude: position.latitude,
-          longitude: position.longitude,
-          address: address,
-          accuracy: position.accuracy,
+          latitude: lat,
+          longitude: lng,
+          address: addr,
+          accuracy: acc,
         }),
       })
 
@@ -189,19 +284,30 @@ export default function DashboardPage() {
     setMessage(null)
 
     try {
-      const position = await getCurrentPosition()
+      let lat: number, lng: number, acc: number, addr: string
 
-      let address = ""
-      try {
-        const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lng=${position.longitude}`)
-        if (response.ok) {
-          const addressData = await response.json()
-          address = addressData.address || `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
-        } else {
-          address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
+      if (currentLocation) {
+        lat = currentLocation.latitude
+        lng = currentLocation.longitude
+        addr = currentLocation.address
+        acc = 10 // Default accuracy for manual pin
+      } else {
+        const position = await getCurrentPosition()
+        lat = position.latitude
+        lng = position.longitude
+        acc = position.accuracy
+
+        try {
+          const response = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
+          if (response.ok) {
+            const addressData = await response.json()
+            addr = addressData.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          } else {
+            addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          }
+        } catch {
+          addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
         }
-      } catch {
-        address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
       const checkOutResponse = await fetch('/api/attendance/checkout', {
@@ -210,10 +316,10 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          latitude: position.latitude,
-          longitude: position.longitude,
-          address: address,
-          accuracy: position.accuracy,
+          latitude: lat,
+          longitude: lng,
+          address: addr,
+          accuracy: acc,
         }),
       })
 
@@ -287,7 +393,7 @@ export default function DashboardPage() {
                 {todayAttendance ? (
                   <Badge
                     variant={todayAttendance.status === AttendanceStatus.present ? "default" :
-                            todayAttendance.status === AttendanceStatus.late ? "destructive" : "secondary"}
+                      todayAttendance.status === AttendanceStatus.late ? "destructive" : "secondary"}
                     className="text-sm"
                   >
                     {STATUS_LABELS[todayAttendance.status]}
@@ -439,24 +545,58 @@ export default function DashboardPage() {
           transition={{ delay: 0.6, duration: 0.5 }}
         >
           <Card variant="glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <MapPin className="h-5 w-5" />
-                Lokasi Terakhir
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                {lastLocation ?
-                  "Lokasi check-in atau check-out terakhir Anda" :
-                  "Belum ada data lokasi tersimpan"
-                }
-              </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <MapPin className="h-5 w-5" />
+                  {currentLocation ? "Lokasi Terkini" : "Lokasi Terakhir"}
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  {currentLocation ?
+                    "Posisi Anda saat ini (Manual)" :
+                    (lastLocation ?
+                      "Lokasi check-in atau check-out terakhir Anda" :
+                      "Belum ada data lokasi tersimpan")
+                  }
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10 shrink-0"
+                onClick={handleReloadLocation}
+                disabled={isReloadingLocation}
+                title="Reload Lokasi"
+              >
+                <RefreshCw className={`h-4 w-4 ${isReloadingLocation ? 'animate-spin' : ''}`} />
+              </Button>
             </CardHeader>
             <CardContent>
-              {lastLocation ? (
+              {currentLocation ? (
+                <div className="space-y-4">
+                  <Map
+                    key="current-location"
+                    latitude={currentLocation.latitude}
+                    longitude={currentLocation.longitude}
+                    address={currentLocation.address}
+                    className="aspect-video w-full rounded-lg"
+                    draggable={true}
+                    onLocationChange={handleLocationChange}
+                    radius={100}
+                    centerLatitude={gpsLocation?.latitude}
+                    centerLongitude={gpsLocation?.longitude}
+                  />
+                  <div className="text-sm text-white/80 space-y-1">
+                    <p>Geser pin untuk menyesuaikan lokasi (Radius 100m)</p>
+                    <p>Lokasi: {formatAddress(currentLocation.address)}</p>
+                  </div>
+                </div>
+              ) : lastLocation ? (
                 <div className="space-y-4">
                   {/* Show map for the most recent location (check-out if available, otherwise check-in) */}
                   {lastLocation.checkOutLatitude && lastLocation.checkOutLongitude ? (
                     <Map
+                      key="last-location-checkout"
                       latitude={lastLocation.checkOutLatitude}
                       longitude={lastLocation.checkOutLongitude}
                       address={lastLocation.checkOutAddress || undefined}
@@ -464,6 +604,7 @@ export default function DashboardPage() {
                     />
                   ) : lastLocation.checkInLatitude && lastLocation.checkInLongitude ? (
                     <Map
+                      key="last-location-checkin"
                       latitude={lastLocation.checkInLatitude}
                       longitude={lastLocation.checkInLongitude}
                       address={lastLocation.checkInAddress || undefined}

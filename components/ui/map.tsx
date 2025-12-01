@@ -17,12 +17,36 @@ interface MapProps {
   longitude: number
   address?: string
   className?: string
+  draggable?: boolean
+  onLocationChange?: (lat: number, lng: number) => void
+  radius?: number
+  centerLatitude?: number
+  centerLongitude?: number
 }
 
-export function Map({ latitude, longitude, address, className = "h-64 w-full" }: MapProps) {
+export function Map({
+  latitude,
+  longitude,
+  address,
+  className = "h-64 w-full",
+  draggable = false,
+  onLocationChange,
+  radius,
+  centerLatitude,
+  centerLongitude
+}: MapProps) {
   return (
     <div className={className}>
-      <DynamicMap latitude={latitude} longitude={longitude} address={address} />
+      <DynamicMap
+        latitude={latitude}
+        longitude={longitude}
+        address={address}
+        draggable={draggable}
+        onLocationChange={onLocationChange}
+        radius={radius}
+        centerLatitude={centerLatitude}
+        centerLongitude={centerLongitude}
+      />
     </div>
   )
 }
