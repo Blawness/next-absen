@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { UserRole } from "@prisma/client"
+import { UserRole, Prisma } from "@prisma/client"
 
 export async function GET(request: NextRequest) {
     try {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         const userId = searchParams.get("userId")
         const action = searchParams.get("action")
 
-        const whereClause: any = {}
+        const whereClause: Prisma.ActivityLogWhereInput = {}
 
         if (userId) {
             whereClause.userId = userId

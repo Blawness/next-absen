@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
 import { motion } from "framer-motion"
-import { Activity, Calendar, User, Clock, Search } from "lucide-react"
+import { Clock } from "lucide-react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
@@ -24,7 +22,7 @@ interface ActivityLog {
     action: string
     resourceType: string
     resourceId: string
-    details: Record<string, any>
+    details: Record<string, unknown>
     createdAt: string
     user: {
         name: string
@@ -41,23 +39,7 @@ export default function ActivityLogsPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [filterAction, setFilterAction] = useState<string>("all")
 
-    useEffect(() => {
-        if (status === "loading") return
-
-        if (status === "unauthenticated" || !session) {
-            redirect("/auth/signin")
-            return
-        }
-
-        if (session.user.role !== UserRole.admin) {
-            redirect("/dashboard")
-            return
-        }
-
-        fetchLogs()
-    }, [status, session, page, filterAction])
-
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setIsLoading(true)
         try {
             const params = new URLSearchParams({
@@ -80,7 +62,23 @@ export default function ActivityLogsPage() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [page, filterAction])
+
+    useEffect(() => {
+        if (status === "loading") return
+
+        if (status === "unauthenticated" || !session) {
+            redirect("/auth/signin")
+            return
+        }
+
+        if (session.user.role !== UserRole.admin) {
+            redirect("/dashboard")
+            return
+        }
+
+        fetchLogs()
+    }, [status, session, fetchLogs])
 
     const getActionColor = (action: string) => {
         if (action.includes("DELETE") || action.includes("DEACTIVATE")) return "bg-red-500/20 text-red-400 border-red-500/30"
