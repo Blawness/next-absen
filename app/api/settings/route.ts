@@ -142,6 +142,19 @@ export async function PUT(request: NextRequest) {
         }
       })
 
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: session.user.id,
+          action: "UPDATE_SETTINGS",
+          resourceType: "SYSTEM_SETTINGS",
+          resourceId: updatedSettings.id,
+          details: {
+            updatedFields: Object.keys(body)
+          }
+        }
+      })
+
       return NextResponse.json({
         message: 'Settings updated successfully',
         settings: {
@@ -159,6 +172,19 @@ export async function PUT(request: NextRequest) {
           location,
           notifications,
           security
+        }
+      })
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          userId: session.user.id,
+          action: "UPDATE_SETTINGS",
+          resourceType: "SYSTEM_SETTINGS",
+          resourceId: newSettings.id,
+          details: {
+            action: "INITIAL_SETUP"
+          }
         }
       })
 

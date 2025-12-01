@@ -15,7 +15,8 @@ import {
   LogOut,
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAVIGATION, ROLE_LABELS } from "@/lib/constants"
@@ -182,49 +183,55 @@ const navigationItems: Array<{
   icon: React.ComponentType<{ className?: string }>
   roles: UserRole[]
 }> = [
-  {
-    href: "/dashboard",
-    label: NAVIGATION.DASHBOARD,
-    icon: LayoutDashboard,
-    roles: [UserRole.admin, UserRole.manager, UserRole.user]
-  },
-  {
-    href: "/dashboard/kpi",
-    label: "KPI",
-    icon: TrendingUp,
-    roles: [UserRole.admin, UserRole.manager, UserRole.user]
-  },
-  {
-    href: "/attendance",
-    label: NAVIGATION.ATTENDANCE,
-    icon: Clock,
-    roles: [UserRole.admin, UserRole.manager, UserRole.user]
-  },
-  {
-    href: "/reports",
-    label: NAVIGATION.REPORTS,
-    icon: FileText,
-    roles: [UserRole.admin, UserRole.manager]
-  },
-  {
-    href: "/users",
-    label: NAVIGATION.USERS,
-    icon: Users,
-    roles: [UserRole.admin]
-  },
-  {
-    href: "/profile",
-    label: NAVIGATION.PROFILE,
-    icon: User,
-    roles: [UserRole.admin, UserRole.manager, UserRole.user]
-  },
-  {
-    href: "/settings",
-    label: NAVIGATION.SETTINGS,
-    icon: Settings,
-    roles: [UserRole.admin]
-  }
-]
+    {
+      href: "/dashboard",
+      label: NAVIGATION.DASHBOARD,
+      icon: LayoutDashboard,
+      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+    },
+    {
+      href: "/dashboard/kpi",
+      label: "KPI",
+      icon: TrendingUp,
+      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+    },
+    {
+      href: "/attendance",
+      label: NAVIGATION.ATTENDANCE,
+      icon: Clock,
+      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+    },
+    {
+      href: "/reports",
+      label: NAVIGATION.REPORTS,
+      icon: FileText,
+      roles: [UserRole.admin, UserRole.manager]
+    },
+    {
+      href: "/users",
+      label: NAVIGATION.USERS,
+      icon: Users,
+      roles: [UserRole.admin]
+    },
+    {
+      href: "/profile",
+      label: NAVIGATION.PROFILE,
+      icon: User,
+      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+    },
+    {
+      href: "/settings",
+      label: NAVIGATION.SETTINGS,
+      icon: Settings,
+      roles: [UserRole.admin]
+    },
+    {
+      href: "/activity-logs",
+      label: NAVIGATION.ACTIVITY_LOG,
+      icon: Activity,
+      roles: [UserRole.admin]
+    }
+  ]
 
 export function Sidebar({ className }: SidebarProps) {
   const { data: session } = useSession()
@@ -233,9 +240,9 @@ export function Sidebar({ className }: SidebarProps) {
   if (!session) return null
 
   const userRole = session.user.role
-   const filteredNavItems = navigationItems.filter(item =>
-     item.roles.includes(userRole)
-   )
+  const filteredNavItems = navigationItems.filter(item =>
+    item.roles.includes(userRole)
+  )
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/signin" })

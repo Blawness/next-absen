@@ -13,7 +13,8 @@ export const NAVIGATION = {
   CHECK_OUT: "Check Out",
   MY_ATTENDANCE: "Absensi Saya",
   ADMIN_PANEL: "Panel Admin",
-  MANAGER_PANEL: "Panel Manager"
+  MANAGER_PANEL: "Panel Manager",
+  ACTIVITY_LOG: "Log Aktivitas"
 } as const
 
 export const STATUS_LABELS = {
