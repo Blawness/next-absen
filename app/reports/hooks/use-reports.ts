@@ -115,6 +115,21 @@ export const useReports = () => {
 
   // Memoize handleExport function
   const handleExport = useCallback(async (exportFormat: 'csv' | 'pdf') => {
+    // For PDF, we now open a print view instead of downloading a file
+    if (exportFormat === 'pdf') {
+      const params = new URLSearchParams()
+      if (filters.startDate) params.append('startDate', filters.startDate)
+      if (filters.endDate) params.append('endDate', filters.endDate)
+      if (filters.userId) params.append('userId', filters.userId)
+      if (filters.department) params.append('department', filters.department)
+      if (filters.status) params.append('status', filters.status)
+      params.append('format', 'pdf')
+
+      const url = `/api/reports/export?${params.toString()}`
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+
     setIsExporting(true)
     setMessage(null)
 
