@@ -80,7 +80,7 @@ export default function SignInPage() {
           <Card variant="glass">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-2xl font-bold glass-title">
-                Absensi Standalone
+                Absensi PKP
               </CardTitle>
               <CardDescription className="text-white/70">
                 Masuk ke sistem absensi dengan GPS tracking

@@ -38,13 +38,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
 
   const formatPercent = (n: number) => `${Math.round(n * 100)}%`
 
-  // Calculate trends (mock for now - in real app would compare with previous period)
-  const getTrend = (_value: number) => {
-    // Simple mock logic - in real app would compare with previous period
-    const mockTrend = Math.random() > 0.5 ? "up" : "down"
-    const mockChange = Math.round((Math.random() - 0.5) * 20)
-    return { direction: mockTrend, change: Math.abs(mockChange) }
-  }
+
 
   const metrics = [
     {
@@ -55,7 +49,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: Users,
       color: "text-blue-400",
       bgColor: "bg-blue-500/20",
-      trend: getTrend(data.metrics.attendanceRate)
+      trend: data.trends.attendanceRate
     },
     {
       title: "On-time Rate",
@@ -65,7 +59,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: Clock,
       color: "text-green-400",
       bgColor: "bg-green-500/20",
-      trend: getTrend(data.metrics.onTimeRate)
+      trend: data.trends.onTimeRate
     },
     {
       title: "Avg Work Hours",
@@ -75,7 +69,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: TrendingUp,
       color: "text-purple-400",
       bgColor: "bg-purple-500/20",
-      trend: getTrend(data.metrics.avgWorkHours)
+      trend: data.trends.avgWorkHours
     },
     {
       title: "Total Overtime",
@@ -85,7 +79,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: TrendingUp,
       color: "text-orange-400",
       bgColor: "bg-orange-500/20",
-      trend: getTrend(data.metrics.totalOvertime)
+      trend: data.trends.totalOvertime
     },
     {
       title: "Late Arrivals",
@@ -95,7 +89,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: AlertTriangle,
       color: "text-yellow-400",
       bgColor: "bg-yellow-500/20",
-      trend: getTrend(data.metrics.lateCount)
+      trend: data.trends.lateCount
     },
     {
       title: "Absences",
@@ -105,7 +99,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       icon: CheckCircle,
       color: "text-red-400",
       bgColor: "bg-red-500/20",
-      trend: getTrend(data.metrics.absentCount)
+      trend: data.trends.absentCount
     }
   ]
 

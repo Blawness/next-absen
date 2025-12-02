@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 
 export const metadata: Metadata = {
-  title: "Authentication - Absensi Standalone",
+  title: "Authentication - Absensi PKP",
   description: "Login ke sistem absensi dengan GPS tracking",
 };
 

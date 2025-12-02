@@ -8,7 +8,7 @@ dotenv.config();
 const port = process.env.PORT || 3002;
 
 // Log startup information
-console.log('🚀 Starting Absensi Standalone Server');
+console.log('🚀 Starting Absensi PKP Server');
 console.log(`📍 Port: ${port}`);
 console.log(`🌐 URL: http://localhost:${port}`);
 console.log('');

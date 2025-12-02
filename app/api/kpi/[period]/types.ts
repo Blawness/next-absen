@@ -1,7 +1,7 @@
 import { z } from "zod"
 
-export const periodSchema = z.enum(["weekly", "monthly"]) 
-export const scopeSchema = z.enum(["org", "department", "user"]) 
+export const periodSchema = z.enum(["weekly", "monthly"])
+export const scopeSchema = z.enum(["org", "department", "user"])
 
 export const kpiQuerySchema = z.object({
   period: periodSchema,
@@ -28,7 +28,15 @@ export const kpiResponseSchema = z.object({
     date: z.string(),
     attendanceRate: z.number(),
     onTimeRate: z.number(),
-  }))
+  })),
+  trends: z.object({
+    attendanceRate: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+    onTimeRate: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+    avgWorkHours: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+    totalOvertime: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+    lateCount: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+    absentCount: z.object({ direction: z.enum(["up", "down", "neutral"]), change: z.number() }),
+  })
 })
 
 export type PeriodType = z.infer<typeof periodSchema>
