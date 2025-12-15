@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
 import { format } from "date-fns"
@@ -88,6 +88,10 @@ export const useReports = () => {
     }
   }, [])
 
+  // Use ref to track if filter options have been loaded
+  const filterOptionsLoadedRef = useRef(false)
+
+  // Single unified effect to handle authentication and data loading
   useEffect(() => {
     if (status === "loading") return
 
@@ -96,17 +100,15 @@ export const useReports = () => {
       return
     }
 
-    // Load initial data and filter options only once when component mounts
-    loadReports()
-    loadFilterOptions()
-  }, [status, session, loadReports, loadFilterOptions])
-
-  // Separate useEffect to handle filter changes
-  useEffect(() => {
-    if (status === "authenticated" && session) {
-      loadReports()
+    // Load filter options only once on mount
+    if (!filterOptionsLoadedRef.current) {
+      filterOptionsLoadedRef.current = true
+      loadFilterOptions()
     }
-  }, [filters, status, session, loadReports])
+
+    // Load reports whenever filters change
+    loadReports()
+  }, [status, session, filters, loadReports, loadFilterOptions])
 
   // Memoize handleFilterChange to prevent recreation on every render
   const handleFilterChange = useCallback((field: keyof ReportFilters, value: string) => {

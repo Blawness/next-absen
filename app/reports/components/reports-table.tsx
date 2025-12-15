@@ -66,7 +66,7 @@ export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
                   {records.map((record) => (
                     <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
                       <td className="p-3 text-white">
-                        {format(record.date, 'dd MMM yyyy', { locale: id })}
+                        {format(new Date(record.date), 'dd MMM yyyy', { locale: id })}
                       </td>
                       <td className="p-3">
                         <div>
@@ -77,10 +77,10 @@ export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
                         </div>
                       </td>
                       <td className="p-3 text-white">
-                        {record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}
+                        {record.checkInTime ? format(new Date(record.checkInTime), 'HH:mm') : '-'}
                       </td>
                       <td className="p-3 text-white">
-                        {record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}
+                        {record.checkOutTime ? format(new Date(record.checkOutTime), 'HH:mm') : '-'}
                       </td>
                       <td className="p-3 text-white">
                         {record.workHours ? `${record.workHours}j` : '-'}
