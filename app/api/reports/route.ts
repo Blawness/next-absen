@@ -68,6 +68,10 @@ export async function GET(request: NextRequest) {
           whereClause.userId = {
             in: departmentUsers.map(u => u.id)
           }
+        } else {
+          // Fallback: if manager has no department, only show their own records
+          console.warn(`Manager ${session.user.id} has no department assigned, showing only their own records`)
+          whereClause.userId = session.user.id
         }
       }
     }
