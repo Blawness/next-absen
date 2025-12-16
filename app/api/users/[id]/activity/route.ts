@@ -50,20 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             )
         }
 
-        // Managers can only view activity for users in their department
-        if (session.user.role === UserRole.manager) {
-            const manager = await prisma.user.findUnique({
-                where: { id: session.user.id },
-                select: { department: true }
-            })
-
-            if (manager?.department !== user.department) {
-                return NextResponse.json(
-                    { error: "Insufficient permissions" },
-                    { status: 403 }
-                )
-            }
-        }
+        // Managers and Admins can view activity for all users (department is for display/sorting only)
 
         // Build where clause
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

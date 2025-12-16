@@ -72,17 +72,7 @@ export async function GET(request: NextRequest) {
             whereClause.isActive = false
         }
 
-        // Managers can only export users in their department
-        if (session.user.role === UserRole.manager) {
-            const manager = await prisma.user.findUnique({
-                where: { id: session.user.id },
-                select: { department: true }
-            })
-
-            if (manager?.department) {
-                whereClause.department = manager.department
-            }
-        }
+        // Managers and Admins can export all users (department is for display/sorting only)
 
         // Fetch users
         const users = await prisma.user.findMany({

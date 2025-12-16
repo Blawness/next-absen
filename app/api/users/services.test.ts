@@ -51,22 +51,15 @@ describe("User Management Service", () => {
             }))
         })
 
-        it("should filter users by department for manager", async () => {
-            const mockManager = { id: "manager1", department: "IT" }
-            const mockUsers = [{ id: "1", name: "User 1", department: "IT" }]
+        it("should return all users for manager (no department filter)", async () => {
+            const mockUsers = [{ id: "1", name: "User 1" }]
 
-                ; (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockManager)
                 ; (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers)
 
             const result = await getUsers({ id: "manager1", role: UserRole.manager })
 
-            expect(prisma.user.findUnique).toHaveBeenCalledWith({
-                where: { id: "manager1" },
-                select: { department: true }
-            })
-
             expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
-                where: { department: "IT" }
+                where: {}
             }))
             expect(result).toEqual(mockUsers)
         })

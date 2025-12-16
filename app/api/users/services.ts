@@ -25,18 +25,7 @@ export async function getUsers(currentUser: { id: string; role: string }, status
         whereClause.isActive = false
     }
     // If statusFilter is 'all' or undefined, don't filter by isActive (show all users)
-
-    // Managers can only see users in their department
-    if (currentUser.role === UserRole.manager) {
-        const manager = await prisma.user.findUnique({
-            where: { id: currentUser.id },
-            select: { department: true }
-        })
-
-        if (manager?.department) {
-            whereClause.department = manager.department
-        }
-    }
+    // Managers and Admins can see all users (department is for display/sorting only)
 
     const users = await prisma.user.findMany({
         where: whereClause,

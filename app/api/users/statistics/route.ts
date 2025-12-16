@@ -24,20 +24,9 @@ export async function GET(_request: NextRequest) {
             )
         }
 
-        // Build where clause for managers (only their department)
+        // Managers and Admins can see all statistics (department is for display/sorting only)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let whereClause: any = {}
-
-        if (session.user.role === UserRole.manager) {
-            const manager = await prisma.user.findUnique({
-                where: { id: session.user.id },
-                select: { department: true }
-            })
-
-            if (manager?.department) {
-                whereClause = { department: manager.department }
-            }
-        }
+        const whereClause: any = {}
 
         // Get total counts
         const [totalUsers, activeUsers, inactiveUsers] = await Promise.all([

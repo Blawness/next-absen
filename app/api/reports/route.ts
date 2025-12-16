@@ -49,33 +49,8 @@ export async function GET(request: NextRequest) {
     if (session.user.role === UserRole.user) {
       // Regular users can only see their own data
       whereClause.userId = session.user.id
-    } else if (session.user.role === UserRole.manager) {
-      // Managers can see their department data
-      if (userId) {
-        whereClause.userId = userId
-      } else {
-        // Get all users in manager's department
-        const manager = await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { department: true }
-        })
-
-        if (manager?.department) {
-          const departmentUsers = await prisma.user.findMany({
-            where: { department: manager.department },
-            select: { id: true }
-          })
-          whereClause.userId = {
-            in: departmentUsers.map(u => u.id)
-          }
-        } else {
-          // Fallback: if manager has no department, only show their own records
-          console.warn(`Manager ${session.user.id} has no department assigned, showing only their own records`)
-          whereClause.userId = session.user.id
-        }
-      }
     }
-    // Admins can see all data, additional filters applied
+    // Managers and Admins can see all data, additional filters applied below
 
     // Additional filters
     if (userId) {
