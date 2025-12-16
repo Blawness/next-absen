@@ -16,6 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:attendance": "tsx prisma/seed-attendance.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
