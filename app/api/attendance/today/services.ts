@@ -26,6 +26,7 @@ export async function getTodaysAttendance(userId: string) {
   const startToday = startOfDay(today)
   const endToday = endOfDay(today)
 
+  // Optimization: Removed redundant orderBy since [userId, date] is unique
   return await prisma.absensiRecord.findFirst({
     where: {
       userId: userId,
@@ -33,9 +34,6 @@ export async function getTodaysAttendance(userId: string) {
         gte: startToday,
         lte: endToday,
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
     },
   })
 }
