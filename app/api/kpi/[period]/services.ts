@@ -43,8 +43,7 @@ export function resolveRange(period: PeriodType, today = new Date(), customStart
     const end = customEnd ? new Date(customEnd) : today
     // Set end to end of day
     end.setUTCHours(23, 59, 59, 999)
-    const clampedEnd = end > today ? today : end
-    return { start, end: clampedEnd }
+    return { start, end }
   }
 
   const now = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
@@ -54,8 +53,7 @@ export function resolveRange(period: PeriodType, today = new Date(), customStart
     end.setUTCDate(start.getUTCDate() + 6)
     // Set end to end of day
     end.setUTCHours(23, 59, 59, 999)
-    const clampedEnd = end > now ? now : end
-    return { start, end: clampedEnd }
+    return { start, end }
   }
 
   // monthly
@@ -63,8 +61,7 @@ export function resolveRange(period: PeriodType, today = new Date(), customStart
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
   // Set end to end of day
   end.setUTCHours(23, 59, 59, 999)
-  const clampedEnd = end > now ? now : end
-  return { start, end: clampedEnd }
+  return { start, end }
 }
 
 function isBusinessDay(date: Date): boolean {

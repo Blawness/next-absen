@@ -1,11 +1,11 @@
 import { countBusinessDays, resolveRange } from "./services"
 
 describe("KPI services helpers", () => {
-  it("calculates weekly range starting Monday and clamps future", () => {
+  it("calculates weekly range starting Monday without clamping", () => {
     const today = new Date("2025-01-08T12:00:00Z") // Wed
     const { start, end } = resolveRange("weekly", today)
     expect(start.toISOString().slice(0,10)).toBe("2025-01-06") // Monday
-    expect(end.toISOString().slice(0,10)).toBe("2025-01-08") // clamped to today
+    expect(end.toISOString().slice(0,10)).toBe("2025-01-12") // Sunday
   })
 
   it("counts business days Mon-Fri", () => {

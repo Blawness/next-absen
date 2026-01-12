@@ -13,8 +13,7 @@ function resolveRange(period: "weekly" | "monthly", today = new Date(), customSt
         const end = customEnd ? new Date(customEnd) : today
         // Set end to end of day
         end.setUTCHours(23, 59, 59, 999)
-        const clampedEnd = end > today ? today : end
-        return { start, end: clampedEnd }
+        return { start, end }
     }
 
     const now = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
@@ -24,8 +23,7 @@ function resolveRange(period: "weekly" | "monthly", today = new Date(), customSt
         end.setUTCDate(start.getUTCDate() + 6)
         // Set end to end of day
         end.setUTCHours(23, 59, 59, 999)
-        const clampedEnd = end > now ? now : end
-        return { start, end: clampedEnd }
+        return { start, end }
     }
 
     // monthly
@@ -33,8 +31,7 @@ function resolveRange(period: "weekly" | "monthly", today = new Date(), customSt
     const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
     // Set end to end of day
     end.setUTCHours(23, 59, 59, 999)
-    const clampedEnd = end > now ? now : end
-    return { start, end: clampedEnd }
+    return { start, end }
 }
 
 // Test cases
