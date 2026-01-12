@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,6 +43,7 @@ interface UserFormData {
 }
 
 export default function UsersPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<string[]>([])
@@ -70,19 +71,19 @@ export default function UsersPage() {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
     // Check if user is admin
     if (session.user.role !== UserRole.admin) {
-      redirect("/dashboard")
+      router.push("/dashboard")
       return
     }
 
     loadUsers(statusFilter)
     loadDepartments()
-  }, [status, session, statusFilter])
+  }, [status, session, statusFilter, router])
 
   const loadUsers = async (status: 'all' | 'active' | 'inactive' = 'active') => {
     try {
@@ -301,7 +302,8 @@ export default function UsersPage() {
   }
 
   if (!session || session.user.role !== UserRole.admin) {
-    redirect("/dashboard")
+    router.push("/dashboard")
+    return null
   }
 
   return (

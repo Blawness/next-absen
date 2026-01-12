@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Clock } from "lucide-react"
 import { format } from "date-fns"
@@ -32,6 +32,7 @@ interface ActivityLog {
 }
 
 export default function ActivityLogsPage() {
+    const router = useRouter()
     const { data: session, status } = useSession()
     const [logs, setLogs] = useState<ActivityLog[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -68,17 +69,17 @@ export default function ActivityLogsPage() {
         if (status === "loading") return
 
         if (status === "unauthenticated" || !session) {
-            redirect("/auth/signin")
+            router.push("/auth/signin")
             return
         }
 
         if (session.user.role !== UserRole.admin) {
-            redirect("/dashboard")
+            router.push("/dashboard")
             return
         }
 
         fetchLogs()
-    }, [status, session, fetchLogs])
+    }, [status, session, fetchLogs, router])
 
     const getActionColor = (action: string) => {
         if (action.includes("DELETE") || action.includes("DEACTIVATE")) return "bg-red-500/20 text-red-400 border-red-500/30"

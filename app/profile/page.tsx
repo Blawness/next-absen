@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +39,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -71,12 +72,12 @@ export default function ProfilePage() {
     if (status === "loading") return
 
     if (!session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
     loadProfile()
-  }, [session, status])
+  }, [session, status, router])
 
   const loadProfile = async () => {
     try {
@@ -202,7 +203,8 @@ export default function ProfilePage() {
   }
 
   if (!session || !profile) {
-    redirect("/auth/signin")
+    router.push("/auth/signin")
+    return null
   }
 
   return (
@@ -251,135 +253,135 @@ export default function ProfilePage() {
                   Kelola informasi pribadi dan kontak Anda
                 </CardDescription>
               </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Avatar Section */}
-              <div className="flex items-center gap-6 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 shadow-lg">
-                <div className="relative">
-                  <Avatar className="h-20 w-20 ring-2 ring-white/20">
-                    <AvatarImage src={profile.avatarUrl || ""} alt={profile.name} />
-                    <AvatarFallback className="text-lg bg-white/10 text-white">
-                      {profile.name?.charAt(0)?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-green-500 border-2 border-white/20 flex items-center justify-center">
-                    <div className="h-2 w-2 rounded-full bg-white"></div>
+              <CardContent className="space-y-6">
+                {/* Avatar Section */}
+                <div className="flex items-center gap-6 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 shadow-lg">
+                  <div className="relative">
+                    <Avatar className="h-20 w-20 ring-2 ring-white/20">
+                      <AvatarImage src={profile.avatarUrl || ""} alt={profile.name} />
+                      <AvatarFallback className="text-lg bg-white/10 text-white">
+                        {profile.name?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-green-500 border-2 border-white/20 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-white"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold text-white">{profile.name}</h3>
+                    <p className="text-white/70">{profile.email}</p>
+                    <p className="text-sm text-white/60">
+                      {profile.department} • {profile.position}
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-white">{profile.name}</h3>
-                  <p className="text-white/70">{profile.email}</p>
-                  <p className="text-sm text-white/60">
-                    {profile.department} • {profile.position}
-                  </p>
-                </div>
-              </div>
 
-              {/* Profile Form */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{FORM_LABELS.NAME}</Label>
-                  <Input
-                    id="name"
-                    variant="glass"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    disabled={!isEditing}
-                  />
+                {/* Profile Form */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">{FORM_LABELS.NAME}</Label>
+                    <Input
+                      id="name"
+                      variant="glass"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">{FORM_LABELS.EMAIL}</Label>
+                    <Input
+                      id="email"
+                      variant="glass"
+                      value={profile.email}
+                      disabled
+                      className="opacity-50"
+                    />
+                    <p className="text-xs text-white/60">
+                      Email tidak dapat diubah
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">{FORM_LABELS.PHONE}</Label>
+                    <Input
+                      id="phone"
+                      variant="glass"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="+62-8xx-xxxx-xxxx"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="department">{FORM_LABELS.DEPARTMENT}</Label>
+                    <Input
+                      id="department"
+                      variant="glass"
+                      value={formData.department}
+                      onChange={(e) => handleInputChange("department", e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position">{FORM_LABELS.POSITION}</Label>
+                    <Input
+                      id="position"
+                      variant="glass"
+                      value={formData.position}
+                      onChange={(e) => handleInputChange("position", e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Input
+                      variant="glass"
+                      value={
+                        profile.role === UserRole.admin ? "Admin" :
+                          profile.role === UserRole.manager ? "Manager" : "Pengguna"
+                      }
+                      disabled
+                      className="opacity-50"
+                    />
+                    <p className="text-xs text-white/60">
+                      Role tidak dapat diubah
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">{FORM_LABELS.EMAIL}</Label>
-                  <Input
-                    id="email"
-                    variant="glass"
-                    value={profile.email}
-                    disabled
-                    className="opacity-50"
-                  />
-                  <p className="text-xs text-white/60">
-                    Email tidak dapat diubah
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{FORM_LABELS.PHONE}</Label>
-                  <Input
-                    id="phone"
-                    variant="glass"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    disabled={!isEditing}
-                    placeholder="+62-8xx-xxxx-xxxx"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="department">{FORM_LABELS.DEPARTMENT}</Label>
-                  <Input
-                    id="department"
-                    variant="glass"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange("department", e.target.value)}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="position">{FORM_LABELS.POSITION}</Label>
-                  <Input
-                    id="position"
-                    variant="glass"
-                    value={formData.position}
-                    onChange={(e) => handleInputChange("position", e.target.value)}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Input
-                    variant="glass"
-                    value={
-                      profile.role === UserRole.admin ? "Admin" :
-                      profile.role === UserRole.manager ? "Manager" : "Pengguna"
-                    }
-                    disabled
-                    className="opacity-50"
-                  />
-                  <p className="text-xs text-white/60">
-                    Role tidak dapat diubah
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                {!isEditing ? (
-                  <Button variant="glass" onClick={() => setIsEditing(true)} className="px-6">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Profil
-                  </Button>
-                ) : (
-                  <>
-                    <Button variant="glass" onClick={handleSaveProfile} disabled={isSaving} className="px-6">
-                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Save className="mr-2 h-4 w-4" />
-                      {isSaving ? "Menyimpan..." : "Simpan"}
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  {!isEditing ? (
+                    <Button variant="glass" onClick={() => setIsEditing(true)} className="px-6">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Profil
                     </Button>
-                    <Button variant="glassOutline" onClick={handleCancelEdit} className="px-6">
-                      <X className="mr-2 h-4 w-4" />
-                      Batal
-                    </Button>
-                  </>
+                  ) : (
+                    <>
+                      <Button variant="glass" onClick={handleSaveProfile} disabled={isSaving} className="px-6">
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Save className="mr-2 h-4 w-4" />
+                        {isSaving ? "Menyimpan..." : "Simpan"}
+                      </Button>
+                      <Button variant="glassOutline" onClick={handleCancelEdit} className="px-6">
+                        <X className="mr-2 h-4 w-4" />
+                        Batal
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {message && (
+                  <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
+                    <AlertDescription>{message.text}</AlertDescription>
+                  </Alert>
                 )}
-              </div>
-
-              {message && (
-                <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
-                  <AlertDescription>{message.text}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
+              </CardContent>
             </Card>
           </motion.div>
         </TabsContent>
@@ -397,92 +399,92 @@ export default function ProfilePage() {
                   Pastikan password baru Anda kuat dan aman
                 </CardDescription>
               </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">Password Saat Ini</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    variant="glass"
-                    type={showPasswords.current ? "text" : "password"}
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    placeholder="Masukkan password saat ini"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                  >
-                    {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Password Saat Ini</Label>
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      variant="glass"
+                      type={showPasswords.current ? "text" : "password"}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Masukkan password saat ini"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                    >
+                      {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">Password Baru</Label>
-                <div className="relative">
-                  <Input
-                    id="newPassword"
-                    variant="glass"
-                    type={showPasswords.new ? "text" : "password"}
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    placeholder="Minimal 8 karakter"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                  >
-                    {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Password Baru</Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      variant="glass"
+                      type={showPasswords.new ? "text" : "password"}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Minimal 8 karakter"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                    >
+                      {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{FORM_LABELS.CONFIRM_PASSWORD}</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    variant="glass"
-                    type={showPasswords.confirm ? "text" : "password"}
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    placeholder="Konfirmasi password baru"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                  >
-                    {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">{FORM_LABELS.CONFIRM_PASSWORD}</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      variant="glass"
+                      type={showPasswords.confirm ? "text" : "password"}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Konfirmasi password baru"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-white/70"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    >
+                      {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <Button
-                variant="glass"
-                onClick={handlePasswordChange}
-                disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                className="w-full py-3"
-              >
-                {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isChangingPassword ? "Mengubah Password..." : "Ubah Password"}
-              </Button>
+                <Button
+                  variant="glass"
+                  onClick={handlePasswordChange}
+                  disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                  className="w-full py-3"
+                >
+                  {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isChangingPassword ? "Mengubah Password..." : "Ubah Password"}
+                </Button>
 
-              {message && (
-                <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
-                  <AlertDescription>{message.text}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
+                {message && (
+                  <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
+                    <AlertDescription>{message.text}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
             </Card>
           </motion.div>
         </TabsContent>
@@ -501,40 +503,40 @@ export default function ProfilePage() {
               Informasi tambahan tentang akun Anda
             </CardDescription>
           </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <Label className="text-sm font-medium">Status Akun</Label>
-              <p className="text-sm text-muted-foreground">
-                {profile.isActive ? "Aktif" : "Tidak Aktif"}
-              </p>
-            </div>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label className="text-sm font-medium">Status Akun</Label>
+                <p className="text-sm text-muted-foreground">
+                  {profile.isActive ? "Aktif" : "Tidak Aktif"}
+                </p>
+              </div>
 
-            <div>
-              <Label className="text-sm font-medium">Login Terakhir</Label>
-              <p className="text-sm text-muted-foreground">
-                {profile.lastLogin ?
-                  new Date(profile.lastLogin).toLocaleString('id-ID') :
-                  "Belum pernah login"
-                }
-              </p>
-            </div>
+              <div>
+                <Label className="text-sm font-medium">Login Terakhir</Label>
+                <p className="text-sm text-muted-foreground">
+                  {profile.lastLogin ?
+                    new Date(profile.lastLogin).toLocaleString('id-ID') :
+                    "Belum pernah login"
+                  }
+                </p>
+              </div>
 
-            <div>
-              <Label className="text-sm font-medium">Dibuat Pada</Label>
-              <p className="text-sm text-muted-foreground">
-                {new Date(profile.createdAt).toLocaleDateString('id-ID')}
-              </p>
-            </div>
+              <div>
+                <Label className="text-sm font-medium">Dibuat Pada</Label>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(profile.createdAt).toLocaleDateString('id-ID')}
+                </p>
+              </div>
 
-            <div>
-              <Label className="text-sm font-medium">Diperbarui Pada</Label>
-              <p className="text-sm text-muted-foreground">
-                {new Date(profile.updatedAt).toLocaleDateString('id-ID')}
-              </p>
+              <div>
+                <Label className="text-sm font-medium">Diperbarui Pada</Label>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(profile.updatedAt).toLocaleDateString('id-ID')}
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
+          </CardContent>
         </Card>
       </motion.div>
     </div>

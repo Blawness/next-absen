@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +47,7 @@ interface LastLocationData {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [todayAttendance, setTodayAttendance] = useState<AttendanceData | null>(null)
   const [lastLocation, setLastLocation] = useState<LastLocationData | null>(null)
@@ -84,14 +85,14 @@ export default function DashboardPage() {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
     // Load today's attendance data and last location
     loadTodayAttendance()
     loadLastLocation()
-  }, [status, session])
+  }, [status, session, router])
 
   const loadTodayAttendance = async () => {
     try {
@@ -344,7 +345,8 @@ export default function DashboardPage() {
   }
 
   if (!session) {
-    redirect("/auth/signin")
+    router.push("/auth/signin")
+    return null
   }
 
   const canCheckIn = !todayAttendance?.checkInTime

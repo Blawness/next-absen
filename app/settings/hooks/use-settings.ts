@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { UserRole } from "@prisma/client"
 import { SystemSettings, Message } from "../types"
 
 export const useSettings = () => {
+  const router = useRouter()
   const { data: session, status } = useSession()
 
   const [settings, setSettings] = useState<SystemSettings | null>(null)
@@ -33,18 +34,18 @@ export const useSettings = () => {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
     // Check if user is admin
     if (session.user.role !== UserRole.admin) {
-      redirect("/dashboard")
+      router.push("/dashboard")
       return
     }
 
     loadSettings()
-  }, [status, session, loadSettings])
+  }, [status, session, loadSettings, router])
 
   const saveSettings = useCallback(async () => {
     if (!settings) return

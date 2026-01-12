@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { UserRole } from "@prisma/client"
 import { MESSAGES } from "@/lib/constants"
@@ -14,6 +14,7 @@ import {
 } from "../types"
 
 export const useReports = () => {
+  const router = useRouter()
   const { data: session, status } = useSession()
 
   const [records, setRecords] = useState<ReportRecord[]>([])
@@ -96,7 +97,7 @@ export const useReports = () => {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
@@ -108,7 +109,7 @@ export const useReports = () => {
 
     // Load reports whenever filters change
     loadReports()
-  }, [status, session, filters, loadReports, loadFilterOptions])
+  }, [status, session, filters, loadReports, loadFilterOptions, router])
 
   // Memoize handleFilterChange to prevent recreation on every render
   const handleFilterChange = useCallback((field: keyof ReportFilters, value: string) => {

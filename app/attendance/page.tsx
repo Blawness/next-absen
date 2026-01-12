@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -54,6 +54,7 @@ interface AttendanceHistoryData {
 }
 
 export default function AttendancePage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [todayAttendance, setTodayAttendance] = useState<AttendanceData | null>(null)
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceHistoryData[]>([])
@@ -86,7 +87,7 @@ export default function AttendancePage() {
 
     // If no session, redirect to signin
     if (status === "unauthenticated" || !session) {
-      redirect("/auth/signin")
+      router.push("/auth/signin")
       return
     }
 
@@ -104,7 +105,7 @@ export default function AttendancePage() {
 
       loadData()
     }
-  }, [status, session])
+  }, [status, session, router])
 
   const loadTodayAttendance = async () => {
     try {
@@ -373,55 +374,55 @@ export default function AttendancePage() {
               {format(new Date(), "EEEE, d MMMM yyyy", { locale: id })}
             </CardDescription>
           </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button
-              variant="glass"
-              size="lg"
-              className="h-24 flex-col space-y-2"
-              onClick={handleCheckIn}
-              disabled={!canCheckIn || isCheckingIn}
-            >
-              {isCheckingIn && <Loader2 className="h-6 w-6 animate-spin" />}
-              {!isCheckingIn && <CheckCircle className="h-6 w-6" />}
-              <span className="font-semibold">
-                {todayAttendance?.checkInTime ? "Sudah Check-in" : "Check In"}
-              </span>
-              <span className="text-sm opacity-80">
-                {todayAttendance?.checkInTime ?
-                  format(todayAttendance.checkInTime, "HH:mm") :
-                  "Klik untuk absen masuk"
-                }
-              </span>
-            </Button>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="glass"
+                size="lg"
+                className="h-24 flex-col space-y-2"
+                onClick={handleCheckIn}
+                disabled={!canCheckIn || isCheckingIn}
+              >
+                {isCheckingIn && <Loader2 className="h-6 w-6 animate-spin" />}
+                {!isCheckingIn && <CheckCircle className="h-6 w-6" />}
+                <span className="font-semibold">
+                  {todayAttendance?.checkInTime ? "Sudah Check-in" : "Check In"}
+                </span>
+                <span className="text-sm opacity-80">
+                  {todayAttendance?.checkInTime ?
+                    format(todayAttendance.checkInTime, "HH:mm") :
+                    "Klik untuk absen masuk"
+                  }
+                </span>
+              </Button>
 
-            <Button
-              variant="glassOutline"
-              size="lg"
-              className="h-24 flex-col space-y-2"
-              onClick={handleCheckOut}
-              disabled={!canCheckOut || isCheckingOut}
-            >
-              {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
-              {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
-              <span className="font-semibold">
-                {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
-              </span>
-              <span className="text-sm opacity-80">
-                {todayAttendance?.checkOutTime ?
-                  format(todayAttendance.checkOutTime, "HH:mm") :
-                  "Klik untuk absen pulang"
-                }
-              </span>
-            </Button>
-          </div>
+              <Button
+                variant="glassOutline"
+                size="lg"
+                className="h-24 flex-col space-y-2"
+                onClick={handleCheckOut}
+                disabled={!canCheckOut || isCheckingOut}
+              >
+                {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
+                {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
+                <span className="font-semibold">
+                  {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
+                </span>
+                <span className="text-sm opacity-80">
+                  {todayAttendance?.checkOutTime ?
+                    format(todayAttendance.checkOutTime, "HH:mm") :
+                    "Klik untuk absen pulang"
+                  }
+                </span>
+              </Button>
+            </div>
 
-          {message && (
-            <Alert variant={message.type === 'success' ? 'default' : 'destructive'} className="mt-4">
-              <AlertDescription>{message.text}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
+            {message && (
+              <Alert variant={message.type === 'success' ? 'default' : 'destructive'} className="mt-4">
+                <AlertDescription>{message.text}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
         </Card>
       </motion.div>
 
@@ -439,59 +440,59 @@ export default function AttendancePage() {
                 Status Hari Ini
               </CardTitle>
             </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-sm font-medium">Status</p>
-                <Badge
-                  variant={todayAttendance.status === AttendanceStatus.present ? "default" : "secondary"}
-                  className="mt-1"
-                >
-                  {STATUS_LABELS[todayAttendance.status]}
-                </Badge>
-              </div>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-sm font-medium">Status</p>
+                  <Badge
+                    variant={todayAttendance.status === AttendanceStatus.present ? "default" : "secondary"}
+                    className="mt-1"
+                  >
+                    {STATUS_LABELS[todayAttendance.status]}
+                  </Badge>
+                </div>
 
-              <div className="text-center">
-                <p className="text-sm font-medium">{TIME_LABELS.CHECK_IN_TIME}</p>
-                <p className="text-sm text-muted-foreground">
-                  {todayAttendance.checkInTime ?
-                    format(todayAttendance.checkInTime, "HH:mm") :
-                    "-"
-                  }
-                </p>
-                {todayAttendance.checkInAddress && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    📍 {formatAddress(todayAttendance.checkInAddress)}
+                <div className="text-center">
+                  <p className="text-sm font-medium">{TIME_LABELS.CHECK_IN_TIME}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {todayAttendance.checkInTime ?
+                      format(todayAttendance.checkInTime, "HH:mm") :
+                      "-"
+                    }
                   </p>
-                )}
-              </div>
+                  {todayAttendance.checkInAddress && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      📍 {formatAddress(todayAttendance.checkInAddress)}
+                    </p>
+                  )}
+                </div>
 
-              <div className="text-center">
-                <p className="text-sm font-medium">{TIME_LABELS.CHECK_OUT_TIME}</p>
-                <p className="text-sm text-muted-foreground">
-                  {todayAttendance.checkOutTime ?
-                    format(todayAttendance.checkOutTime, "HH:mm") :
-                    "-"
-                  }
-                </p>
-                {todayAttendance.checkOutAddress && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    📍 {formatAddress(todayAttendance.checkOutAddress)}
+                <div className="text-center">
+                  <p className="text-sm font-medium">{TIME_LABELS.CHECK_OUT_TIME}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {todayAttendance.checkOutTime ?
+                      format(todayAttendance.checkOutTime, "HH:mm") :
+                      "-"
+                    }
                   </p>
-                )}
-              </div>
+                  {todayAttendance.checkOutAddress && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      📍 {formatAddress(todayAttendance.checkOutAddress)}
+                    </p>
+                  )}
+                </div>
 
-              <div className="text-center">
-                <p className="text-sm font-medium">{TIME_LABELS.WORK_HOURS}</p>
-                <p className="text-sm text-muted-foreground">
-                  {todayAttendance.workHours && typeof todayAttendance.workHours === 'number' ?
-                    `${todayAttendance.workHours.toFixed(1)}j` :
-                    "-"
-                  }
-                </p>
+                <div className="text-center">
+                  <p className="text-sm font-medium">{TIME_LABELS.WORK_HOURS}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {todayAttendance.workHours && typeof todayAttendance.workHours === 'number' ?
+                      `${todayAttendance.workHours.toFixed(1)}j` :
+                      "-"
+                    }
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
+            </CardContent>
           </Card>
         </motion.div>
       )}
@@ -513,17 +514,17 @@ export default function AttendancePage() {
                 Peta menunjukkan lokasi check-in atau check-out terakhir Anda
               </CardDescription>
             </CardHeader>
-          <CardContent>
-            <Map
-              latitude={currentLocation.latitude}
-              longitude={currentLocation.longitude}
-              address={currentLocation.address}
-              className="h-64 w-full"
-            />
-            <div className="mt-4 text-sm text-white/80">
-              <p>Alamat: {formatAddress(currentLocation.address) || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}</p>
-            </div>
-          </CardContent>
+            <CardContent>
+              <Map
+                latitude={currentLocation.latitude}
+                longitude={currentLocation.longitude}
+                address={currentLocation.address}
+                className="h-64 w-full"
+              />
+              <div className="mt-4 text-sm text-white/80">
+                <p>Alamat: {formatAddress(currentLocation.address) || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}</p>
+              </div>
+            </CardContent>
           </Card>
         </motion.div>
       )}
@@ -544,44 +545,44 @@ export default function AttendancePage() {
               Data absensi 7 hari terakhir
             </CardDescription>
           </CardHeader>
-        <CardContent>
-          {attendanceHistory.length > 0 ? (
-            <div className="space-y-3">
-              {attendanceHistory.map((record, index) => (
-                <div key={record.id || index} className="flex items-center justify-between p-3 border border-white/20 rounded-lg bg-white/5">
-                  <div className="flex-1">
-                    <p className="font-medium text-white">
-                      {format(record.date, "EEE, d MMM", { locale: id })}
-                    </p>
-                    <div className="flex gap-4 text-sm text-white/70">
-                      <span>
-                        Masuk: {record.checkInTime ? format(record.checkInTime, "HH:mm") : "-"}
-                      </span>
-                      <span>
-                        Pulang: {record.checkOutTime ? format(record.checkOutTime, "HH:mm") : "-"}
-                      </span>
-                    </div>
-                    {(record.checkInAddress || record.checkOutAddress) && (
-                      <div className="text-xs text-white/60 mt-1">
-                        {record.checkInAddress && <span>📍 {formatAddress(record.checkInAddress)}</span>}
-                        {record.checkInAddress && record.checkOutAddress && <span> • </span>}
-                        {record.checkOutAddress && <span>📍 {formatAddress(record.checkOutAddress)}</span>}
+          <CardContent>
+            {attendanceHistory.length > 0 ? (
+              <div className="space-y-3">
+                {attendanceHistory.map((record, index) => (
+                  <div key={record.id || index} className="flex items-center justify-between p-3 border border-white/20 rounded-lg bg-white/5">
+                    <div className="flex-1">
+                      <p className="font-medium text-white">
+                        {format(record.date, "EEE, d MMM", { locale: id })}
+                      </p>
+                      <div className="flex gap-4 text-sm text-white/70">
+                        <span>
+                          Masuk: {record.checkInTime ? format(record.checkInTime, "HH:mm") : "-"}
+                        </span>
+                        <span>
+                          Pulang: {record.checkOutTime ? format(record.checkOutTime, "HH:mm") : "-"}
+                        </span>
                       </div>
-                    )}
+                      {(record.checkInAddress || record.checkOutAddress) && (
+                        <div className="text-xs text-white/60 mt-1">
+                          {record.checkInAddress && <span>📍 {formatAddress(record.checkInAddress)}</span>}
+                          {record.checkInAddress && record.checkOutAddress && <span> • </span>}
+                          {record.checkOutAddress && <span>📍 {formatAddress(record.checkOutAddress)}</span>}
+                        </div>
+                      )}
+                    </div>
+                    <Badge variant={record.status === AttendanceStatus.present ? "default" : "secondary"}>
+                      {STATUS_LABELS[record.status]}
+                    </Badge>
                   </div>
-                  <Badge variant={record.status === AttendanceStatus.present ? "default" : "secondary"}>
-                    {STATUS_LABELS[record.status]}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <History className="h-12 w-12 text-white/40 mx-auto mb-4" />
-              <p className="text-white/60">Belum ada data riwayat absensi</p>
-            </div>
-          )}
-        </CardContent>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <History className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                <p className="text-white/60">Belum ada data riwayat absensi</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </motion.div>
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SettingsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
@@ -15,6 +15,7 @@ import { NotificationsSettings } from "./components/notifications-settings"
 import { SecuritySettings } from "./components/security-settings"
 
 export default function SettingsPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const {
     settings,
@@ -30,7 +31,8 @@ export default function SettingsPage() {
   }
 
   if (!session || session.user.role !== "admin") {
-    redirect("/dashboard")
+    router.push("/dashboard")
+    return null
   }
 
   return (
