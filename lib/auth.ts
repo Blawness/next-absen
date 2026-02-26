@@ -1,7 +1,28 @@
 import { NextAuthOptions } from "next-auth"
+import type { JWT } from "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
+import { randomUUID } from "crypto"
 import { prisma } from "./prisma"
+import {
+  persistSessionToken,
+  readSessionToken,
+  revokeSessionToken,
+} from "./session-token-store"
+
+const toPositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
+}
+
+const SESSION_MAX_AGE_SECONDS = toPositiveInt(
+  process.env.SESSION_MAX_AGE_SECONDS,
+  7 * 24 * 60 * 60
+)
+const SESSION_UPDATE_AGE_SECONDS = toPositiveInt(
+  process.env.SESSION_UPDATE_AGE_SECONDS,
+  12 * 60 * 60
+)
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -54,10 +75,53 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
+    // Keep active users logged in longer while preserving idle timeout policy.
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    updateAge: SESSION_UPDATE_AGE_SECONDS,
+  },
+  jwt: {
+    async encode({ token, maxAge }) {
+      if (!token) {
+        return ""
+      }
+
+      const sessionToken = typeof token.sid === "string" ? token.sid : randomUUID()
+      token.sid = sessionToken
+
+      const userId = typeof token.sub === "string" ? token.sub : null
+      if (!userId) {
+        return ""
+      }
+
+      const expiresAt = new Date(Date.now() + (maxAge ?? SESSION_MAX_AGE_SECONDS) * 1000)
+      await persistSessionToken({
+        sessionToken,
+        payload: token,
+        userId,
+        expiresAt,
+      })
+
+      return sessionToken
+    },
+    async decode({ token }) {
+      if (!token) {
+        return null
+      }
+
+      const restoredToken = await readSessionToken(token)
+      return restoredToken as JWT | null
+    },
   },
   callbacks: {
     async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id
+      }
+
+      if (!token.sid || typeof token.sid !== "string") {
+        token.sid = randomUUID()
+      }
+
       if (user) {
         token.role = user.role
         token.department = user.department
@@ -74,6 +138,13 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     }
+  },
+  events: {
+    async signOut({ token }) {
+      if (token?.sid && typeof token.sid === "string") {
+        await revokeSessionToken(token.sid)
+      }
+    },
   },
   pages: {
     signIn: "/auth/signin",
