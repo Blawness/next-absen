@@ -46,7 +46,7 @@ export const SecuritySettings = ({ settings, isSaving, onUpdateSettings, onSave 
                 value={settings?.security.sessionTimeout || 60}
                 onChange={(e) => onUpdateSettings('security', 'sessionTimeout', parseInt(e.target.value))}
               />
-              <p className="text-xs text-white/60">Waktu sebelum sesi pengguna berakhir otomatis</p>
+              <p className="text-xs text-white/60">Parameter cadangan jika kebijakan timeout sesi diaktifkan lagi</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="maxLoginAttempts" className="text-white">Maksimal Percobaan Login</Label>
@@ -107,7 +107,7 @@ export const SecuritySettings = ({ settings, isSaving, onUpdateSettings, onSave 
                 <h4 className="text-sm font-medium text-red-300">Peringatan Keamanan</h4>
                 <ul className="text-xs text-red-200 space-y-1">
                   <li>• Password kedaluwarsa akan memaksa reset password</li>
-                  <li>• Session timeout yang pendek meningkatkan keamanan</li>
+                  <li>• Logout manual tetap disarankan saat memakai perangkat bersama</li>
                   <li>• Password kuat mengurangi risiko kebocoran data</li>
                   <li>• Maksimal percobaan login mencegah brute force attacks</li>
                 </ul>

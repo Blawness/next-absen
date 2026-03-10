@@ -15,9 +15,11 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
 }
 
+const DEFAULT_SESSION_MAX_AGE_SECONDS = 10 * 365 * 24 * 60 * 60
+
 const SESSION_MAX_AGE_SECONDS = toPositiveInt(
   process.env.SESSION_MAX_AGE_SECONDS,
-  7 * 24 * 60 * 60
+  DEFAULT_SESSION_MAX_AGE_SECONDS
 )
 const SESSION_UPDATE_AGE_SECONDS = toPositiveInt(
   process.env.SESSION_UPDATE_AGE_SECONDS,
@@ -75,7 +77,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    // Keep active users logged in longer while preserving idle timeout policy.
+    // Keep sessions effectively persistent unless an explicit override is configured.
     maxAge: SESSION_MAX_AGE_SECONDS,
     updateAge: SESSION_UPDATE_AGE_SECONDS,
   },
