@@ -7,7 +7,6 @@ import { UserRole, AttendanceStatus } from "@prisma/client"
 interface WhereClause {
   date?: { gte?: Date; lte?: Date }
   userId?: string | { in: string[] }
-  department?: string
   status?: AttendanceStatus
 }
 
@@ -31,8 +30,7 @@ export async function GET(request: NextRequest) {
     const includeSummary = searchParams.get('includeSummary') === 'true'
 
     // Build where clause based on user role and filters
-    // eslint-disable-next-line prefer-const
-    let whereClause: WhereClause = {}
+    const whereClause: WhereClause = {}
 
     // Date range filter
     if (startDate || endDate) {
@@ -47,23 +45,20 @@ export async function GET(request: NextRequest) {
 
     // User-based filtering based on role
     if (session.user.role === UserRole.user) {
-      // Regular users can only see their own data
+      // Regular users can only see their own data — ignore userId/department params
       whereClause.userId = session.user.id
-    }
-    // Managers and Admins can see all data, additional filters applied below
-
-    // Additional filters
-    if (userId) {
-      whereClause.userId = userId
-    }
-
-    if (department) {
-      const departmentUsers = await prisma.user.findMany({
-        where: { department },
-        select: { id: true }
-      })
-      whereClause.userId = {
-        in: departmentUsers.map(u => u.id)
+    } else {
+      // Admins and managers: apply optional userId filter
+      if (userId) {
+        whereClause.userId = userId
+      } else if (department) {
+        const departmentUsers = await prisma.user.findMany({
+          where: { department },
+          select: { id: true }
+        })
+        whereClause.userId = {
+          in: departmentUsers.map(u => u.id)
+        }
       }
     }
 

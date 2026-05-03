@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { UserRole } from "@prisma/client"
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
@@ -24,22 +23,17 @@ export async function GET(_request: NextRequest) {
             )
         }
 
-        // Managers and Admins can see all statistics (department is for display/sorting only)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const whereClause: any = {}
-
         // Get total counts
         const [totalUsers, activeUsers, inactiveUsers] = await Promise.all([
-            prisma.user.count({ where: whereClause }),
-            prisma.user.count({ where: { ...whereClause, isActive: true } }),
-            prisma.user.count({ where: { ...whereClause, isActive: false } })
+            prisma.user.count(),
+            prisma.user.count({ where: { isActive: true } }),
+            prisma.user.count({ where: { isActive: false } })
         ])
 
         // Get department breakdown
         const departmentStats = await prisma.user.groupBy({
             by: ['department'],
             where: {
-                ...whereClause,
                 department: { not: null }
             },
             _count: {
@@ -60,7 +54,6 @@ export async function GET(_request: NextRequest) {
         // Get role distribution
         const roleStats = await prisma.user.groupBy({
             by: ['role'],
-            where: whereClause,
             _count: {
                 id: true
             }
@@ -77,7 +70,6 @@ export async function GET(_request: NextRequest) {
 
         const recentLogins = await prisma.user.count({
             where: {
-                ...whereClause,
                 lastLogin: {
                     gte: thirtyDaysAgo
                 }
@@ -91,7 +83,6 @@ export async function GET(_request: NextRequest) {
 
         const newUsersThisMonth = await prisma.user.count({
             where: {
-                ...whereClause,
                 createdAt: {
                     gte: startOfMonth
                 }

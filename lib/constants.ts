@@ -127,38 +127,3 @@ export const TABLE_HEADERS = {
   LOCATION: "Lokasi",
   ACTIONS: "Aksi"
 } as const
-
-export const SETTINGS_KEYS = {
-  OFFICE_LOCATION: "office_location",
-  WORK_SCHEDULE: "work_schedule",
-  GEOFENCING: "geofencing",
-  NOTIFICATIONS: "notifications"
-} as const
-
-export const DEFAULT_SETTINGS = {
-  OFFICE_LOCATION: {
-    latitude: -6.2088,
-    longitude: 106.8456,
-    address: "Jakarta, Indonesia",
-    radius: 100
-  },
-  WORK_SCHEDULE: {
-    check_in_start: "06:00",
-    check_in_end: "10:00",
-    check_out_start: "14:00",
-    check_out_end: "22:00",
-    work_hours_min: 4,
-    work_hours_max: 12,
-    late_tolerance: 15
-  },
-  GEOFENCING: {
-    enabled: true,
-    radius_meters: 100,
-    accuracy_threshold: 10
-  },
-  NOTIFICATIONS: {
-    email_enabled: true,
-    daily_summary: true,
-    late_reminder: true
-  }
-} as const

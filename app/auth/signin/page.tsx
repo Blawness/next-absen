@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { signIn, getSession, useSession } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,19 +52,10 @@ export default function SignInPage() {
 
       if (result?.error) {
         setError(MESSAGES.LOGIN_FAILED)
-      } else {
-        // Wait a moment for session to be created
-        setTimeout(async () => {
-          const session = await getSession()
-          if (session) {
-            router.push("/dashboard")
-            router.refresh()
-          }
-        }, 100)
+        setIsLoading(false)
       }
     } catch {
       setError(MESSAGES.ERROR)
-    } finally {
       setIsLoading(false)
     }
   }

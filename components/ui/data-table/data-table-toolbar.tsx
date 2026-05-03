@@ -129,8 +129,7 @@ export function DataTableToolbar({
               className="bg-white/5 border-white/10 w-full sm:w-auto"
             >
               <Eye className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Kolom</span>
-              <span className="sm:hidden">Kolom</span>
+              <span>Kolom</span>
             </Button>
           </div>
         </div>

@@ -456,20 +456,3 @@ export function AuthSkeleton() {
     </div>
   )
 }
-
-// Empty state component
-export function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-24 h-24 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center mb-6 border border-white/10">
-        <svg className="h-10 w-10 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      </div>
-      <h3 className="text-lg font-semibold text-white/98 mb-2">Tidak ada data ditemukan</h3>
-      <p className="text-white/75 mb-6 max-w-md">
-        Belum ada data yang sesuai dengan filter yang dipilih. Coba ubah filter atau tambah data baru.
-      </p>
-    </div>
-  )
-}

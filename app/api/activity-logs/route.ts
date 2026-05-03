@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== UserRole.admin) {
+        if (!session?.user || session.user.role !== UserRole.admin) {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 403 }

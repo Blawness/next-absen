@@ -44,9 +44,9 @@ export function DataTableContent({
   onRowSelect,
   onSelectAll,
   onEdit,
-  onDelete, // eslint-disable-line @typescript-eslint/no-unused-vars
-  onToggleStatus, // eslint-disable-line @typescript-eslint/no-unused-vars
-  onPasswordReset, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onDelete: _onDelete,
+  onToggleStatus: _onToggleStatus,
+  onPasswordReset: _onPasswordReset,
   onViewActivity,
 }: DataTableContentProps) {
   const visibleColumnsArray = columns.filter(col => visibleColumns.has(col.id))
