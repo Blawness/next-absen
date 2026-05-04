@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { motion } from "framer-motion"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { FORM_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 
@@ -63,11 +62,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen px-4 py-8 grid place-items-center">
       <div className="w-full max-w-md mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div className="animate-fade-up">
           <Card variant="glass">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-2xl font-bold glass-title">
@@ -146,7 +141,7 @@ export default function SignInPage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

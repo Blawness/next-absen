@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
 import {
   LayoutDashboard,
   Clock,
@@ -30,6 +29,14 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
 
+  const userRole = session?.user.role
+  const filteredNavItems = useMemo(() =>
+    navigationItems.filter(item =>
+      item.roles.includes(userRole as UserRole)
+    ),
+    [userRole]
+  )
+
   if (!session) {
     return (
       <main className="relative z-10">
@@ -39,11 +46,6 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
       </main>
     )
   }
-
-  const userRole = session.user.role
-  const filteredNavItems = navigationItems.filter(item =>
-    item.roles.includes(userRole)
-  )
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/signin" })
@@ -64,30 +66,20 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 glass-nav transform transition-transform duration-300 ease-in-out lg:translate-x-0 slide-in",
+        "fixed inset-y-0 left-0 z-40 w-64 solid-nav transform transition-transform duration-300 ease-in-out lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
           <div className="flex items-center justify-center h-16 px-4">
-            <motion.h1
-              className="text-2xl font-bold glass-title"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            <h1 className="text-2xl font-bold gradient-text">
               Absensi
-            </motion.h1>
+            </h1>
           </div>
 
           {/* User info */}
           <div className="p-4">
-            <motion.div
-              className="glass-card p-4 scale-in"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
+            <div className="solid-card p-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-white/20">
                   <User className="h-6 w-6 text-white" />
@@ -97,7 +89,7 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
                     {session.user.name}
                   </p>
                   <p className="text-xs text-white/70 truncate">
-                    {ROLE_LABELS[userRole.toUpperCase() as keyof typeof ROLE_LABELS]}
+                    {ROLE_LABELS[userRole?.toUpperCase() as keyof typeof ROLE_LABELS] ?? userRole}
                   </p>
                   {session.user.department && (
                     <p className="text-xs text-white/60 truncate">
@@ -106,7 +98,7 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -114,34 +106,29 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
             {filteredNavItems.map((item, index) => {
               const Icon = item.icon
               return (
-                <motion.div
+                <div
                   key={item.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
+                  className="animate-slide-left"
+                  style={{ animationDelay: `${0.4 + index * 0.1}s` }}
                 >
                   <Link href={item.href}>
                     <Button
                       variant="glassOutline"
-                      className="w-full justify-start text-white hover:bg-white/20 backdrop-blur-md rounded-xl"
+                      className="w-full justify-start text-white hover:bg-white/20 rounded-xl"
                       onClick={() => setIsOpen(false)}
                     >
                       <Icon className="mr-3 h-5 w-5" />
                       {item.label}
                     </Button>
                   </Link>
-                </motion.div>
+                </div>
               )
             })}
           </nav>
 
           {/* Sign out button */}
           <div className="p-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-            >
+            <div className="animate-fade-up anim-delay-800">
               <Button
                 variant="glassOutline"
                 className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/20 border-red-400/30 rounded-xl"
@@ -150,7 +137,7 @@ export function SidebarWithLayout({ children }: SidebarWithLayoutProps) {
                 <LogOut className="mr-3 h-5 w-5" />
                 {NAVIGATION.LOGOUT}
               </Button>
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

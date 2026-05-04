@@ -1,6 +1,5 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { Trash2, UserCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,12 +20,7 @@ export function DataTableBulkActions({
   if (!show) return null
 
   return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      className="overflow-hidden"
-    >
+    <div className="overflow-hidden animate-fade-up">
       <Card variant="glass" className="rounded-2xl">
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
@@ -56,7 +50,7 @@ export function DataTableBulkActions({
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }
 

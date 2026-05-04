@@ -16,14 +16,13 @@ npm run db:seed          # tsx prisma/seed.ts
 npm run db:seed:attendance # tsx prisma/seed-attendance.ts
 ```
 
-- Dev server runs on **port 3004**, not 3000.
-- Before building or running dev, run `npm run db:generate` (it's baked into `dev` and `build`).
+- Dev server runs on **port 3004**, not 3000. `npm run dev` includes `--hostname 0.0.0.0` for external access.
 
 ## Architecture
 
 - **Next.js 15 App Router** (not Pages Router) with TypeScript.
 - **MySQL** with **Prisma** ORM (`@prisma/client` v6).
-- **next-auth v3** with `CredentialsProvider`. JWT sessions but persisted in DB (`PersistedSessionToken` model) using AES-256-GCM encryption. Default session lifetime is 10 years.
+- **next-auth v4** with `CredentialsProvider`. JWT sessions persisted in DB (`PersistedSessionToken` model) using AES-256-GCM encryption. Default session lifetime is 10 years.
 - **shadcn/ui** (Radix UI primitives) + Tailwind CSS.
 - **Leaflet** (via `react-leaflet`) for GPS maps.
 - Path alias `@/*` → root directory.

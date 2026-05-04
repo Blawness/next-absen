@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { motion } from "framer-motion"
 import { Loader2, Plus, Download, UserCheck, X } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
@@ -308,11 +307,8 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-8">
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="flex items-center justify-between animate-fade-down"
       >
         <div>
           <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
@@ -341,7 +337,7 @@ export default function UsersPage() {
             Tambah User
           </Button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Statistics Dashboard */}
       <UserStatistics />
@@ -355,10 +351,8 @@ export default function UsersPage() {
 
 
       {/* Users Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-200"
       >
         <AdvancedDataTable
           data={users.map(user => ({
@@ -384,7 +378,7 @@ export default function UsersPage() {
           onViewActivity={handleViewActivity}
           onBulkDelete={(ids) => handleBulkAction('delete', ids)}
         />
-      </motion.div>
+      </div>
 
 
       {/* User Form Dialog */}

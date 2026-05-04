@@ -21,8 +21,6 @@ import { format } from "date-fns"
 import { AttendanceSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { id } from "date-fns/locale"
 import { Map } from "@/components/ui/map"
-import { motion } from "framer-motion"
-
 interface AttendanceData {
   id: string
   date: Date
@@ -297,11 +295,8 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-8">
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.ATTENDANCE}
@@ -309,13 +304,11 @@ export default function AttendancePage() {
         <p className="text-white/80 text-lg">
           Kelola absensi harian Anda dengan mudah
         </p>
-      </motion.div>
+      </div>
 
       {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1, duration: 0.5 }}
+      <div
+        className="animate-slide-left anim-delay-100"
       >
         <Card variant="glass">
           <CardHeader>
@@ -374,14 +367,12 @@ export default function AttendancePage() {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Today's Status */}
       {todayAttendance && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-200"
         >
           <Card variant="glass">
             <CardHeader>
@@ -444,15 +435,13 @@ export default function AttendancePage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Current Location Map */}
       {currentLocation && (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-300"
         >
           <Card variant="glass">
             <CardHeader>
@@ -476,14 +465,12 @@ export default function AttendancePage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Attendance History */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-400"
       >
         <Card variant="glass">
           <CardHeader>
@@ -534,7 +521,7 @@ export default function AttendancePage() {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Map } from "@/components/ui/map"
 import { DashboardSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle, RefreshCw } from "lucide-react"
-import { motion } from "framer-motion"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition, calculateDistance } from "@/lib/location"
@@ -89,14 +88,17 @@ export default function DashboardPage() {
       return
     }
 
-    // Load today's attendance data and last location
-    loadTodayAttendance()
-    loadLastLocation()
+    const controller = new AbortController()
+    Promise.all([
+      loadTodayAttendance(controller.signal),
+      loadLastLocation(controller.signal)
+    ])
+    return () => controller.abort()
   }, [status, session, router])
 
-  const loadTodayAttendance = async () => {
+  const loadTodayAttendance = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/attendance/today')
+      const response = await fetch('/api/attendance/today', { signal })
       if (response.ok) {
         const data = await response.json()
         const parsedData = data ? {
@@ -124,9 +126,9 @@ export default function DashboardPage() {
     }
   }
 
-  const loadLastLocation = async () => {
+  const loadLastLocation = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/attendance/history?limit=1&offset=0')
+      const response = await fetch('/api/attendance/history?limit=1&offset=0', { signal })
       if (response.ok) {
         const history = await response.json()
         if (history && history.length > 0) {
@@ -355,11 +357,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.DASHBOARD}
@@ -367,7 +366,7 @@ export default function DashboardPage() {
         <p className="text-white/80 text-lg">
           Selamat datang kembali, {session.user.name}
         </p>
-      </motion.div>
+      </div>
 
       {/* Message Alert */}
       {message && (
@@ -378,11 +377,7 @@ export default function DashboardPage() {
 
       {/* Today's Status */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-        >
+        <div className="animate-fade-up anim-delay-100">
           <Card variant="glass" className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-white">
@@ -409,13 +404,9 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
+        <div className="animate-fade-up anim-delay-200">
           <Card variant="glass" className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-white">
@@ -432,13 +423,9 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
+        <div className="animate-fade-up anim-delay-300">
           <Card variant="glass" className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-white">
@@ -455,13 +442,9 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
+        <div className="animate-fade-up anim-delay-400">
           <Card variant="glass" className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-white">
@@ -478,16 +461,12 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* Quick Actions */}
       <div className="grid gap-6 md:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-        >
+        <div className="animate-slide-left anim-delay-500">
           <Card variant="glass">
             <CardHeader>
               <CardTitle className="text-white">Aksi Cepat</CardTitle>
@@ -539,13 +518,9 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
+        <div className="animate-fade-up anim-delay-600">
           <Card variant="glass">
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <div className="space-y-1.5">
@@ -636,15 +611,11 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* Recent Activity */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7, duration: 0.5 }}
-      >
+      <div className="animate-fade-up anim-delay-700">
         <Card variant="glass">
           <CardHeader>
             <CardTitle className="text-white">Aktivitas Terbaru</CardTitle>
@@ -708,7 +679,7 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

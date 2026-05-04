@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { BarChart3, Users, Clock, TrendingUp } from "lucide-react"
 import { ReportSummary } from "../types"
-import { motion } from "framer-motion"
-
 interface StatCardsProps {
   summary: ReportSummary
 }
@@ -42,12 +40,7 @@ export const StatCards = ({ summary }: StatCardsProps) => {
   ]
 
   return (
-    <motion.div
-      className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.5 }}
-    >
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-fade-up anim-delay-200">
       {cards.map((card) => {
         const Icon = card.icon
         return (
@@ -67,6 +60,6 @@ export const StatCards = ({ summary }: StatCardsProps) => {
           </Card>
         )
       })}
-    </motion.div>
+    </div>
   )
 }

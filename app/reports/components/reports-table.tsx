@@ -7,8 +7,6 @@ import { ReportRecord, ReportSummary } from "../types"
 import { STATUS_LABELS, TABLE_HEADERS } from "@/lib/constants"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { motion } from "framer-motion"
-
 interface ReportsTableProps {
   records: ReportRecord[]
   summary: ReportSummary | null
@@ -32,11 +30,7 @@ const formatAddress = (address?: string | null) => {
 
 export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.5 }}
-    >
+    <div className="animate-fade-up anim-delay-400">
       <Card variant="glass">
         <CardHeader>
           <CardTitle className="text-white">Data Absensi Detail</CardTitle>
@@ -125,6 +119,6 @@ export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }

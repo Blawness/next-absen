@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SettingsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { motion } from "framer-motion"
 import { Settings, Bell, Shield, MapPin } from "lucide-react"
 import { NAVIGATION } from "@/lib/constants"
 import { useSettings } from "./hooks/use-settings"
@@ -37,11 +36,8 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.SETTINGS}
@@ -49,7 +45,7 @@ export default function SettingsPage() {
         <p className="text-white/80 text-lg">
           Kelola pengaturan sistem dan konfigurasi aplikasi
         </p>
-      </motion.div>
+      </div>
 
       {message && (
         <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
@@ -57,10 +53,8 @@ export default function SettingsPage() {
         </Alert>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-200"
       >
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 glass-nav p-1">
@@ -118,7 +112,7 @@ export default function SettingsPage() {
             />
           </TabsContent>
         </Tabs>
-      </motion.div>
+      </div>
     </div>
   )
 }

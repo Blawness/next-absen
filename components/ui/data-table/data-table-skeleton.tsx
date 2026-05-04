@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { motion } from "framer-motion"
 
 // Loading skeleton component
 export function DataTableSkeleton() {
@@ -419,12 +418,7 @@ export function AttendanceSkeleton() {
 export function AuthSkeleton() {
   return (
     <div className="min-h-screen glassmorphism-bg flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+      <div className="w-full max-w-md animate-fade-up">
         <Card variant="glass" className="backdrop-blur-xl">
           <CardHeader className="space-y-4 pb-8">
             <div className="flex items-center justify-center mb-4">
@@ -452,7 +446,7 @@ export function AuthSkeleton() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

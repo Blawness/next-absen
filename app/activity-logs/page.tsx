@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 import { Clock } from "lucide-react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -98,12 +97,9 @@ export default function ActivityLogsPage() {
 
     return (
         <div className="space-y-8">
-            <motion.div
-                className="flex items-center justify-between"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-            >
+            <div
+                className="flex items-center justify-between animate-fade-down"
+              >
                 <div>
                     <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
                         {NAVIGATION.ACTIVITY_LOG}
@@ -112,7 +108,7 @@ export default function ActivityLogsPage() {
                         Pantau semua aktivitas sistem
                     </p>
                 </div>
-            </motion.div>
+            </div>
 
             <Card className="glass-card border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -144,11 +140,9 @@ export default function ActivityLogsPage() {
                         ) : (
                             <div className="space-y-4">
                                 {logs.map((log) => (
-                                    <motion.div
+                                    <div
                                         key={log.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className="flex items-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                                        className="flex items-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors animate-slide-left"
                                     >
                                         <Avatar className="h-10 w-10 border border-white/20">
                                             <AvatarImage src={log.user.avatarUrl || undefined} />
@@ -187,7 +181,7 @@ export default function ActivityLogsPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
                         )}
