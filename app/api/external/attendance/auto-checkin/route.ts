@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { validateApiKey, externalSuccessResponse, externalErrorResponse } from "@/app/api/external/utils"
-import { validateLocationData, autoCheckIn, HttpError } from "./services"
+import { HttpError } from "@/lib/errors"
+import { validateLocationData, autoCheckIn } from "./services"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +12,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { userId, latitude, longitude, accuracy, notes } = body
-
-    if (!userId || typeof userId !== "string") {
-      throw new HttpError("userId is required", 400)
-    }
 
     validateLocationData(body)
 
