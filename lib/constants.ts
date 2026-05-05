@@ -14,7 +14,8 @@ export const NAVIGATION = {
   MY_ATTENDANCE: "Absensi Saya",
   ADMIN_PANEL: "Panel Admin",
   MANAGER_PANEL: "Panel Manager",
-  ACTIVITY_LOG: "Log Aktivitas"
+  ACTIVITY_LOG: "Log Aktivitas",
+  API_KEYS: "Kunci API"
 } as const
 
 export const STATUS_LABELS = {

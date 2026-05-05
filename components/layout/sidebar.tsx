@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   TrendingUp,
-  Activity
+  Activity,
+  Key
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAVIGATION, ROLE_LABELS } from "@/lib/constants"
@@ -212,6 +213,12 @@ const navigationItems: Array<{
       href: "/activity-logs",
       label: NAVIGATION.ACTIVITY_LOG,
       icon: Activity,
+      roles: [UserRole.admin]
+    },
+    {
+      href: "/settings/api-keys",
+      label: NAVIGATION.API_KEYS,
+      icon: Key,
       roles: [UserRole.admin]
     }
   ]
