@@ -37,6 +37,10 @@ export function validateLocationData(body: {
 export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiKey) {
   const { userId, latitude, longitude, accuracy, notes } = input
 
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    throw new HttpError("userId is required", 400)
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
   })
@@ -66,23 +70,31 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
   const checkOutTime = new Date(now.getTime() + 8 * 60 * 60 * 1000)
   const status = "present" as const
 
-  const attendance = await prisma.absensiRecord.create({
-    data: {
-      userId,
-      date: now,
-      checkInTime,
-      checkOutTime,
-      checkInLatitude: latitude,
-      checkInLongitude: longitude,
-      checkInAddress: address,
-      checkInAccuracy: accuracy,
-      workHours: 8.00,
-      overtimeHours: 0.00,
-      lateMinutes: 0,
-      status,
-      notes: notes ?? null,
-    },
-  })
+  let attendance
+  try {
+    attendance = await prisma.absensiRecord.create({
+      data: {
+        userId,
+        date: now,
+        checkInTime,
+        checkOutTime,
+        checkInLatitude: latitude,
+        checkInLongitude: longitude,
+        checkInAddress: address,
+        checkInAccuracy: accuracy,
+        workHours: 8.00,
+        overtimeHours: 0.00,
+        lateMinutes: 0,
+        status,
+        notes: notes ?? null,
+      },
+    })
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+      throw new HttpError("Attendance already exists for today", 409)
+    }
+    throw error
+  }
 
   await prisma.activityLog.create({
     data: {
