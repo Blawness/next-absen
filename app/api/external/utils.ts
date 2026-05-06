@@ -25,7 +25,7 @@ export async function validateApiKey(
   }
 
   const trimmedKey = apiKey.trim()
-  const prefix = trimmedKey.slice(0, 8)
+  const prefix = trimmedKey.slice(-8)
 
   const candidates = await prisma.apiKey.findMany({
     where: { prefix, isActive: true },

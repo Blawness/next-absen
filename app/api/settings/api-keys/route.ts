@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Hash with bcryptjs (salt 12)
     const hashedKey = await bcrypt.hash(rawKey, 12)
 
-    const prefix = rawKey.slice(0, 8)
+    const prefix = rawKey.slice(-8)
 
     const apiKey = await prisma.apiKey.create({
       data: {
