@@ -120,6 +120,7 @@ export default function DashboardPage() {
         setTodayAttendance(parsedData)
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
       console.error('Error loading today attendance:', error)
     } finally {
       setIsLoading(false)
@@ -144,6 +145,7 @@ export default function DashboardPage() {
         }
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
       console.error('Error loading last location:', error)
     }
   }
