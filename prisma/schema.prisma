@@ -93,6 +93,8 @@ model AbsensiRecord {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([date])
+  @@index([status])
   @@map("absensi_records")
 }
 
@@ -110,6 +112,7 @@ model ActivityLog {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt])
   @@map("activity_logs")
 }
 

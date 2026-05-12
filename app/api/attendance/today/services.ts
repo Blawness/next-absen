@@ -1,21 +1,10 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { startOfDay, endOfDay } from "date-fns"
 
 import { HttpError } from "@/lib/errors"
 
 export { HttpError }
-
-export async function validateSession() {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    throw new HttpError("Unauthorized", 401)
-  }
-
-  return session
-}
 
 export async function getTodaysAttendance(userId: string) {
   const today = new Date()

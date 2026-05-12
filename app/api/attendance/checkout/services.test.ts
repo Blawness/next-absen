@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { type AbsensiRecord } from "@prisma/client"
 import {
-  validateSession,
   validateLocationData,
   getTodaysAttendance,
   processCheckout,
   logCheckoutActivity,
   HttpError,
 } from "./services"
+import { validateSession } from "@/lib/auth"
 
 // Type definitions for testing
 interface LocationData {

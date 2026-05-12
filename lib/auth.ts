@@ -1,9 +1,11 @@
-import { NextAuthOptions } from "next-auth"
+import { getServerSession, type NextAuthOptions } from "next-auth"
+import type { DefaultSession } from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { randomUUID } from "crypto"
 import { prisma } from "./prisma"
+import { HttpError } from "./errors"
 import {
   persistSessionToken,
   readSessionToken,
@@ -15,7 +17,7 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
 }
 
-const DEFAULT_SESSION_MAX_AGE_SECONDS = 10 * 365 * 24 * 60 * 60
+const DEFAULT_SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
 
 const SESSION_MAX_AGE_SECONDS = toPositiveInt(
   process.env.SESSION_MAX_AGE_SECONDS,
@@ -25,6 +27,20 @@ const SESSION_UPDATE_AGE_SECONDS = toPositiveInt(
   process.env.SESSION_UPDATE_AGE_SECONDS,
   12 * 60 * 60
 )
+
+export async function validateSession() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    throw new HttpError("Unauthorized", 401)
+  }
+
+  return session
+}
+
+export type ValidatedSession = {
+  user: NonNullable<DefaultSession["user"]> & { id: string }
+} & Omit<DefaultSession, "user">
 
 export const authOptions: NextAuthOptions = {
   providers: [

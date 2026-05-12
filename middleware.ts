@@ -1,9 +1,19 @@
 import { getToken } from "next-auth/jwt"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { rateLimit } from "@/lib/rate-limit"
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+
+  // Rate limit auth endpoints (5 requests per minute per IP)
+  if (pathname.startsWith("/api/auth/") && request.method === "POST") {
+    const rateLimitResult = await rateLimit(request, {
+      maxRequests: 5,
+      windowMs: 60000,
+    })
+    if (rateLimitResult) return rateLimitResult
+  }
 
   // Handle /api/external/* routes — CORS headers + OPTIONS preflight
   if (pathname.startsWith("/api/external/")) {
@@ -45,6 +55,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/auth/:path*",
     "/api/external/:path*",
     "/dashboard/:path*",
     "/attendance/:path*",

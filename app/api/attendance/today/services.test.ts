@@ -1,6 +1,7 @@
 // app/api/attendance/today/services.test.ts
 import { prisma } from "@/lib/prisma"
-import { getTodaysAttendance, validateSession } from "./services"
+import { getTodaysAttendance } from "./services"
+import { validateSession } from "@/lib/auth"
 import { getServerSession } from "next-auth"
 
 jest.mock("next-auth")

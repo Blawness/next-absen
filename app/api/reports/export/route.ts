@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { withErrorHandling } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { UserRole, AttendanceStatus } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface WhereClause {
   date?: {
@@ -15,140 +18,132 @@ interface WhereClause {
   status?: AttendanceStatus
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const session = await getServerSession(authOptions)
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    )
+  }
+
+  // Only admin and manager can export
+  if (session.user.role !== UserRole.admin && session.user.role !== UserRole.manager) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 }
+    )
+  }
+
+  const { searchParams } = new URL(request.url)
+  const exportFormat = searchParams.get('format') as 'csv' | 'pdf'
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+  const userId = searchParams.get('userId')
+  const department = searchParams.get('department')
+  const status = searchParams.get('status')
+
+  if (!exportFormat || (exportFormat !== 'csv' && exportFormat !== 'pdf')) {
+    return NextResponse.json(
+      { error: "Invalid format. Use 'csv' or 'pdf'" },
+      { status: 400 }
+    )
+  }
+
+  // Build where clause based on user role and filters
+  const whereClause: WhereClause = {}
+
+  // Date range filter
+  if (startDate || endDate) {
+    whereClause.date = {}
+    if (startDate) {
+      whereClause.date.gte = new Date(startDate)
     }
-
-    // Only admin and manager can export
-    if (session.user.role !== UserRole.admin && session.user.role !== UserRole.manager) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      )
+    if (endDate) {
+      whereClause.date.lte = new Date(endDate)
     }
+  }
 
-    const { searchParams } = new URL(request.url)
-    const exportFormat = searchParams.get('format') as 'csv' | 'pdf'
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
-    const userId = searchParams.get('userId')
-    const department = searchParams.get('department')
-    const status = searchParams.get('status')
-    const isPreview = searchParams.get('preview') === 'true'
-
-    if (!exportFormat || (exportFormat !== 'csv' && exportFormat !== 'pdf')) {
-      return NextResponse.json(
-        { error: "Invalid format. Use 'csv' or 'pdf'" },
-        { status: 400 }
-      )
+  // User-based filtering based on role
+  if (userId) {
+    whereClause.userId = userId
+  } else if (department) {
+    const departmentUsers = await prisma.user.findMany({
+      where: { department },
+      select: { id: true }
+    })
+    whereClause.userId = {
+      in: departmentUsers.map(u => u.id)
     }
+  } else if (session.user.role === UserRole.manager) {
+    // Managers without specific filters: scope to their department
+    const manager = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { department: true }
+    })
 
-    // Build where clause based on user role and filters
-    const whereClause: WhereClause = {}
-
-    // Date range filter
-    if (startDate || endDate) {
-      whereClause.date = {}
-      if (startDate) {
-        whereClause.date.gte = new Date(startDate)
-      }
-      if (endDate) {
-        whereClause.date.lte = new Date(endDate)
-      }
-    }
-
-    // User-based filtering based on role
-    if (userId) {
-      whereClause.userId = userId
-    } else if (department) {
+    if (manager?.department) {
       const departmentUsers = await prisma.user.findMany({
-        where: { department },
+        where: { department: manager.department },
         select: { id: true }
       })
       whereClause.userId = {
         in: departmentUsers.map(u => u.id)
       }
-    } else if (session.user.role === UserRole.manager) {
-      // Managers without specific filters: scope to their department
-      const manager = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { department: true }
-      })
-
-      if (manager?.department) {
-        const departmentUsers = await prisma.user.findMany({
-          where: { department: manager.department },
-          select: { id: true }
-        })
-        whereClause.userId = {
-          in: departmentUsers.map(u => u.id)
-        }
-      } else {
-        whereClause.userId = session.user.id
-      }
+    } else {
+      whereClause.userId = session.user.id
     }
-
-    if (status) {
-      whereClause.status = status as AttendanceStatus
-    }
-
-    // Get attendance records
-    const attendanceRecords = await prisma.absensiRecord.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            department: true,
-            position: true,
-            email: true
-          }
-        }
-      },
-      orderBy: [
-        { date: 'desc' },
-        { createdAt: 'desc' }
-      ]
-    })
-
-    // Format the response data
-    const records = attendanceRecords.map(record => ({
-      id: record.id,
-      date: record.date,
-      user: record.user,
-      checkInTime: record.checkInTime,
-      checkOutTime: record.checkOutTime,
-      checkInAddress: record.checkInAddress,
-      checkOutAddress: record.checkOutAddress,
-      workHours: record.workHours,
-      overtimeHours: record.overtimeHours,
-      lateMinutes: record.lateMinutes,
-      status: record.status,
-      notes: record.notes,
-    }))
-
-    if (exportFormat === 'csv') {
-      return generateCSV(records)
-    } else if (exportFormat === 'pdf') {
-      return await generatePDF(records, startDate, endDate, isPreview)
-    }
-
-  } catch (error) {
-    console.error("Error exporting reports:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
   }
-}
+
+  if (status) {
+    whereClause.status = status as AttendanceStatus
+  }
+
+  // Get attendance records
+  const attendanceRecords = await prisma.absensiRecord.findMany({
+    where: whereClause,
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          position: true,
+          email: true
+        }
+      }
+    },
+    orderBy: [
+      { date: 'desc' },
+      { createdAt: 'desc' }
+    ]
+  })
+
+  // Format the response data
+  const records = attendanceRecords.map(record => ({
+    id: record.id,
+    date: record.date,
+    user: record.user,
+    checkInTime: record.checkInTime,
+    checkOutTime: record.checkOutTime,
+    checkInAddress: record.checkInAddress,
+    checkOutAddress: record.checkOutAddress,
+    workHours: record.workHours,
+    overtimeHours: record.overtimeHours,
+    lateMinutes: record.lateMinutes,
+    status: record.status,
+    notes: record.notes,
+  }))
+
+  if (exportFormat === 'csv') {
+    return generateCSV(records)
+  } else if (exportFormat === 'pdf') {
+    return await generatePDF(records, startDate, endDate)
+  }
+
+  return NextResponse.json({ error: "Invalid format" }, { status: 400 })
+}, "exporting reports")
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generateCSV(records: any[]): NextResponse {
@@ -196,308 +191,75 @@ function generateCSV(records: any[]): NextResponse {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function generatePDF(records: any[], startDate?: string | null, endDate?: string | null, isPreview?: boolean): Promise<NextResponse> {
-  // Generate HTML content for PDF
-  const htmlContent = generatePDFHTML(records, startDate, endDate)
+async function generatePDF(records: any[], startDate?: string | null, endDate?: string | null): Promise<NextResponse> {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
 
-  // Add auto-print script
-  const htmlWithScript = htmlContent.replace('</body>', `
-    <script>
-      window.onload = function() {
-        window.print();
-      }
-    </script>
-    </body>
-  `)
+  const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
+  const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
+  const uniqueUsers = new Set(records.map((r: any) => r.user.id)).size
 
-  return new NextResponse(htmlWithScript, {
+  // Title
+  doc.setFontSize(16)
+  doc.text("Laporan Absensi Karyawan", 14, 20)
+
+  // Period
+  const startStr = startDate ? format(new Date(startDate), "dd MMMM yyyy", { locale: id }) : "Awal"
+  const endStr = endDate ? format(new Date(endDate), "dd MMMM yyyy", { locale: id }) : "Akhir"
+  doc.setFontSize(10)
+  doc.text(`Periode: ${startStr} - ${endStr}`, 14, 28)
+  doc.text(`Dibuat: ${format(new Date(), "dd MMMM yyyy HH:mm", { locale: id })}`, 14, 34)
+
+  // Summary card
+  doc.setFontSize(11)
+  doc.text(`Total: ${records.length} record | ${uniqueUsers} pengguna | ${totalWorkHours.toFixed(1)} jam kerja | ${totalOvertimeHours.toFixed(1)} jam lembur`, 14, 42)
+
+  // Table
+  const rows = records.map((record: any) => [
+    format(record.date, "dd/MM/yyyy", { locale: id }),
+    record.user.name,
+    record.user.department || "-",
+    record.checkInTime ? format(record.checkInTime, "HH:mm") : "-",
+    record.checkOutTime ? format(record.checkOutTime, "HH:mm") : "-",
+    record.workHours ? `${record.workHours}j` : "-",
+    `${record.overtimeHours || 0}j`,
+    getStatusLabel(record.status),
+    formatAddress(record.checkInAddress) || "-",
+  ])
+
+  autoTable(doc, {
+    head: [["Tanggal", "Nama", "Departemen", "Masuk", "Keluar", "Jam Kerja", "Lembur", "Status", "Lokasi"]],
+    body: rows,
+    startY: 48,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [5, 150, 105], textColor: 255 },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+  })
+
+  const pdfBuffer = Buffer.from(doc.output("arraybuffer"))
+
+  return new NextResponse(pdfBuffer, {
     headers: {
-      'Content-Type': 'text/html',
-    }
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="attendance-report-${format(new Date(), "yyyy-MM-dd")}.pdf"`,
+    },
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generatePDFHTML(records: any[], startDate?: string | null, endDate?: string | null): string {
-  const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
-  const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
-  const uniqueUsers = new Set(records.map(r => r.user.id)).size
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Laporan Absensi</title>
-      <style>
-        @page {
-          margin: 20px;
-          size: A4;
-        }
-
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          margin: 0;
-          padding: 20px;
-          color: #333;
-          line-height: 1.6;
-        }
-
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #059669;
-          padding-bottom: 20px;
-        }
-
-        .header h1 {
-          margin: 0;
-          color: #059669;
-          font-size: 28px;
-          font-weight: 700;
-        }
-
-        .header .subtitle {
-          margin: 8px 0;
-          color: #64748b;
-          font-size: 14px;
-        }
-
-        .header .generated {
-          margin: 5px 0;
-          color: #64748b;
-          font-size: 12px;
-        }
-
-        .summary {
-          margin-bottom: 30px;
-          background: #f8fafc;
-          border-radius: 8px;
-          padding: 20px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .summary h2 {
-          margin: 0 0 20px 0;
-          color: #334155;
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
-        }
-
-        .summary-card {
-          background: white;
-          border: 1px solid #e2e8f0;
-          padding: 15px;
-          border-radius: 6px;
-          text-align: center;
-        }
-
-        .summary-card h3 {
-          margin: 0 0 8px 0;
-          color: #475569;
-          font-size: 14px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .summary-card .value {
-          margin: 0;
-          font-size: 24px;
-          font-weight: 700;
-          color: #059669;
-        }
-
-        .summary-card .label {
-          margin: 5px 0 0 0;
-          font-size: 12px;
-          color: #64748b;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 20px;
-          font-size: 12px;
-        }
-
-        th, td {
-          border: 1px solid #e2e8f0;
-          padding: 8px 12px;
-          text-align: left;
-          vertical-align: top;
-        }
-
-        th {
-          background: linear-gradient(135deg, #059669, #10b981);
-          color: white;
-          font-weight: 600;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        tr:nth-child(even) {
-          background-color: #f8fafc;
-        }
-
-        tr:hover {
-          background-color: #f1f5f9;
-        }
-
-        .status-present {
-          color: #059669;
-          font-weight: 600;
-        }
-
-        .status-late {
-          color: #d97706;
-          font-weight: 600;
-        }
-
-        .status-absent {
-          color: #dc2626;
-          font-weight: 600;
-        }
-
-        .status-half_day {
-          color: #7c3aed;
-          font-weight: 600;
-        }
-
-        .text-center {
-          text-align: center;
-        }
-
-        .text-right {
-          text-align: right;
-        }
-
-        .font-medium {
-          font-weight: 500;
-        }
-
-        .footer {
-          margin-top: 40px;
-          text-align: center;
-          font-size: 10px;
-          color: #94a3b8;
-          border-top: 1px solid #e2e8f0;
-          padding-top: 15px;
-        }
-
-        @media print {
-          body { -webkit-print-color-adjust: exact; }
-          .summary-card { break-inside: avoid; }
-          tr { break-inside: avoid; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Laporan Absensi Karyawan</h1>
-        <div class="subtitle">
-          Periode: ${startDate ? format(new Date(startDate), 'dd MMMM yyyy', { locale: id }) : 'Awal'} - ${endDate ? format(new Date(endDate), 'dd MMMM yyyy', { locale: id }) : 'Akhir'}
-        </div>
-        <div class="generated">
-          Laporan dibuat pada: ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: id })}
-        </div>
-      </div>
-
-      <div class="summary">
-        <h2>Ringkasan Laporan</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <h3>Total Record</h3>
-            <p class="value">${records.length}</p>
-            <p class="label">Data absensi</p>
-          </div>
-          <div class="summary-card">
-            <h3>Total Pengguna</h3>
-            <p class="value">${uniqueUsers}</p>
-            <p class="label">Pengguna aktif</p>
-          </div>
-          <div class="summary-card">
-            <h3>Total Jam Kerja</h3>
-            <p class="value">${totalWorkHours.toFixed(1)}j</p>
-            <p class="label">Jam kerja keseluruhan</p>
-          </div>
-          <div class="summary-card">
-            <h3>Total Lembur</h3>
-            <p class="value">${totalOvertimeHours.toFixed(1)}j</p>
-            <p class="label">Jam lembur keseluruhan</p>
-          </div>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 10%;">Tanggal</th>
-            <th style="width: 15%;">Nama</th>
-            <th style="width: 12%;">Departemen</th>
-            <th style="width: 8%;">Check-in</th>
-            <th style="width: 8%;">Check-out</th>
-            <th style="width: 10%;">Jam Kerja</th>
-            <th style="width: 10%;">Lembur</th>
-            <th style="width: 10%;">Status</th>
-            <th style="width: 17%;">Lokasi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${records.map(record => `
-            <tr>
-              <td>${format(record.date, 'dd/MM/yyyy', { locale: id })}</td>
-              <td class="font-medium">${record.user.name}</td>
-              <td>${record.user.department || '-'}</td>
-              <td class="text-center">${record.checkInTime ? format(record.checkInTime, 'HH:mm') : '-'}</td>
-              <td class="text-center">${record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '-'}</td>
-              <td class="text-right">${record.workHours ? `${record.workHours}j` : '-'}</td>
-              <td class="text-right">${record.overtimeHours || 0}j</td>
-              <td class="text-center status-${record.status}">${getStatusLabel(record.status)}</td>
-              <td class="text-sm">
-                ${record.checkInAddress ? `<div><strong>In:</strong> ${formatAddress(record.checkInAddress)}</div>` : ''}
-                ${record.checkOutAddress ? `<div><strong>Out:</strong> ${formatAddress(record.checkOutAddress)}</div>` : ''}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <div class="footer">
-        Laporan ini dibuat secara otomatis oleh sistem absensi. Untuk pertanyaan lebih lanjut, silakan hubungi administrator.
-      </div>
-    </body>
-    </html>
-  `
-}
-
 function formatAddress(address?: string | null): string {
-  if (!address) return '-'
-
-  // If address starts with "Koordinat:", extract the coordinates part
-  if (address.startsWith('Koordinat:')) {
-    const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
-    if (coordsMatch) {
-      return `${coordsMatch[1]}, ${coordsMatch[2]}`
-    }
+  if (!address) return "-"
+  if (address.startsWith("Koordinat:")) {
+    const match = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+    if (match) return `${match[1]}, ${match[2]}`
   }
-
-  return address.length > 30 ? address.substring(0, 30) + '...' : address
+  return address.length > 30 ? address.substring(0, 30) + "..." : address
 }
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    present: 'Hadir',
-    late: 'Terlambat',
-    absent: 'Tidak Hadir',
-    half_day: 'Setengah Hari'
+    present: "Hadir",
+    late: "Terlambat",
+    absent: "Tidak Hadir",
+    half_day: "Setengah Hari",
   }
   return labels[status] || status
 }

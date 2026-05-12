@@ -1,6 +1,5 @@
 import { type AbsensiRecord, Prisma } from "@prisma/client"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { startOfDay, endOfDay } from "date-fns"
 
@@ -25,16 +24,6 @@ export async function logCheckInActivity(
       } as unknown as Prisma.InputJsonValue,
     },
   })
-}
-
-export async function validateSession() {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    throw new HttpError("Unauthorized", 401)
-  }
-
-  return session
 }
 
 export function validateLocationData(body: {
