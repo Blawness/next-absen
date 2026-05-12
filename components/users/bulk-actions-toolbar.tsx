@@ -1,6 +1,5 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { X, UserCheck, UserX, Trash2 } from "lucide-react"
 
@@ -22,12 +21,7 @@ export function BulkActionsToolbar({
     if (selectedCount === 0) return null
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="glass-card p-4 mb-4 border-2 border-blue-500/30"
-        >
+        <div className="animate-fade-down glass-card p-4 mb-4 border-2 border-blue-500/30">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -84,6 +78,6 @@ export function BulkActionsToolbar({
                     Clear
                 </Button>
             </div>
-        </motion.div>
+        </div>
     )
 }

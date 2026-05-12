@@ -2,13 +2,9 @@ import { prisma } from "@/lib/prisma"
 import { UserRole, Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
-export class HttpError extends Error {
-    status: number
-    constructor(message: string, status: number) {
-        super(message)
-        this.status = status
-    }
-}
+import { HttpError } from "@/lib/errors"
+
+export { HttpError }
 
 export async function getUsers(currentUser: { id: string; role: string }, statusFilter?: 'all' | 'active' | 'inactive') {
     // Only admin and manager can access

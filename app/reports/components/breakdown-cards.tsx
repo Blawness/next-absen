@@ -6,8 +6,6 @@ import { Building } from "lucide-react"
 import { ReportSummary } from "../types"
 import { STATUS_LABELS } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
-import { motion } from "framer-motion"
-
 interface BreakdownCardsProps {
   summary: ReportSummary
 }
@@ -36,12 +34,7 @@ export const BreakdownCards = ({ summary }: BreakdownCardsProps) => {
   }
 
   return (
-    <motion.div
-      className="grid gap-4 md:grid-cols-2"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, duration: 0.5 }}
-    >
+    <div className="grid gap-4 md:grid-cols-2 animate-fade-up anim-delay-300">
       {/* Status Breakdown */}
       <Card variant="glass">
         <CardHeader>
@@ -103,6 +96,6 @@ export const BreakdownCards = ({ summary }: BreakdownCardsProps) => {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }

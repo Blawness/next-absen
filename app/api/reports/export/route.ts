@@ -12,7 +12,6 @@ interface WhereClause {
     lte?: Date
   }
   userId?: string | { in: string[] }
-  department?: string
   status?: AttendanceStatus
 }
 
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const format = searchParams.get('format') as 'csv' | 'pdf'
+    const exportFormat = searchParams.get('format') as 'csv' | 'pdf'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const userId = searchParams.get('userId')
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const isPreview = searchParams.get('preview') === 'true'
 
-    if (!format || (format !== 'csv' && format !== 'pdf')) {
+    if (!exportFormat || (exportFormat !== 'csv' && exportFormat !== 'pdf')) {
       return NextResponse.json(
         { error: "Invalid format. Use 'csv' or 'pdf'" },
         { status: 400 }
@@ -52,8 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause based on user role and filters
-    // eslint-disable-next-line prefer-const
-    let whereClause: WhereClause = {}
+    const whereClause: WhereClause = {}
 
     // Date range filter
     if (startDate || endDate) {
@@ -67,49 +65,33 @@ export async function GET(request: NextRequest) {
     }
 
     // User-based filtering based on role
-    if ((session.user.role as string) === 'user') {
-      // Regular users can only see their own data
-      whereClause.userId = session.user.id
-    } else if ((session.user.role as string) === 'manager') {
-      // Managers can see their department data
-      if (userId) {
-        whereClause.userId = userId
-      } else {
-        // Get all users in manager's department
-        const manager = await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { department: true }
-        })
-
-        if (manager?.department) {
-          const departmentUsers = await prisma.user.findMany({
-            where: { department: manager.department },
-            select: { id: true }
-          })
-          whereClause.userId = {
-            in: departmentUsers.map(u => u.id)
-          }
-        } else {
-          // Fallback: if manager has no department, only show their own records
-          console.warn(`Manager ${session.user.id} has no department assigned, showing only their own records`)
-          whereClause.userId = session.user.id
-        }
-      }
-    }
-    // Admins can see all data, additional filters applied
-
-    // Additional filters
     if (userId) {
       whereClause.userId = userId
-    }
-
-    if (department) {
+    } else if (department) {
       const departmentUsers = await prisma.user.findMany({
         where: { department },
         select: { id: true }
       })
       whereClause.userId = {
         in: departmentUsers.map(u => u.id)
+      }
+    } else if (session.user.role === UserRole.manager) {
+      // Managers without specific filters: scope to their department
+      const manager = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { department: true }
+      })
+
+      if (manager?.department) {
+        const departmentUsers = await prisma.user.findMany({
+          where: { department: manager.department },
+          select: { id: true }
+        })
+        whereClause.userId = {
+          in: departmentUsers.map(u => u.id)
+        }
+      } else {
+        whereClause.userId = session.user.id
       }
     }
 
@@ -153,9 +135,9 @@ export async function GET(request: NextRequest) {
       notes: record.notes,
     }))
 
-    if (format === 'csv') {
+    if (exportFormat === 'csv') {
       return generateCSV(records)
-    } else if (format === 'pdf') {
+    } else if (exportFormat === 'pdf') {
       return await generatePDF(records, startDate, endDate, isPreview)
     }
 

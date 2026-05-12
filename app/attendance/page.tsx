@@ -21,8 +21,6 @@ import { format } from "date-fns"
 import { AttendanceSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { id } from "date-fns/locale"
 import { Map } from "@/components/ui/map"
-import { motion } from "framer-motion"
-
 interface AttendanceData {
   id: string
   date: Date
@@ -120,9 +118,6 @@ export default function AttendancePage() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('loadTodayAttendance - received data:', data)
-
-        // Parse date strings back to Date objects and numeric strings to numbers
         const parsedData = data ? {
           ...data,
           date: data.date ? new Date(data.date) : null,
@@ -142,7 +137,6 @@ export default function AttendancePage() {
           lateMinutes: data.lateMinutes ? Number(data.lateMinutes) : null,
         } : null
 
-        console.log('loadTodayAttendance - parsed data:', parsedData)
         setTodayAttendance(parsedData)
       } else {
         console.error('Failed to fetch today attendance:', response.statusText)
@@ -189,12 +183,6 @@ export default function AttendancePage() {
     try {
       // Get current location directly
       const position = await getCurrentPosition()
-      console.log('Check-in GPS data:', {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-        timestamp: position.timestamp
-      })
 
       // Get address using reverse geocoding (now returns coordinates as address)
       let address = ""
@@ -232,9 +220,7 @@ export default function AttendancePage() {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
         setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
         await loadTodayAttendance()
-        // Small delay to ensure state is properly updated
         await new Promise(resolve => setTimeout(resolve, 100))
-        console.log('After check-in - todayAttendance:', todayAttendance)
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_IN_FAILED })
       }
@@ -246,27 +232,14 @@ export default function AttendancePage() {
   }
 
   const handleCheckOut = async () => {
-    console.log('handleCheckOut called - current state:', {
-      todayAttendance,
-      canCheckIn,
-      canCheckOut,
-      hasCheckedOut
-    })
-
     setIsCheckingOut(true)
     setMessage(null)
 
     try {
       // Get current location directly
       const position = await getCurrentPosition()
-      console.log('Check-out GPS data:', {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-        timestamp: position.timestamp
-      })
 
-      // Get address using reverse geocoding (now returns coordinates as address)
+      // Get address using reverse geocoding
       let address = ""
       try {
         const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lng=${position.longitude}`)
@@ -282,14 +255,6 @@ export default function AttendancePage() {
         address = `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`
       }
 
-      // Perform check-out
-      console.log('Attempting checkout with data:', {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        address: address,
-        accuracy: position.accuracy,
-      })
-
       const checkOutResponse = await fetch('/api/attendance/checkout', {
         method: 'POST',
         headers: {
@@ -304,14 +269,12 @@ export default function AttendancePage() {
       })
 
       const data = await checkOutResponse.json()
-      console.log('Checkout response:', data)
 
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
         setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
         await loadTodayAttendance()
       } else {
-        console.error('Checkout failed:', data.error)
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_OUT_FAILED })
       }
     } catch (error) {
@@ -330,28 +293,10 @@ export default function AttendancePage() {
   const canCheckOut = todayAttendance?.checkInTime && !todayAttendance?.checkOutTime
   const hasCheckedOut = todayAttendance?.checkOutTime !== null
 
-  console.log('Attendance state:', {
-    todayAttendance,
-    canCheckIn,
-    canCheckOut,
-    hasCheckedOut,
-    checkInTime: todayAttendance?.checkInTime,
-    checkOutTime: todayAttendance?.checkOutTime,
-    checkInTimeType: typeof todayAttendance?.checkInTime,
-    checkOutTimeType: typeof todayAttendance?.checkOutTime,
-    checkInTimeValue: todayAttendance?.checkInTime,
-    checkOutTimeValue: todayAttendance?.checkOutTime,
-    checkInTimeTruthy: !!todayAttendance?.checkInTime,
-    checkOutTimeFalsy: !todayAttendance?.checkOutTime
-  })
-
   return (
     <div className="space-y-8">
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.ATTENDANCE}
@@ -359,13 +304,11 @@ export default function AttendancePage() {
         <p className="text-white/80 text-lg">
           Kelola absensi harian Anda dengan mudah
         </p>
-      </motion.div>
+      </div>
 
       {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1, duration: 0.5 }}
+      <div
+        className="animate-slide-left anim-delay-100"
       >
         <Card variant="glass">
           <CardHeader>
@@ -424,14 +367,12 @@ export default function AttendancePage() {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Today's Status */}
       {todayAttendance && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-200"
         >
           <Card variant="glass">
             <CardHeader>
@@ -494,15 +435,13 @@ export default function AttendancePage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Current Location Map */}
       {currentLocation && (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-300"
         >
           <Card variant="glass">
             <CardHeader>
@@ -526,14 +465,12 @@ export default function AttendancePage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Attendance History */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-400"
       >
         <Card variant="glass">
           <CardHeader>
@@ -584,7 +521,7 @@ export default function AttendancePage() {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

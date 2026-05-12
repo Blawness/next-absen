@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { motion } from "framer-motion"
 import {
   User,
   Edit,
@@ -217,11 +216,8 @@ export default function ProfilePage() {
         <div className="floating-orb" style={{ top: '10%', right: '10%', animationDelay: '-2s', width: '60px', height: '60px' }}></div>
       </div>
 
-      <motion.div
-        className="space-y-2 relative z-10"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 relative z-10 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.PROFILE}
@@ -229,7 +225,7 @@ export default function ProfilePage() {
         <p className="text-white/80 text-lg">
           Kelola informasi profil dan pengaturan akun Anda
         </p>
-      </motion.div>
+      </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList variant="glass" className="grid w-full grid-cols-2">
@@ -238,10 +234,8 @@ export default function ProfilePage() {
         </TabsList>
 
         <TabsContent value="profile">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
+          <div
+            className="animate-slide-left anim-delay-100"
           >
             <Card variant="glass">
               <CardHeader>
@@ -383,14 +377,12 @@ export default function ProfilePage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </TabsContent>
 
         <TabsContent value="password">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+          <div
+            className="animate-fade-up anim-delay-200"
           >
             <Card variant="glass">
               <CardHeader>
@@ -486,15 +478,13 @@ export default function ProfilePage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </TabsContent>
       </Tabs>
 
       {/* Account Information */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-300"
       >
         <Card variant="glass">
           <CardHeader>
@@ -538,7 +528,7 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

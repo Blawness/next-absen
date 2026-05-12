@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { signIn, getSession, useSession } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { motion } from "framer-motion"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { FORM_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 
@@ -26,10 +25,9 @@ export default function SignInPage() {
     if (status === "loading") return // Still loading
 
     if (session) {
-      router.push("/dashboard")
-      router.refresh()
+      window.location.replace("/dashboard")
     }
-  }, [session, status, router])
+  }, [session, status])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,19 +50,13 @@ export default function SignInPage() {
 
       if (result?.error) {
         setError(MESSAGES.LOGIN_FAILED)
+        setIsLoading(false)
       } else {
-        // Wait a moment for session to be created
-        setTimeout(async () => {
-          const session = await getSession()
-          if (session) {
-            router.push("/dashboard")
-            router.refresh()
-          }
-        }, 100)
+        // Successful login — navigate to dashboard
+        window.location.replace("/dashboard")
       }
     } catch {
       setError(MESSAGES.ERROR)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -72,11 +64,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen px-4 py-8 grid place-items-center">
       <div className="w-full max-w-md mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div className="animate-fade-up">
           <Card variant="glass">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-2xl font-bold glass-title">
@@ -155,7 +143,7 @@ export default function SignInPage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

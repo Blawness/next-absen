@@ -1,17 +1,15 @@
 @import "tailwindcss";
 
-/* Dark Elegant Green Glassmorphism CSS Variables */
+/* Dark Elegant Green Theme — Simplified for low-spec devices */
 @layer base {
   :root {
-    /* Elegant Dark Green Glassmorphism Colors */
     --glass-bg: rgba(16, 185, 129, 0.08);
     --glass-border: rgba(16, 185, 129, 0.15);
-    --glass-shadow: rgba(5, 150, 105, 0.25);
+    --glass-shadow: rgba(5, 150, 105, 0.15);
     --gradient-primary: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
     --gradient-secondary: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
     --gradient-accent: linear-gradient(135deg, #10b981 0%, #059669 100%);
 
-    /* Dark elegant green theme colors */
     --background: 160 40% 2%;
     --foreground: 120 25% 95%;
     --card: rgba(16, 185, 129, 0.08);
@@ -40,214 +38,195 @@
   }
 }
 
-/* Dark Elegant Green Liquid Glassmorphism Background */
-.glassmorphism-bg {
+/* Plain dark green background — no pseudo-elements, no radial gradients */
+.bg-app {
   background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #033321 100%);
-  position: relative;
-  overflow: hidden;
 }
 
-.glassmorphism-bg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(5, 150, 105, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(20, 83, 59, 0.12) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-/* Simple Glass Background Layers */
-.glassmorphism-bg::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 600px 400px at 15% 25%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 400px 600px at 85% 75%, rgba(5, 150, 105, 0.06) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-/* Simple Floating Circle Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes float-reverse {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(20px); }
-}
-
-/* Elegant Floating Glass Circles */
-.floating-orb {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
-  animation: float 8s ease-in-out infinite;
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.12);
-}
-
-.floating-orb:nth-child(1) {
-  width: 100px;
-  height: 100px;
-  top: 15%;
-  left: 10%;
-  animation-delay: 0s;
-}
-
-.floating-orb:nth-child(2) {
-  width: 150px;
-  height: 150px;
-  top: 60%;
-  right: 20%;
-  animation: float-reverse 10s ease-in-out infinite;
-  animation-delay: -3s;
-}
-
-.floating-orb:nth-child(3) {
-  width: 80px;
-  height: 80px;
-  bottom: 20%;
-  left: 80%;
-  animation: float 6s ease-in-out infinite;
-  animation-delay: -6s;
-}
-
-/* Optimized Elegant Glassmorphism Card Effect */
-.glass-card {
+/* Solid dark green cards — no backdrop-filter, no ::before gradient line */
+.solid-card {
   background: rgba(16, 185, 129, 0.08);
-  backdrop-filter: blur(15px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 16px;
-  box-shadow:
-    0 4px 16px 0 rgba(5, 150, 105, 0.15),
-    inset 0 1px 0 rgba(16, 185, 129, 0.08);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 16px 0 rgba(5, 150, 105, 0.1);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-.glass-card:hover {
-  box-shadow:
-    0 6px 20px 0 rgba(5, 150, 105, 0.2),
-    inset 0 1px 0 rgba(16, 185, 129, 0.12);
+.solid-card:hover {
+  box-shadow: 0 6px 20px 0 rgba(5, 150, 105, 0.15);
   transform: translateY(-1px);
 }
 
-.glass-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
+/* Solid green button — no backdrop-filter, no ::before shine sweep */
+.solid-button {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.8), rgba(16, 185, 129, 0.8));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.2);
+  transition: all 0.3s ease;
 }
 
-/* Dark Elegant Green Enhanced Button Styles */
+.solid-button:hover {
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
+}
+
+/* Solid input — no backdrop-filter */
+.solid-input {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.solid-input:focus {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(5, 150, 105, 0.4);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+/* Sidebar — no backdrop-filter, solid dark green */
+.solid-nav {
+  background: rgba(2, 44, 34, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 0 16px 16px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Gradient text accent */
+.gradient-text {
+  background: linear-gradient(135deg, #10b981 0%, rgba(16, 185, 129, 0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-bottom: 0.2em;
+}
+
+/* ============================================
+   Backward-compatible class aliases
+   Old names preserved, redefined without GPU-heavy effects
+   ============================================ */
+
+.glassmorphism-bg { composes: bg-app; }
+@supports not (composes: init) {
+  .glassmorphism-bg {
+    background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #033321 100%);
+  }
+}
+
+.glass-card {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px 0 rgba(5, 150, 105, 0.1);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.glass-card:hover {
+  box-shadow: 0 6px 20px 0 rgba(5, 150, 105, 0.15);
+  transform: translateY(-1px);
+}
+
 .glass-button {
   background: linear-gradient(135deg, rgba(5, 150, 105, 0.8), rgba(16, 185, 129, 0.8));
   border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 12px;
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 4px 16px rgba(5, 150, 105, 0.25),
-    inset 0 1px 0 rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.2);
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
 }
-
 .glass-button:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 20px rgba(5, 150, 105, 0.3),
-    inset 0 1px 0 rgba(16, 185, 129, 0.25);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
 }
 
-.glass-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.glass-button:hover::before {
-  left: 100%;
-}
-
-/* Dark Elegant Green Input Styles */
 .glass-input {
   background: rgba(16, 185, 129, 0.05);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }
-
 .glass-input:focus {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(5, 150, 105, 0.4);
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
-/* Dark Elegant Green Navigation Styles */
 .glass-nav {
-  background: rgba(16, 185, 129, 0.08);
-  backdrop-filter: blur(20px);
+  background: rgba(2, 44, 34, 0.95);
   border: 1px solid rgba(16, 185, 129, 0.12);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(5, 150, 105, 0.08);
+  border-radius: 0 16px 16px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-/* Dark Elegant Green Typography */
 .glass-title {
   background: linear-gradient(135deg, #10b981 0%, rgba(16, 185, 129, 0.9) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  padding-bottom: 0.2em; /* Prevent descenders from being cut off */
+  padding-bottom: 0.2em;
 }
 
-/* Animation Classes */
-.fade-in {
-  animation: fadeIn 0.8s ease-in-out;
+/* Floating orbs — removed (hidden). Keep class definitions for backward compat */
+.floating-orb {
+  display: none;
 }
 
-@keyframes fadeIn {
+/* ============================================
+   CSS Entry Animations (replacing framer-motion)
+   ============================================ */
+
+@keyframes fadeUpIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.slide-in {
-  animation: slideIn 0.6s ease-out;
+@keyframes fadeDownIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-  from { transform: translateX(-100%); opacity: 0; }
+@keyframes slideLeftIn {
+  from { transform: translateX(-20px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 
-.scale-in {
-  animation: scaleIn 0.5s ease-out;
+@keyframes scaleUpIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-@keyframes scaleIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.animate-fade-up {
+  animation: fadeUpIn 0.6s ease-out forwards;
+}
+
+.animate-fade-down {
+  animation: fadeDownIn 0.6s ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slideLeftIn 0.5s ease-out forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUpIn 0.4s ease-out forwards;
+}
+
+/* Staggered animation delays */
+.anim-delay-100 { animation-delay: 0.1s; }
+.anim-delay-200 { animation-delay: 0.2s; }
+.anim-delay-300 { animation-delay: 0.3s; }
+.anim-delay-400 { animation-delay: 0.4s; }
+.anim-delay-500 { animation-delay: 0.5s; }
+.anim-delay-600 { animation-delay: 0.6s; }
+.anim-delay-700 { animation-delay: 0.7s; }
+.anim-delay-800 { animation-delay: 0.8s; }
+
+/* Hover/tap micro-interactions (replacing framer-motion whileHover/whileTap) */
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+.hover-lift:hover {
+  transform: scale(1.05);
+}
+.hover-lift:active {
+  transform: scale(0.95);
 }
 
 /* Table Layout Fix */
@@ -262,39 +241,13 @@
   white-space: nowrap;
 }
 
-/* Responsive Simple Glass Circles */
-@media (max-width: 768px) {
-  .glass-card {
-    backdrop-filter: blur(8px);
-    margin: 0.5rem;
-  }
-
-  .floating-orb {
-    width: 50px !important;
-    height: 50px !important;
-    animation-duration: 15s !important;
-  }
-
-  /* Show only one circle on mobile for better performance */
-  .floating-orb:nth-child(1) {
-    display: block;
-  }
-
-  .floating-orb:nth-child(2),
-  .floating-orb:nth-child(3) {
-    display: none;
-  }
-}
-
-/* Respect user's motion preferences */
+/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
-  .floating-orb,
-  .glassmorphism-bg::after {
-    animation: none !important;
-  }
-
-  .glass-card {
-    transition: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

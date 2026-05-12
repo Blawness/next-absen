@@ -42,6 +42,7 @@ model User {
   absensiRecords AbsensiRecord[]
   activityLogs   ActivityLog[]
   persistedSessionTokens PersistedSessionToken[]
+  apiKeys        ApiKey[]
 
   @@map("users")
 }
@@ -134,4 +135,21 @@ model SystemSettings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  prefix      String
+  name        String
+  scope       String    @default("attendance:readwrite")
+  isActive    Boolean   @default(true)
+  createdBy   String    @map("created_by")
+  lastUsedAt  DateTime? @map("last_used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("api_keys")
 }

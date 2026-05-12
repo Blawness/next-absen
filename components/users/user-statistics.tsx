@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
 import { Users, UserCheck, UserX, TrendingUp, Building2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -108,11 +107,9 @@ export function UserStatistics() {
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 {statCards.map((card, index) => (
-                    <motion.div
+                    <div
                         key={card.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.3 }}
+                        className={index > 0 ? `animate-fade-up anim-delay-${index * 100}` : "animate-fade-up"}
                     >
                         <Card className="glass-card hover:scale-105 transition-transform duration-200">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -128,17 +125,13 @@ export function UserStatistics() {
                                 </p>
                             </CardContent>
                         </Card>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
             {/* Department Breakdown */}
             {stats.departmentBreakdown.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.3 }}
-                >
+                <div className="animate-fade-up anim-delay-500">
                     <Card className="glass-card">
                         <CardHeader>
                             <CardTitle className="text-white">Department Breakdown</CardTitle>
@@ -174,7 +167,7 @@ export function UserStatistics() {
                             </div>
                         </CardContent>
                     </Card>
-                </motion.div>
+                </div>
             )}
         </div>
     )

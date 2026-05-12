@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { MapPin, Save, Map } from "lucide-react"
-import { motion } from "framer-motion"
 import { SystemSettings } from "../types"
 
 interface LocationSettingsProps {
@@ -18,11 +17,7 @@ interface LocationSettingsProps {
 
 export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave }: LocationSettingsProps) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3, duration: 0.5 }}
-    >
+    <div className="animate-slide-left anim-delay-300">
       <Card variant="glass">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
@@ -108,11 +103,7 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
             >
               {isSaving ? (
                 <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
-                  />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2 animate-spin" />
                   Menyimpan...
                 </>
               ) : (
@@ -125,6 +116,6 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }

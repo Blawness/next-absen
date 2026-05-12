@@ -7,14 +7,8 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-
   return (
-    <div className="min-h-screen glassmorphism-bg">
-      {/* Simple Floating Glass Circles */}
-      <div className="floating-orb"></div>
-      <div className="floating-orb"></div>
-      <div className="floating-orb"></div>
-
+    <div className="min-h-screen bg-app">
       <SidebarWithLayout>
         {children}
       </SidebarWithLayout>

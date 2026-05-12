@@ -4,13 +4,9 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { startOfDay, endOfDay } from "date-fns"
 
-export class HttpError extends Error {
-  status: number
-  constructor(message: string, status: number) {
-    super(message)
-    this.status = status
-  }
-}
+import { HttpError } from "@/lib/errors"
+
+export { HttpError }
 
 export async function logCheckoutActivity(
   userId: string,

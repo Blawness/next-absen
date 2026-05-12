@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ReportsSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { motion } from "framer-motion"
 import { ReportsFilter } from "./components/reports-filter"
 import { StatCards } from "./components/stat-cards"
 import { ReportsTable } from "./components/reports-table"
@@ -39,11 +38,8 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
+        className="space-y-2 animate-fade-down"
       >
         <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
           {NAVIGATION.REPORTS}
@@ -51,13 +47,11 @@ export default function ReportsPage() {
         <p className="text-white/80 text-lg">
           Laporan absensi dengan analisis dan statistik komprehensif
         </p>
-      </motion.div>
+      </div>
 
       {/* Filter Component */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1, duration: 0.5 }}
+      <div
+        className="animate-slide-left anim-delay-100"
       >
         <ReportsFilter
           filters={filters}
@@ -71,28 +65,24 @@ export default function ReportsPage() {
           onPreview={handlePreview}
           onResetFilters={() => setFilters(initialFilters)}
         />
-      </motion.div>
+      </div>
 
       {/* Summary Statistics */}
       {summary && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-200"
         >
           <StatCards summary={summary} />
-        </motion.div>
+        </div>
       )}
 
       {/* Breakdown Cards */}
       {summary && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+        <div
+          className="animate-fade-up anim-delay-300"
         >
           <BreakdownCards summary={summary} />
-        </motion.div>
+        </div>
       )}
 
       {/* Message Alert */}
@@ -103,16 +93,14 @@ export default function ReportsPage() {
       )}
 
       {/* Data Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+      <div
+        className="animate-fade-up anim-delay-400"
       >
         <ReportsTable
           records={records}
           summary={summary}
         />
-      </motion.div>
+      </div>
     </div>
   )
 }
