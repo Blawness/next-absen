@@ -12,6 +12,13 @@ ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 fail()  { echo -e "${RED}[FAIL]${NC}  $1"; exit 1; }
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm use 22 2>/dev/null || true
+
+NODE_BIN=$(which node 2>/dev/null || echo "node")
+log "Using Node: $($NODE_BIN -v)"
+
 APP_NAME="absensi-pkp"
 PROJECT_DIR="$(dirname "$0")/.."
 cd "$PROJECT_DIR"
@@ -82,14 +89,16 @@ ok "Build complete"
 # ──────────────────────────────────────
 export PATH="$PATH:$(npm config get prefix)/bin"
 export PORT=8006
+export NODE_BIN
 
 if pm2 list | grep -q "$APP_NAME"; then
-  log "Reloading $APP_NAME..."
-  pm2 reload ecosystem.config.js --update-env || fail "pm2 reload failed"
-else
-  log "Starting $APP_NAME..."
-  pm2 start ecosystem.config.js || fail "pm2 start failed"
+  log "Stopping old $APP_NAME (was on Node 18)..."
+  pm2 stop "$APP_NAME" 2>/dev/null || true
+  pm2 delete "$APP_NAME" 2>/dev/null || true
 fi
+
+log "Starting $APP_NAME with Node $($NODE_BIN -v)..."
+pm2 start ecosystem.config.js || fail "pm2 start failed"
 pm2 save
 ok "PM2 deployed"
 
