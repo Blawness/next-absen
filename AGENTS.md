@@ -1,6 +1,6 @@
 # AGENTS.md — next-absen
 
-## Commands
+### Commands
 
 ```bash
 npm run dev              # prisma generate + db push + next dev --port 3004
