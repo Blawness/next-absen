@@ -42,24 +42,29 @@ npx prisma generate || fail "prisma generate failed"
 ok "Prisma client generated"
 
 # ──────────────────────────────────────
-# 3. prisma db push / migrate
+# 3. prisma migrate / push
 # ──────────────────────────────────────
 if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations 2>/dev/null)" ]; then
-  log "Migrations found, running prisma migrate deploy..."
+  log "Migrations found, attempting prisma migrate deploy..."
 
-  BASELINE_APPLIED=$(npx prisma migrate status 2>&1 | grep -c "0_init" || true)
-  P3005_DETECTED=$(npx prisma migrate status 2>&1 | grep -c "P3005" || true)
+  set +e
+  MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
+  MIGRATE_EXIT=$?
+  set -e
 
-  if [ "$P3005_DETECTED" -gt 0 ]; then
-    warn "Database has no migration history. Creating baseline..."
-    npx prisma migrate resolve --applied 0_init || fail "Failed to baseline database"
-    ok "Baseline created — database now tracked by migrations"
+  if [ $MIGRATE_EXIT -eq 0 ]; then
+    ok "Migrations applied"
+  elif echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
+    warn "Database has no migration history — creating baseline..."
+    npx prisma migrate resolve --applied 0_init || fail "Failed to baseline"
+    npx prisma migrate deploy || fail "prisma migrate deploy failed after baseline"
+    ok "Baseline created, migrations applied"
+  else
+    echo "$MIGRATE_OUTPUT"
+    fail "prisma migrate deploy failed"
   fi
-
-  npx prisma migrate deploy || fail "prisma migrate deploy failed"
-  ok "Migrations applied"
 else
-  warn "No migration files found, using prisma db push (safe — no migrations yet)"
+  warn "No migration files found, using prisma db push"
   npx prisma db push || fail "prisma db push failed"
   ok "Schema pushed"
 fi
