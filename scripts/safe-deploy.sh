@@ -31,7 +31,7 @@ log "Deploy start: $(date)"
 # 1. install deps
 # ──────────────────────────────────────
 log "Installing dependencies..."
-npm ci || fail "npm ci failed"
+npm ci --production=false || fail "npm ci failed"
 ok "Dependencies installed"
 
 # ──────────────────────────────────────
@@ -42,11 +42,27 @@ npx prisma generate || fail "prisma generate failed"
 ok "Prisma client generated"
 
 # ──────────────────────────────────────
-# 3. prisma migrate deploy (safe)
+# 3. prisma db push / migrate
 # ──────────────────────────────────────
-log "Running prisma migrate deploy..."
-npx prisma migrate deploy || fail "prisma migrate deploy failed"
-ok "Migrations applied"
+if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations 2>/dev/null)" ]; then
+  log "Migrations found, running prisma migrate deploy..."
+
+  BASELINE_APPLIED=$(npx prisma migrate status 2>&1 | grep -c "0_init" || true)
+  P3005_DETECTED=$(npx prisma migrate status 2>&1 | grep -c "P3005" || true)
+
+  if [ "$P3005_DETECTED" -gt 0 ]; then
+    warn "Database has no migration history. Creating baseline..."
+    npx prisma migrate resolve --applied 0_init || fail "Failed to baseline database"
+    ok "Baseline created — database now tracked by migrations"
+  fi
+
+  npx prisma migrate deploy || fail "prisma migrate deploy failed"
+  ok "Migrations applied"
+else
+  warn "No migration files found, using prisma db push (safe — no migrations yet)"
+  npx prisma db push || fail "prisma db push failed"
+  ok "Schema pushed"
+fi
 
 # ──────────────────────────────────────
 # 4. build
