@@ -81,6 +81,7 @@ ok "Build complete"
 # 5. pm2 reload
 # ──────────────────────────────────────
 export PATH="$PATH:$(npm config get prefix)/bin"
+export PORT=8006
 
 if pm2 list | grep -q "$APP_NAME"; then
   log "Reloading $APP_NAME..."
@@ -96,7 +97,7 @@ ok "PM2 deployed"
 # 6. health check
 # ──────────────────────────────────────
 log "Health check..."
-for i in $(seq 1 12); do
+for i in $(seq 1 24); do
   if curl -sf http://localhost:8006/api/health > /dev/null 2>&1; then
     ok "Health check passed"
     log "Deploy done: $(date)"
@@ -105,4 +106,6 @@ for i in $(seq 1 12); do
   sleep 5
 done
 
-fail "Health check failed after 60s"
+echo ""
+pm2 logs "$APP_NAME" --err --lines 30 --no-daemon 2>/dev/null || true
+fail "Health check failed after 120s"
