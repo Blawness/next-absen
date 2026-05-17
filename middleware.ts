@@ -1,4 +1,3 @@
-import { getToken } from "next-auth/jwt"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { rateLimit } from "@/lib/rate-limit"
@@ -38,16 +37,16 @@ export default async function middleware(request: NextRequest) {
     return response
   }
 
-  // Page route auth protection
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  })
+  // Page route auth protection.
+  // getToken() cannot be used here: the session cookie holds a DB-backed UUID,
+  // not a verifiable JWT, and Prisma cannot run in the Edge Runtime.
+  // Checking cookie presence is sufficient for redirect-gating; real
+  // authorization is enforced per-request by getServerSession in route handlers.
+  const sessionCookie =
+    request.cookies.get("__Secure-next-auth.session-token") ??
+    request.cookies.get("next-auth.session-token")
 
-  if (!token) {
-    // Use NEXTAUTH_URL as the canonical base so the callbackUrl reflects
-    // the public domain, not the internal host (localhost:PORT) seen by
-    // Next.js when sitting behind a reverse proxy.
+  if (!sessionCookie?.value) {
     const base = (process.env.NEXTAUTH_URL ?? request.nextUrl.origin).replace(/\/$/, "")
     const callbackUrl = base + request.nextUrl.pathname + request.nextUrl.search
     const signInUrl = new URL("/auth/signin", base)
