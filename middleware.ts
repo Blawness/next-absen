@@ -45,8 +45,13 @@ export default async function middleware(request: NextRequest) {
   })
 
   if (!token) {
-    const signInUrl = new URL("/auth/signin", request.url)
-    signInUrl.searchParams.set("callbackUrl", request.url)
+    // Use NEXTAUTH_URL as the canonical base so the callbackUrl reflects
+    // the public domain, not the internal host (localhost:PORT) seen by
+    // Next.js when sitting behind a reverse proxy.
+    const base = (process.env.NEXTAUTH_URL ?? request.nextUrl.origin).replace(/\/$/, "")
+    const callbackUrl = base + request.nextUrl.pathname + request.nextUrl.search
+    const signInUrl = new URL("/auth/signin", base)
+    signInUrl.searchParams.set("callbackUrl", callbackUrl)
     return NextResponse.redirect(signInUrl)
   }
 
