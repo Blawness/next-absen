@@ -37,6 +37,11 @@ export default async function middleware(request: NextRequest) {
     return response
   }
 
+  // API routes handle their own auth (or are auth endpoints themselves)
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next()
+  }
+
   // Page route auth protection.
   // getToken() cannot be used here: the session cookie holds a DB-backed UUID,
   // not a verifiable JWT, and Prisma cannot run in the Edge Runtime.

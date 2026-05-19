@@ -25,9 +25,9 @@ export default function SignInPage() {
     if (status === "loading") return // Still loading
 
     if (session) {
-      router.replace("/dashboard")
+      window.location.replace("/dashboard")
     }
-  }, [session, status, router])
+  }, [session, status])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +52,8 @@ export default function SignInPage() {
         setError(MESSAGES.LOGIN_FAILED)
         setIsLoading(false)
       } else {
-        router.replace("/dashboard")
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        window.location.replace("/dashboard")
       }
     } catch {
       setError(MESSAGES.ERROR)
