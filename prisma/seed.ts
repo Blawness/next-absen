@@ -24,6 +24,16 @@ async function main() {
       isActive: true,
     },
     {
+      email: 'superadmin@demo.com',
+      password: hashedPassword,
+      name: 'Super Admin',
+      role: 'superadmin' as const,
+      department: 'IT',
+      position: 'Super Administrator',
+      phone: '+62-811-0000-0000',
+      isActive: true,
+    },
+    {
       email: 'manager@demo.com',
       password: hashedPassword,
       name: 'Manager Demo',

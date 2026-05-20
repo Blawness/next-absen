@@ -220,5 +220,11 @@ const navigationItems: Array<{
       label: NAVIGATION.API_KEYS,
       icon: Key,
       roles: [UserRole.admin]
+    },
+    {
+      href: "/superadmin/attendance",
+      label: NAVIGATION.MANAGE_ATTENDANCE,
+      icon: Clock,
+      roles: [UserRole.superadmin]
     }
   ]
