@@ -13,6 +13,7 @@ export enum Permission {
   ABSENSI_READ = 'absensi:read',
   ABSENSI_UPDATE = 'absensi:update',
   ABSENSI_DELETE = 'absensi:delete',
+  ABSENSI_MANAGE = 'absensi:manage',
 
   // Reports
   REPORT_READ = 'report:read',
@@ -25,7 +26,8 @@ export enum Permission {
 
 // Role permissions mapping
 const rolePermissions: Record<UserRole, Permission[]> = {
-  admin: Object.values(Permission),
+  superadmin: Object.values(Permission),
+  admin: Object.values(Permission).filter(p => p !== Permission.ABSENSI_MANAGE),
   manager: [
     Permission.USER_READ,
     Permission.ABSENSI_CREATE,
@@ -60,17 +62,17 @@ export function getRolePermissions(role: UserRole): Permission[] {
 
 // Check if user is admin
 export function isAdmin(role: UserRole): boolean {
-  return role === UserRole.admin
+  return role === UserRole.admin || role === UserRole.superadmin
 }
 
 // Check if user is manager or admin
 export function isManagerOrAdmin(role: UserRole): boolean {
-  return role === UserRole.manager || role === UserRole.admin
+  return role === UserRole.manager || role === UserRole.admin || role === UserRole.superadmin
 }
 
 // Check if user can manage users
 export function canManageUsers(role: UserRole): boolean {
-  return isAdmin(role)
+  return role === UserRole.admin || role === UserRole.superadmin
 }
 
 // Check if user can export reports

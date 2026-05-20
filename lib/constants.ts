@@ -15,7 +15,9 @@ export const NAVIGATION = {
   ADMIN_PANEL: "Panel Admin",
   MANAGER_PANEL: "Panel Manager",
   ACTIVITY_LOG: "Log Aktivitas",
-  API_KEYS: "Kunci API"
+  API_KEYS: "Kunci API",
+  SUPERADMIN: "Superadmin",
+  MANAGE_ATTENDANCE: "Kelola Absensi"
 } as const
 
 export const STATUS_LABELS = {
@@ -26,6 +28,7 @@ export const STATUS_LABELS = {
 } as const
 
 export const ROLE_LABELS = {
+  SUPERADMIN: "Super Admin",
   ADMIN: "Admin",
   MANAGER: "Manager",
   USER: "Pengguna"
@@ -60,6 +63,11 @@ export const MESSAGES = {
   // Reports
   REPORT_GENERATED: "Laporan berhasil dibuat",
   EXPORT_SUCCESS: "Data berhasil diekspor",
+
+  // Attendance Management
+  ATTENDANCE_CREATED: "Record absensi berhasil dibuat",
+  ATTENDANCE_UPDATED: "Record absensi berhasil diperbarui",
+  ATTENDANCE_DELETED: "Record absensi berhasil dihapus",
 
   // General
   LOADING: "Memuat...",

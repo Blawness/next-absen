@@ -64,7 +64,7 @@ export const userCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email format"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["admin", "manager", "user"]).default("user"),
+  role: z.enum(["superadmin", "admin", "manager", "user"]).default("user"),
   department: z.string().optional(),
   position: z.string().optional(),
   phone: z.string().optional(),
@@ -73,7 +73,7 @@ export const userCreateSchema = z.object({
 export const userUpdateSchema = z.object({
   name: z.string().min(1),
   email: z.string().email("Invalid email format"),
-  role: z.enum(["admin", "manager", "user"]),
+  role: z.enum(["superadmin", "admin", "manager", "user"]),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
   department: z.string().optional(),
   position: z.string().optional(),
@@ -114,4 +114,28 @@ export const apiKeyUpdateSchema = z.object({
     .enum(["attendance:readwrite", "attendance:read", "attendance:auto-checkin"])
     .optional(),
   isActive: z.boolean().optional(),
+})
+
+export const attendanceCreateSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  date: z.string().min(1, "Date is required"),
+  checkInTime: z.string().optional(),
+  checkOutTime: z.string().optional(),
+  status: z.enum(["present", "late", "absent", "half_day"]).optional(),
+  notes: z.string().max(500).optional(),
+})
+
+export const attendanceUpdateSchema = z.object({
+  id: z.string().min(1, "Record ID is required"),
+  checkInTime: z.string().nullable().optional(),
+  checkOutTime: z.string().nullable().optional(),
+  status: z.enum(["present", "late", "absent", "half_day"]).optional(),
+  notes: z.string().max(500).nullable().optional(),
+}).refine(
+  (data) => data.checkInTime !== undefined || data.checkOutTime !== undefined || data.status !== undefined || data.notes !== undefined,
+  { message: "At least one field to update is required" }
+)
+
+export const attendanceDeleteSchema = z.object({
+  id: z.string().min(1, "Record ID is required"),
 })
