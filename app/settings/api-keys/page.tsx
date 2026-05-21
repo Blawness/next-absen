@@ -70,7 +70,7 @@ export default function ApiKeysPage() {
     )
   }
 
-  if (!session || session.user.role !== "admin") {
+  if (!session || (session.user.role !== "admin" && session.user.role !== "superadmin")) {
     router.push("/dashboard")
     return null
   }

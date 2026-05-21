@@ -74,8 +74,7 @@ export default function UsersPage() {
       return
     }
 
-    // Check if user is admin
-    if (session.user.role !== UserRole.admin) {
+    if (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin) {
       router.push("/dashboard")
       return
     }
@@ -300,7 +299,7 @@ export default function UsersPage() {
     return <UsersSkeleton />
   }
 
-  if (!session || session.user.role !== UserRole.admin) {
+  if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
     router.push("/dashboard")
     return null
   }

@@ -29,7 +29,7 @@ export default function SettingsPage() {
     return <SettingsSkeleton />
   }
 
-  if (!session || session.user.role !== "admin") {
+  if (!session || (session.user.role !== "admin" && session.user.role !== "superadmin")) {
     router.push("/dashboard")
     return null
   }
