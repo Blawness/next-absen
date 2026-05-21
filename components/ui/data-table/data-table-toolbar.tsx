@@ -1,9 +1,8 @@
 "use client"
 
-import { Eye } from "lucide-react"
+import { Search, SlidersHorizontal, Columns3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardHeader } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -44,97 +43,117 @@ export function DataTableToolbar({
   departments,
   roles,
 }: DataTableToolbarProps) {
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    departmentFilter !== "all" ||
+    roleFilter !== "all" ||
+    statusFilter !== "all"
+
   return (
-    <Card variant="glass" className="rounded-2xl">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Input
-                placeholder="Cari pengguna..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40"
-              />
-              <div className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:gap-4">
-              <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
-                <SelectTrigger className="w-full min-w-0 sm:w-48 bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="Semua Departemen" />
-                </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
-                <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
-                {departments.length > 0 ? (
-                  departments.map(dept => (
-                    <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">{dept}</SelectItem>
-                  ))
-                ) : (
-                  <div className="px-2 py-1.5 text-sm text-white/60">Tidak ada departemen tersedia</div>
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-              <SelectTrigger className="w-full min-w-0 sm:w-40 bg-white/10 border-white/20 text-white">
-                <SelectValue placeholder="Semua Role" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
-                <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Role</SelectItem>
-                {roles.length > 0 ? (
-                  roles.map(role => (
-                    <SelectItem key={role} value={role} className="capitalize text-white hover:bg-white/10 focus:bg-white/10">
-                      {role === "admin" ? "Admin" : role === "manager" ? "Manager" : "Pengguna"}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <div className="px-2 py-1.5 text-sm text-white/60">Tidak ada role tersedia</div>
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="w-full min-w-0 sm:w-32 bg-white/10 border-white/20 text-white">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
-                <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua</SelectItem>
-                <SelectItem value="active" className="text-white hover:bg-white/10 focus:bg-white/10">Aktif</SelectItem>
-                <SelectItem value="inactive" className="text-white hover:bg-white/10 focus:bg-white/10">Nonaktif</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="glass-card rounded-2xl p-4 space-y-3">
+      {/* Search + actions row */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35 pointer-events-none" />
+          <Input
+            placeholder="Cari nama, email, departemen..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/35 focus:border-emerald-500/50 focus:ring-emerald-500/20 h-9"
+          />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <Select value={density} onValueChange={onDensityChange}>
-              <SelectTrigger className="w-full min-w-0 sm:w-32 bg-white/10 border-white/20 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
-                <SelectItem value="comfortable" className="text-white hover:bg-white/10 focus:bg-white/10">Comfortable</SelectItem>
-                <SelectItem value="compact" className="text-white hover:bg-white/10 focus:bg-white/10">Compact</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Select value={density} onValueChange={onDensityChange}>
+            <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white/70 h-9 text-sm">
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5 text-white/40" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+              <SelectItem value="comfortable" className="text-white hover:bg-white/10 focus:bg-white/10">Lebar</SelectItem>
+              <SelectItem value="compact" className="text-white hover:bg-white/10 focus:bg-white/10">Rapat</SelectItem>
+            </SelectContent>
+          </Select>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onToggleColumnVisibility}
-              className="bg-white/5 border-white/10 w-full sm:w-auto"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              <span>Kolom</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleColumnVisibility}
+            className="bg-white/5 border-white/10 text-white/70 hover:text-white h-9 px-3"
+          >
+            <Columns3 className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-sm">Kolom</span>
+          </Button>
         </div>
-      </CardHeader>
-    </Card>
+      </div>
+
+      {/* Filter chips row */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-white/40 font-medium">Filter:</span>
+
+        <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
+          <SelectTrigger className={`h-7 text-xs px-2.5 border rounded-full transition-colors ${
+            departmentFilter !== "all"
+              ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+              : "bg-white/5 border-white/10 text-white/60"
+          }`}>
+            <SelectValue placeholder="Departemen" />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
+            <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">Semua Departemen</SelectItem>
+            {departments.map(dept => (
+              <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">{dept}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={roleFilter} onValueChange={onRoleFilterChange}>
+          <SelectTrigger className={`h-7 text-xs px-2.5 border rounded-full transition-colors ${
+            roleFilter !== "all"
+              ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+              : "bg-white/5 border-white/10 text-white/60"
+          }`}>
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
+            <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">Semua Role</SelectItem>
+            {roles.map(role => (
+              <SelectItem key={role} value={role} className="text-white hover:bg-white/10 focus:bg-white/10 text-sm capitalize">
+                {role === "admin" ? "Admin" : role === "manager" ? "Manager" : "Pengguna"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+          <SelectTrigger className={`h-7 text-xs px-2.5 border rounded-full transition-colors ${
+            statusFilter !== "all"
+              ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+              : "bg-white/5 border-white/10 text-white/60"
+          }`}>
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10 z-50">
+            <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">Semua Status</SelectItem>
+            <SelectItem value="active" className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">Aktif</SelectItem>
+            <SelectItem value="inactive" className="text-white hover:bg-white/10 focus:bg-white/10 text-sm">Nonaktif</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {hasActiveFilters && (
+          <button
+            onClick={() => {
+              onSearchChange("")
+              onDepartmentFilterChange("all")
+              onRoleFilterChange("all")
+              onStatusFilterChange("all")
+            }}
+            className="h-7 px-2.5 text-xs text-rose-400/80 hover:text-rose-300 border border-rose-500/20 bg-rose-500/8 rounded-full transition-colors"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
-
