@@ -197,6 +197,22 @@ export async function updateAttendance(data: UpdateAttendanceData) {
     throw new HttpError("No fields to update", 400)
   }
 
+  // Recalculate workHours whenever checkIn or checkOut is touched.
+  // Resolve the final values by merging incoming changes over existing record.
+  const finalCheckIn = "checkInTime" in updateData
+    ? (updateData.checkInTime as Date | null)
+    : existing.checkInTime
+  const finalCheckOut = "checkOutTime" in updateData
+    ? (updateData.checkOutTime as Date | null)
+    : existing.checkOutTime
+
+  if (finalCheckIn && finalCheckOut) {
+    updateData.workHours = (finalCheckOut.getTime() - finalCheckIn.getTime()) / (1000 * 60 * 60)
+  } else if ("checkInTime" in updateData || "checkOutTime" in updateData) {
+    // One of them was cleared — work hours can no longer be computed
+    updateData.workHours = null
+  }
+
   const record = await prisma.absensiRecord.update({
     where: { id: data.id },
     data: updateData as any,
