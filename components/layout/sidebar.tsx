@@ -171,55 +171,55 @@ const navigationItems: Array<{
       href: "/dashboard",
       label: NAVIGATION.DASHBOARD,
       icon: LayoutDashboard,
-      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager, UserRole.user]
     },
     {
       href: "/dashboard/kpi",
       label: "KPI",
       icon: TrendingUp,
-      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager, UserRole.user]
     },
     {
       href: "/attendance",
       label: NAVIGATION.ATTENDANCE,
       icon: Clock,
-      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager, UserRole.user]
     },
     {
       href: "/reports",
       label: NAVIGATION.REPORTS,
       icon: FileText,
-      roles: [UserRole.admin, UserRole.manager]
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager]
     },
     {
       href: "/users",
       label: NAVIGATION.USERS,
       icon: Users,
-      roles: [UserRole.admin]
+      roles: [UserRole.superadmin, UserRole.admin]
     },
     {
       href: "/profile",
       label: NAVIGATION.PROFILE,
       icon: User,
-      roles: [UserRole.admin, UserRole.manager, UserRole.user]
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager, UserRole.user]
     },
     {
       href: "/settings",
       label: NAVIGATION.SETTINGS,
       icon: Settings,
-      roles: [UserRole.admin]
+      roles: [UserRole.superadmin, UserRole.admin]
     },
     {
       href: "/activity-logs",
       label: NAVIGATION.ACTIVITY_LOG,
       icon: Activity,
-      roles: [UserRole.admin]
+      roles: [UserRole.superadmin, UserRole.admin]
     },
     {
       href: "/settings/api-keys",
       label: NAVIGATION.API_KEYS,
       icon: Key,
-      roles: [UserRole.admin]
+      roles: [UserRole.superadmin, UserRole.admin]
     },
     {
       href: "/superadmin/attendance",

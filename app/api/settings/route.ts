@@ -43,7 +43,7 @@ interface SystemSettings {
 export const GET = withErrorHandling(async () => {
   const session = await getServerSession(authOptions)
 
-  if (!session || session.user.role !== UserRole.admin) {
+  if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 403 }
@@ -99,7 +99,7 @@ export const GET = withErrorHandling(async () => {
 export const PUT = withErrorHandling(async (request: NextRequest) => {
   const session = await getServerSession(authOptions)
 
-  if (!session || session.user.role !== UserRole.admin) {
+  if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 403 }

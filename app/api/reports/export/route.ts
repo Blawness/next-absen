@@ -28,8 +28,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
   }
 
-  // Only admin and manager can export
-  if (session.user.role !== UserRole.admin && session.user.role !== UserRole.manager) {
+  if (session.user.role !== UserRole.admin && session.user.role !== UserRole.manager && session.user.role !== UserRole.superadmin) {
     return NextResponse.json(
       { error: "Insufficient permissions" },
       { status: 403 }

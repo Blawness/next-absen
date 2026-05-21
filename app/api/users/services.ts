@@ -4,12 +4,12 @@ import bcrypt from "bcryptjs"
 
 import { HttpError } from "@/lib/errors"
 import { generatePassword } from "@/lib/password"
+import { isAdmin, isManagerOrAdmin } from "@/lib/permissions"
 
 export { HttpError }
 
 export async function getUsers(currentUser: { id: string; role: string }, statusFilter?: 'all' | 'active' | 'inactive') {
-    // Only admin and manager can access
-    if (currentUser.role !== UserRole.admin && currentUser.role !== UserRole.manager) {
+    if (!isManagerOrAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -56,7 +56,7 @@ interface CreateUserData {
 }
 
 export async function createUser(currentUser: { id: string; role: string }, data: CreateUserData) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -121,7 +121,7 @@ interface UpdateUserData {
 }
 
 export async function updateUser(currentUser: { id: string; role: string }, userId: string, data: UpdateUserData) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -191,7 +191,7 @@ export async function updateUser(currentUser: { id: string; role: string }, user
 }
 
 export async function deleteUser(currentUser: { id: string; role: string }, userId: string) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -236,7 +236,7 @@ export async function toggleUserStatus(
     targetUserId: string,
     isActive: boolean
 ) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -284,7 +284,7 @@ export async function resetUserPassword(
     targetUserId: string,
     customPassword?: string
 ) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -332,7 +332,7 @@ export async function getUserActivity(
     targetUserId: string,
     options: { limit?: number; offset?: number; startDate?: string; endDate?: string }
 ) {
-    if (currentUser.role !== UserRole.admin && currentUser.role !== UserRole.manager) {
+    if (!isManagerOrAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -400,7 +400,7 @@ export async function bulkUserAction(
     action: "activate" | "deactivate",
     userIds: string[]
 ) {
-    if (currentUser.role !== UserRole.admin) {
+    if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
@@ -456,7 +456,7 @@ export async function exportUsers(
     currentUser: { id: string; role: string },
     filters: { department?: string; role?: string; status?: string }
 ) {
-    if (currentUser.role !== UserRole.admin && currentUser.role !== UserRole.manager) {
+    if (!isManagerOrAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 

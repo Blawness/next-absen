@@ -8,7 +8,7 @@ import { UserRole, Prisma } from "@prisma/client"
 export const GET = withErrorHandling(async (request: NextRequest) => {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || session.user.role !== UserRole.admin) {
+    if (!session?.user || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
         return NextResponse.json(
             { error: "Unauthorized" },
             { status: 403 }
@@ -22,7 +22,10 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const userId = searchParams.get("userId")
     const action = searchParams.get("action")
 
-    const whereClause: Prisma.ActivityLogWhereInput = {}
+    // Superadmin actions are always excluded — their changes are silent.
+    const whereClause: Prisma.ActivityLogWhereInput = {
+        user: { role: { not: UserRole.superadmin } },
+    }
 
     if (userId) {
         whereClause.userId = userId

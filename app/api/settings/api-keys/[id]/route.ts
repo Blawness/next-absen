@@ -13,7 +13,7 @@ export const PUT = withErrorHandling(async (
 ) => {
   const session = await getServerSession(authOptions)
 
-  if (!session || session.user.role !== UserRole.admin) {
+  if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 403 }
@@ -82,7 +82,7 @@ export const DELETE = withErrorHandling(async (
 ) => {
   const session = await getServerSession(authOptions)
 
-  if (!session || session.user.role !== UserRole.admin) {
+  if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 403 }
