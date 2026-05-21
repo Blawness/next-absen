@@ -185,7 +185,7 @@ export default function SuperadminAttendancePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <Select
               value={filters.userId}
-              onValueChange={(v) => { setFilters({ ...filters, userId: v }); setPage(1) }}
+              onValueChange={(v) => { setFilters({ ...filters, userId: v === "all" ? "" : v }); setPage(1) }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Semua User" />
@@ -211,7 +211,7 @@ export default function SuperadminAttendancePage() {
             />
             <Select
               value={filters.status}
-              onValueChange={(v) => { setFilters({ ...filters, status: v }); setPage(1) }}
+              onValueChange={(v) => { setFilters({ ...filters, status: v === "all" ? "" : v }); setPage(1) }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Semua Status" />

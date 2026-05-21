@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -59,18 +59,20 @@ export function AttendanceEditDialog({ open, record, onClose, onSaved }: Props) 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      onClose()
-      return
-    }
-    if (record) {
+  // Radix UI controlled Dialog does NOT call onOpenChange(true) when the parent
+  // sets open=true programmatically, so we must initialize state via useEffect.
+  useEffect(() => {
+    if (open && record) {
       setCheckInTime(toTimeString(record.checkInTime))
       setCheckOutTime(toTimeString(record.checkOutTime))
       setStatus(record.status)
       setNotes(record.notes ?? "")
       setError("")
     }
+  }, [open, record])
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose()
   }
 
   const handleSave = async () => {
@@ -79,11 +81,13 @@ export function AttendanceEditDialog({ open, record, onClose, onSaved }: Props) 
     setError("")
 
     try {
+      // Construct as local time (no Z suffix) so toISOString() converts correctly.
+      // Using `Z` would treat the user's input as UTC, shifting it by the timezone offset.
       const checkInISO = checkInTime
-        ? `${toDateString(record.date)}T${checkInTime}:00.000Z`
+        ? new Date(`${toDateString(record.date)}T${checkInTime}:00`).toISOString()
         : null
       const checkOutISO = checkOutTime
-        ? `${toDateString(record.date)}T${checkOutTime}:00.000Z`
+        ? new Date(`${toDateString(record.date)}T${checkOutTime}:00`).toISOString()
         : null
 
       const res = await fetch("/api/superadmin/attendance", {
