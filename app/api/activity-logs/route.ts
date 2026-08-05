@@ -21,10 +21,16 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const offset = (page - 1) * limit
     const userId = searchParams.get("userId")
     const action = searchParams.get("action")
+    const hideSuperadmin = searchParams.get("includeSuperadmin") === "false"
 
-    // Superadmin actions are always excluded — their changes are silent.
-    const whereClause: Prisma.ActivityLogWhereInput = {
-        user: { role: { not: UserRole.superadmin } },
+    // Audit trail integrity: superadmin actions are visible to admins by default.
+    // The role is included in the response so admins can filter or identify actor privileges.
+    const whereClause: Prisma.ActivityLogWhereInput = {}
+
+    // includeSuperadmin=false retains the legacy behavior (hide superadmin actions).
+    // Defaults to including superadmin so admins can audit every privileged change.
+    if (hideSuperadmin) {
+        whereClause.user = { role: { not: UserRole.superadmin } }
     }
 
     if (userId) {
@@ -43,7 +49,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
                     select: {
                         name: true,
                         email: true,
-                        avatarUrl: true
+                        avatarUrl: true,
+                        role: true
                     }
                 }
             },

@@ -17,6 +17,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:attendance": "tsx prisma/seed-attendance.ts",
+    "db:import": "tsx scripts/import-data.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

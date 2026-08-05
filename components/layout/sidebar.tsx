@@ -16,7 +16,8 @@ import {
   X,
   TrendingUp,
   Activity,
-  Key
+  Key,
+  Download
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAVIGATION, ROLE_LABELS } from "@/lib/constants"
@@ -225,6 +226,12 @@ const navigationItems: Array<{
       href: "/superadmin/attendance",
       label: NAVIGATION.MANAGE_ATTENDANCE,
       icon: Clock,
+      roles: [UserRole.superadmin]
+    },
+    {
+      href: "/superadmin/export",
+      label: NAVIGATION.EXPORT_DATA,
+      icon: Download,
       roles: [UserRole.superadmin]
     }
   ]

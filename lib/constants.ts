@@ -17,7 +17,8 @@ export const NAVIGATION = {
   ACTIVITY_LOG: "Log Aktivitas",
   API_KEYS: "Kunci API",
   SUPERADMIN: "Superadmin",
-  MANAGE_ATTENDANCE: "Kelola Absensi"
+  MANAGE_ATTENDANCE: "Kelola Absensi",
+  EXPORT_DATA: "Export Data"
 } as const
 
 export const STATUS_LABELS = {
