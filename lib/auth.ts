@@ -65,6 +65,14 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        // Reject deactivated users at the auth source. Without this, the
+        // login appears to succeed but every subsequent request fails
+        // (readSessionToken checks isActive) — confusing UX and a DoS
+        // vector (each attempt creates a PersistedSessionToken row).
+        if (!user.isActive) {
+          return null
+        }
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password

@@ -107,6 +107,28 @@ describe("User Management Service", () => {
             expect(prisma.activityLog.create).toHaveBeenCalled()
             expect(result).toEqual(expect.objectContaining({ id: "new-id" }))
         })
+
+        // BUG-007 — privilege escalation guard
+        it("should reject admin trying to create a superadmin (BUG-007)", async () => {
+            await expect(
+                createUser(
+                    { id: "admin1", role: UserRole.admin },
+                    { ...validData, role: UserRole.superadmin }
+                )
+            ).rejects.toThrow(/Cannot assign role "superadmin"/)
+        })
+
+        it("should allow superadmin to create another superadmin", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
+                ; (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password")
+                ; (prisma.user.create as jest.Mock).mockResolvedValue({ ...validData, id: "new-id", role: UserRole.superadmin })
+
+            const result = await createUser(
+                { id: "super1", role: UserRole.superadmin },
+                { ...validData, role: UserRole.superadmin }
+            )
+            expect(result).toEqual(expect.objectContaining({ id: "new-id" }))
+        })
     })
 
     describe("updateUser", () => {
@@ -175,6 +197,33 @@ describe("User Management Service", () => {
                     password: "new_hashed_password"
                 })
             }));
+        })
+
+        // BUG-007 — privilege escalation guard
+        it("should reject admin trying to promote user to superadmin (BUG-007)", async () => {
+            await expect(
+                updateUser(
+                    { id: "admin1", role: UserRole.admin },
+                    "user1",
+                    { ...updateData, role: UserRole.superadmin }
+                )
+            ).rejects.toThrow(/Cannot assign role "superadmin"/)
+        })
+
+        it("should allow superadmin to promote a user to superadmin", async () => {
+            (prisma.user.findUnique as jest.Mock).mockImplementation((args) => {
+                if (args.where.id === "user1") return Promise.resolve({ id: "user1", email: "old@example.com" });
+                if (args.where.email === "updated@example.com") return Promise.resolve(null);
+                return Promise.resolve(null);
+            });
+            (prisma.user.update as jest.Mock).mockResolvedValue({ ...updateData, id: "user1", role: UserRole.superadmin });
+
+            const result = await updateUser(
+                { id: "super1", role: UserRole.superadmin },
+                "user1",
+                { ...updateData, role: UserRole.superadmin }
+            )
+            expect(result.role).toBe(UserRole.superadmin)
         })
     })
 

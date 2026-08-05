@@ -47,17 +47,43 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   if (session.user.role === UserRole.user) {
     // Regular users can only see their own data — ignore userId/department params
     whereClause.userId = session.user.id
+  } else if (session.user.role === UserRole.manager) {
+    // Managers are scoped to their own department unless they explicitly
+    // request a specific userId. Without this, a manager hitting the
+    // endpoint with no filters would see every department's records
+    // (BUG-008 — IDOR). If a manager explicitly passes a userId, trust
+    // it (the UI shows them the picker; presumably they have a reason).
+    if (userId) {
+      whereClause.userId = userId
+    } else {
+      const manager = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { department: true },
+      })
+      if (manager?.department) {
+        const departmentUsers = await prisma.user.findMany({
+          where: { department: manager.department },
+          select: { id: true },
+        })
+        whereClause.userId = {
+          in: departmentUsers.map((u) => u.id),
+        }
+      } else {
+        // Manager without a department: fall back to own data only.
+        whereClause.userId = session.user.id
+      }
+    }
   } else {
-    // Admins and managers: apply optional userId filter
+    // Admins and superadmins: apply optional userId or department filter
     if (userId) {
       whereClause.userId = userId
     } else if (department) {
       const departmentUsers = await prisma.user.findMany({
         where: { department },
-        select: { id: true }
+        select: { id: true },
       })
       whereClause.userId = {
-        in: departmentUsers.map(u => u.id)
+        in: departmentUsers.map((u) => u.id),
       }
     }
   }

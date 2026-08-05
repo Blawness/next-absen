@@ -79,3 +79,31 @@ export function canManageUsers(role: UserRole): boolean {
 export function canExportReports(role: UserRole): boolean {
   return hasPermission(role, Permission.REPORT_EXPORT)
 }
+
+// Role hierarchy rank. A caller can only assign a role with rank <= their own.
+// This prevents a regular admin from minting superadmins (BUG-007 — privilege escalation).
+const ROLE_RANK: Record<UserRole, number> = {
+  [UserRole.user]: 0,
+  [UserRole.manager]: 1,
+  [UserRole.admin]: 2,
+  [UserRole.superadmin]: 3,
+}
+
+/**
+ * Check if `caller` is allowed to assign `target` to another user.
+ *
+ * Rules:
+ * - A caller can never assign a role higher than their own.
+ * - Only superadmins can create or promote other superadmins.
+ * - Admins can create/promote admin/manager/user.
+ *
+ * @example
+ *   canAssignRole(UserRole.admin, UserRole.superadmin) // false
+ *   canAssignRole(UserRole.admin, UserRole.admin)      // true
+ *   canAssignRole(UserRole.superadmin, UserRole.superadmin) // true
+ */
+export function canAssignRole(caller: UserRole, target: UserRole): boolean {
+  const callerRank = ROLE_RANK[caller] ?? -1
+  const targetRank = ROLE_RANK[target] ?? -1
+  return callerRank >= targetRank
+}

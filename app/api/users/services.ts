@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs"
 
 import { HttpError } from "@/lib/errors"
 import { generatePassword } from "@/lib/password"
-import { isAdmin, isManagerOrAdmin } from "@/lib/permissions"
+import { isAdmin, isManagerOrAdmin, canAssignRole } from "@/lib/permissions"
 
 export { HttpError }
 
@@ -64,6 +64,15 @@ export async function createUser(currentUser: { id: string; role: string }, data
 
     if (!name || !email || !password || !role) {
         throw new HttpError("Missing required fields", 400)
+    }
+
+    // Privilege-escalation guard (BUG-007). A regular admin must not be
+    // able to create a superadmin (or any role higher than their own).
+    if (!canAssignRole(currentUser.role as UserRole, role as UserRole)) {
+        throw new HttpError(
+            `Cannot assign role "${role}" — your role (${currentUser.role}) does not have permission to grant it.`,
+            403
+        )
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -129,6 +138,15 @@ export async function updateUser(currentUser: { id: string; role: string }, user
 
     if (!name || !email || !role) {
         throw new HttpError("Missing required fields", 400)
+    }
+
+    // Privilege-escalation guard (BUG-007). A regular admin must not be
+    // able to promote a user to superadmin (or any role higher than their own).
+    if (!canAssignRole(currentUser.role as UserRole, role as UserRole)) {
+        throw new HttpError(
+            `Cannot assign role "${role}" — your role (${currentUser.role}) does not have permission to grant it.`,
+            403
+        )
     }
 
     const existingUser = await prisma.user.findUnique({

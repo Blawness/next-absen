@@ -36,7 +36,7 @@ export function parseSearchParams(
 
 const gpsLatSchema = z.number().min(-90).max(90)
 const gpsLngSchema = z.number().min(-180).max(180)
-const gpsAccuracySchema = z.number().min(0)
+const gpsAccuracySchema = z.number().min(1).max(5000)
 
 export const checkInSchema = z.object({
   latitude: gpsLatSchema,
