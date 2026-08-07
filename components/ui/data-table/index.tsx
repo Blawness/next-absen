@@ -5,6 +5,8 @@ export { DataTableBulkActions } from "./data-table-bulk-actions"
 export { DataTableContent } from "./data-table-content"
 export { columns } from "./data-table-columns"
 export { DataTableSkeleton } from "./data-table-skeleton"
+export { DataTablePagination } from "./data-table-pagination"
+export { DataTableEmptyState } from "./data-table-empty-state"
 
 
 

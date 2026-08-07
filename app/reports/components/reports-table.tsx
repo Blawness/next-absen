@@ -2,11 +2,23 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3 } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { DataTableEmptyState } from "@/components/ui/data-table/data-table-empty-state"
+import { BarChart3, MapPin, LogIn, LogOut } from "lucide-react"
 import { ReportRecord, ReportSummary } from "../types"
 import { STATUS_LABELS, TABLE_HEADERS } from "@/lib/constants"
 import { format } from "date-fns"
-import { id } from "date-fns/locale"
+import { id as idLocale } from "date-fns/locale"
+import { AttendanceStatus } from "@prisma/client"
+
 interface ReportsTableProps {
   records: ReportRecord[]
   summary: ReportSummary | null
@@ -17,9 +29,10 @@ interface ReportsTableProps {
 const formatAddress = (address?: string | null) => {
   if (!address) return null
 
-  // If address starts with "Koordinat:", extract the coordinates part
-  if (address.startsWith('Koordinat:')) {
-    const coordsMatch = address.match(/Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+  if (address.startsWith("Koordinat:")) {
+    const coordsMatch = address.match(
+      /Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/
+    )
     if (coordsMatch) {
       return `${coordsMatch[1]}, ${coordsMatch[2]}`
     }
@@ -28,93 +41,142 @@ const formatAddress = (address?: string | null) => {
   return address
 }
 
+const STATUS_BADGE: Record<
+  AttendanceStatus,
+  { label: string; className: string }
+> = {
+  present: {
+    label: STATUS_LABELS.present,
+    className: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+  },
+  late: {
+    label: STATUS_LABELS.late,
+    className: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+  },
+  absent: {
+    label: STATUS_LABELS.absent,
+    className: "border-rose-500/30 bg-rose-500/15 text-rose-300",
+  },
+  half_day: {
+    label: STATUS_LABELS.half_day,
+    className: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+  },
+}
+
 export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
   return (
     <div className="animate-fade-up anim-delay-400">
-      <Card variant="glass">
+      <Card variant="glass" className="overflow-hidden">
         <CardHeader>
           <CardTitle className="text-white">Data Absensi Detail</CardTitle>
-          <CardDescription className="text-white/70">
+          <CardDescription className="text-white/65">
             {records.length} record ditemukan
             {summary?.dateRange.startDate && summary?.dateRange.endDate && (
-              <> dari {format(summary.dateRange.startDate, 'dd MMM yyyy', { locale: id })} hingga {format(summary.dateRange.endDate, 'dd MMM yyyy', { locale: id })}</>
+              <>
+                {" "}
+                dari{" "}
+                {format(summary.dateRange.startDate, "dd MMM yyyy", {
+                  locale: idLocale,
+                })}{" "}
+                hingga{" "}
+                {format(summary.dateRange.endDate, "dd MMM yyyy", {
+                  locale: idLocale,
+                })}
+              </>
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {records.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.DATE}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.USER}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_IN}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.CHECK_OUT}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.WORK_HOURS}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.STATUS}</th>
-                    <th className="text-left p-3 text-white/80 font-medium">{TABLE_HEADERS.LOCATION}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((record) => (
-                    <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
-                      <td className="p-3 text-white">
-                        {format(new Date(record.date), 'dd MMM yyyy', { locale: id })}
-                      </td>
-                      <td className="p-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{TABLE_HEADERS.DATE}</TableHead>
+                  <TableHead>{TABLE_HEADERS.USER}</TableHead>
+                  <TableHead>{TABLE_HEADERS.CHECK_IN}</TableHead>
+                  <TableHead>{TABLE_HEADERS.CHECK_OUT}</TableHead>
+                  <TableHead>{TABLE_HEADERS.WORK_HOURS}</TableHead>
+                  <TableHead>{TABLE_HEADERS.STATUS}</TableHead>
+                  <TableHead>{TABLE_HEADERS.LOCATION}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((record) => {
+                  const status = STATUS_BADGE[record.status]
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell className="text-white/85">
+                        {format(new Date(record.date), "dd MMM yyyy", {
+                          locale: idLocale,
+                        })}
+                      </TableCell>
+                      <TableCell>
                         <div>
-                          <p className="font-medium text-white">{record.user.name}</p>
-                          <p className="text-sm text-white/60">
+                          <p className="font-medium text-white">
+                            {record.user.name}
+                          </p>
+                          <p className="text-xs text-white/50">
                             {record.user.department} • {record.user.position}
                           </p>
                         </div>
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.checkInTime ? format(new Date(record.checkInTime), 'HH:mm') : '-'}
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.checkOutTime ? format(new Date(record.checkOutTime), 'HH:mm') : '-'}
-                      </td>
-                      <td className="p-3 text-white">
-                        {record.workHours ? `${record.workHours}j` : '-'}
-                      </td>
-                      <td className="p-3">
+                      </TableCell>
+                      <TableCell className="text-white/85 tabular-nums">
+                        {record.checkInTime
+                          ? format(new Date(record.checkInTime), "HH:mm")
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-white/85 tabular-nums">
+                        {record.checkOutTime
+                          ? format(new Date(record.checkOutTime), "HH:mm")
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-white/85 tabular-nums">
+                        {record.workHours ? `${record.workHours}j` : "-"}
+                      </TableCell>
+                      <TableCell>
                         <Badge
-                          variant={record.status === 'present' ? 'default' : 'secondary'}
-                          className={record.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
+                          variant="outline"
+                          className={`text-xs ${status.className}`}
                         >
-                          {STATUS_LABELS[record.status]}
+                          {status.label}
                         </Badge>
-                      </td>
-                      <td className="p-3 text-white/80">
-                        <div className="text-sm space-y-1">
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
                           {record.checkInAddress && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-emerald-400">📍</span>
-                              <span>Masuk: {formatAddress(record.checkInAddress)}</span>
+                            <div className="flex items-center gap-1.5 text-white/65">
+                              <LogIn className="h-3 w-3 flex-shrink-0 text-emerald-400" />
+                              <span className="truncate">
+                                {formatAddress(record.checkInAddress)}
+                              </span>
                             </div>
                           )}
                           {record.checkOutAddress && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-blue-400">📍</span>
-                              <span>Pulang: {formatAddress(record.checkOutAddress)}</span>
+                            <div className="flex items-center gap-1.5 text-white/65">
+                              <LogOut className="h-3 w-3 flex-shrink-0 text-sky-400" />
+                              <span className="truncate">
+                                {formatAddress(record.checkOutAddress)}
+                              </span>
                             </div>
                           )}
+                          {!record.checkInAddress &&
+                            !record.checkOutAddress && (
+                              <span className="text-white/30">—</span>
+                            )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           ) : (
-            <div className="text-center py-12">
-              <div className="bg-white/5 backdrop-blur-sm rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <BarChart3 className="h-12 w-12 text-white/40" />
-              </div>
-              <p className="text-white/60 text-lg">Tidak ada data absensi untuk filter yang dipilih</p>
-              <p className="text-white/40 text-sm mt-2">Coba ubah filter atau periode waktu untuk melihat data</p>
+            <div className="p-6">
+              <DataTableEmptyState
+                icon={<BarChart3 className="h-7 w-7" />}
+                title="Tidak ada data absensi"
+                description="Coba ubah filter atau periode waktu untuk melihat data."
+              />
             </div>
           )}
         </CardContent>

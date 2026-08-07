@@ -2,41 +2,16 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Column, User } from "@/types/data-table-types"
+import { getRoleConfig } from "@/lib/role-config"
 
-const roleConfig: Record<string, { label: string; className: string; ring: string; fallback: string }> = {
-  superadmin: {
-    label: "Superadmin",
-    className: "bg-violet-500/15 text-violet-300 border border-violet-500/30",
-    ring: "ring-2 ring-violet-500/40",
-    fallback: "bg-violet-500/20 text-violet-300",
-  },
-  admin: {
-    label: "Admin",
-    className: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30",
-    ring: "ring-2 ring-emerald-500/40",
-    fallback: "bg-emerald-500/20 text-emerald-300",
-  },
-  manager: {
-    label: "Manager",
-    className: "bg-amber-500/15 text-amber-300 border border-amber-500/30",
-    ring: "ring-2 ring-amber-500/40",
-    fallback: "bg-amber-500/20 text-amber-300",
-  },
-  user: {
-    label: "Pengguna",
-    className: "bg-white/8 text-white/60 border border-white/15",
-    ring: "ring-1 ring-white/20",
-    fallback: "bg-white/10 text-white/70",
-  },
-}
+export { roleConfig } from "@/lib/role-config"
 
 export const columns: Column[] = [
   {
     id: "select",
     label: "",
     accessorKey: "id",
-    pinned: "left",
-    width: 50,
+    width: 44,
     cell: () => null,
   },
   {
@@ -44,12 +19,11 @@ export const columns: Column[] = [
     label: "Nama",
     accessorKey: "name",
     sortable: true,
-    pinned: "left",
-    width: 220,
+    width: 240,
     cell: (user: User) => {
-      const cfg = roleConfig[user.role] ?? roleConfig.user
+      const cfg = getRoleConfig(user.role)
       return (
-        <div className="flex items-center gap-3 py-0.5">
+        <div className="flex items-center gap-3">
           <Avatar className={`h-9 w-9 flex-shrink-0 ${cfg.ring}`}>
             <AvatarImage src={user.avatarUrl || ""} alt={user.name} />
             <AvatarFallback className={`${cfg.fallback} text-sm font-semibold`}>
@@ -57,8 +31,10 @@ export const columns: Column[] = [
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-white/95 truncate text-sm">{user.name}</p>
-            <p className="text-xs text-white/50 truncate">{user.email}</p>
+            <p className="truncate text-sm font-semibold text-white/95">
+              {user.name}
+            </p>
+            <p className="truncate text-xs text-white/50">{user.email}</p>
           </div>
         </div>
       )
@@ -85,9 +61,11 @@ export const columns: Column[] = [
     sortable: true,
     width: 110,
     cell: (user: User) => {
-      const cfg = roleConfig[user.role] ?? roleConfig.user
+      const cfg = getRoleConfig(user.role)
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}>
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.className}`}
+        >
           {cfg.label}
         </span>
       )
@@ -98,14 +76,20 @@ export const columns: Column[] = [
     label: "Status",
     accessorKey: "isActive",
     sortable: true,
-    width: 90,
+    width: 96,
     cell: (user: User) => (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        user.isActive
-          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-          : "bg-rose-500/15 text-rose-300 border border-rose-500/30"
-      }`}>
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.isActive ? "bg-emerald-400" : "bg-rose-400"}`} />
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+          user.isActive
+            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+            : "border-rose-500/30 bg-rose-500/15 text-rose-300"
+        }`}
+      >
+        <span
+          className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+            user.isActive ? "bg-emerald-400" : "bg-rose-400"
+          }`}
+        />
         {user.isActive ? "Aktif" : "Nonaktif"}
       </span>
     ),
@@ -115,9 +99,10 @@ export const columns: Column[] = [
     label: "Terakhir Login",
     accessorKey: "lastLogin",
     sortable: true,
-    width: 130,
+    width: 140,
     cell: (user: User) => {
-      if (!user.lastLogin) return <span className="text-white/30 text-xs">Belum pernah</span>
+      if (!user.lastLogin)
+        return <span className="text-xs text-white/30">Belum pernah</span>
 
       const now = new Date()
       const diffMs = now.getTime() - user.lastLogin.getTime()
@@ -130,7 +115,7 @@ export const columns: Column[] = [
         colorClass = "text-emerald-400"
       } else if (diffDays === 1) {
         relativeTime = "Kemarin"
-        colorClass = "text-emerald-300/80"
+        colorClass = "text-emerald-300/85"
       } else if (diffDays < 7) {
         relativeTime = `${diffDays} hari lalu`
         colorClass = "text-white/70"
@@ -143,7 +128,10 @@ export const columns: Column[] = [
       }
 
       return (
-        <span className={`text-xs ${colorClass} cursor-help`} title={user.lastLogin.toLocaleString("id-ID")}>
+        <span
+          className={`cursor-help text-xs ${colorClass}`}
+          title={user.lastLogin.toLocaleString("id-ID")}
+        >
           {relativeTime}
         </span>
       )
@@ -151,10 +139,9 @@ export const columns: Column[] = [
   },
   {
     id: "actions",
-    label: "Aksi",
+    label: "",
     accessorKey: "id",
-    pinned: "right",
-    width: 100,
+    width: 88,
     cell: () => null,
   },
 ]

@@ -19,13 +19,16 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableEmpty,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
+import { DataTablePagination } from "@/components/ui/data-table/data-table-pagination"
+import { Plus, Pencil, Trash2, Loader2, ClipboardList } from "lucide-react"
 import { format } from "date-fns"
-import { id } from "date-fns/locale"
+import { id as idLocale } from "date-fns/locale"
 import { AttendanceStatus, UserRole } from "@prisma/client"
 import { hasPermission, Permission } from "@/lib/permissions"
 import { NAVIGATION, STATUS_LABELS, TABLE_HEADERS, MESSAGES } from "@/lib/constants"
@@ -55,6 +58,28 @@ interface AttendanceRecord {
   }
 }
 
+const STATUS_BADGE: Record<
+  AttendanceStatus,
+  { label: string; className: string }
+> = {
+  present: {
+    label: STATUS_LABELS.present,
+    className: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+  },
+  late: {
+    label: STATUS_LABELS.late,
+    className: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+  },
+  absent: {
+    label: STATUS_LABELS.absent,
+    className: "border-rose-500/30 bg-rose-500/15 text-rose-300",
+  },
+  half_day: {
+    label: STATUS_LABELS.half_day,
+    className: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+  },
+}
+
 export default function SuperadminAttendancePage() {
   const router = useRouter()
   const { data: session, status: sessionStatus } = useSession()
@@ -67,9 +92,12 @@ export default function SuperadminAttendancePage() {
     userId: "",
     dateFrom: "",
     dateTo: "",
-    status: "",
+    status: "" as AttendanceStatus | "",
   })
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [message, setMessage] = useState<{
+    type: "success" | "error"
+    text: string
+  } | null>(null)
   const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -128,7 +156,15 @@ export default function SuperadminAttendancePage() {
   }
 
   const handleDelete = async (record: AttendanceRecord) => {
-    if (!confirm(`Hapus record ${record.user.name} tanggal ${format(new Date(record.date), "dd MMM yyyy")}?`)) return
+    if (
+      !confirm(
+        `Hapus record ${record.user.name} tanggal ${format(
+          new Date(record.date),
+          "dd MMM yyyy"
+        )}?`
+      )
+    )
+      return
 
     try {
       const res = await fetch("/api/superadmin/attendance", {
@@ -160,9 +196,11 @@ export default function SuperadminAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold glass-title">{NAVIGATION.MANAGE_ATTENDANCE}</h1>
+          <h1 className="text-3xl font-bold glass-title">
+            {NAVIGATION.MANAGE_ATTENDANCE}
+          </h1>
           <p className="text-white/70">Edit, tambah, dan hapus record absensi user</p>
         </div>
         <Button onClick={() => setCreateOpen(true)} variant="glass">
@@ -172,7 +210,14 @@ export default function SuperadminAttendancePage() {
       </div>
 
       {message && (
-        <Alert variant={message.type === "success" ? "default" : "destructive"}>
+        <Alert
+          variant={message.type === "success" ? "default" : "destructive"}
+          className={
+            message.type === "success"
+              ? "border-emerald-500/30 bg-emerald-500/10"
+              : undefined
+          }
+        >
           <AlertDescription>{message.text}</AlertDescription>
         </Alert>
       )}
@@ -182,38 +227,57 @@ export default function SuperadminAttendancePage() {
           <CardTitle className="text-lg">Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Select
-              value={filters.userId}
-              onValueChange={(v) => { setFilters({ ...filters, userId: v === "all" ? "" : v }); setPage(1) }}
+              value={filters.userId || "all"}
+              onValueChange={(v) => {
+                setFilters({ ...filters, userId: v === "all" ? "" : v })
+                setPage(1)
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger variant="glass">
                 <SelectValue placeholder="Semua User" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua User</SelectItem>
                 {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Input
               type="date"
+              variant="glass"
               value={filters.dateFrom}
-              onChange={(e) => { setFilters({ ...filters, dateFrom: e.target.value }); setPage(1) }}
+              onChange={(e) => {
+                setFilters({ ...filters, dateFrom: e.target.value })
+                setPage(1)
+              }}
               placeholder="Dari tanggal"
             />
             <Input
               type="date"
+              variant="glass"
               value={filters.dateTo}
-              onChange={(e) => { setFilters({ ...filters, dateTo: e.target.value }); setPage(1) }}
+              onChange={(e) => {
+                setFilters({ ...filters, dateTo: e.target.value })
+                setPage(1)
+              }}
               placeholder="Sampai tanggal"
             />
             <Select
-              value={filters.status}
-              onValueChange={(v) => { setFilters({ ...filters, status: v === "all" ? "" : v }); setPage(1) }}
+              value={filters.status || "all"}
+              onValueChange={(v) => {
+                setFilters({
+                  ...filters,
+                  status: v === "all" ? "" : (v as AttendanceStatus),
+                })
+                setPage(1)
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger variant="glass">
                 <SelectValue placeholder="Semua Status" />
               </SelectTrigger>
               <SelectContent>
@@ -224,141 +288,144 @@ export default function SuperadminAttendancePage() {
                 <SelectItem value="half_day">{STATUS_LABELS.half_day}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={loadRecords}>
+            <Button
+              variant="outline"
+              onClick={loadRecords}
+              className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+            >
               Terapkan Filter
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card variant="glass">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-white/40" />
-            </div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-16 text-white/60">
-              Tidak ada data absensi ditemukan
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{TABLE_HEADERS.USER}</TableHead>
-                      <TableHead>{TABLE_HEADERS.DATE}</TableHead>
-                      <TableHead>{TABLE_HEADERS.CHECK_IN}</TableHead>
-                      <TableHead>{TABLE_HEADERS.CHECK_OUT}</TableHead>
-                      <TableHead>{TABLE_HEADERS.WORK_HOURS}</TableHead>
-                      <TableHead>{TABLE_HEADERS.STATUS}</TableHead>
-                      <TableHead>{TABLE_HEADERS.ACTIONS}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {records.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-white">{r.user.name}</p>
-                            <p className="text-xs text-white/50">{r.user.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-white/80">
-                          {format(new Date(r.date), "dd MMM yyyy", { locale: id })}
-                        </TableCell>
-                        <TableCell className="text-white/80">
-                          {r.checkInTime
-                            ? format(new Date(r.checkInTime), "HH:mm", { locale: id })
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-white/80">
-                          {r.checkOutTime
-                            ? format(new Date(r.checkOutTime), "HH:mm", { locale: id })
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-white/80">
-                          {r.workHours != null ? `${r.workHours}j` : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              r.status === "present" ? "default" :
-                              r.status === "late" ? "destructive" :
-                              "secondary"
-                            }
-                          >
-                            {STATUS_LABELS[r.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-white/70 hover:text-white"
-                              onClick={() => handleEdit(r)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-400 hover:text-red-300"
-                              onClick={() => handleDelete(r)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
-                  <p className="text-sm text-white/60">
-                    {total} record — Halaman {page} dari {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
+      <Card variant="glass" className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{TABLE_HEADERS.USER}</TableHead>
+              <TableHead>{TABLE_HEADERS.DATE}</TableHead>
+              <TableHead>{TABLE_HEADERS.CHECK_IN}</TableHead>
+              <TableHead>{TABLE_HEADERS.CHECK_OUT}</TableHead>
+              <TableHead>{TABLE_HEADERS.WORK_HOURS}</TableHead>
+              <TableHead>{TABLE_HEADERS.STATUS}</TableHead>
+              <TableHead className="text-right">{TABLE_HEADERS.ACTIONS}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableEmpty colSpan={7}>
+                <Loader2 className="mx-auto h-7 w-7 animate-spin text-white/40" />
+              </TableEmpty>
+            ) : records.length === 0 ? (
+              <TableEmpty colSpan={7}>
+                <EmptyState
+                  icon={<ClipboardList className="h-7 w-7" />}
+                  title="Tidak ada data absensi"
+                  description="Coba ubah filter atau tambah record baru."
+                />
+              </TableEmpty>
+            ) : (
+              records.map((r) => {
+                const status = STATUS_BADGE[r.status]
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-white">{r.user.name}</p>
+                        <p className="text-xs text-white/50">{r.user.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-white/85">
+                      {format(new Date(r.date), "dd MMM yyyy", {
+                        locale: idLocale,
+                      })}
+                    </TableCell>
+                    <TableCell className="text-white/85">
+                      {r.checkInTime
+                        ? format(new Date(r.checkInTime), "HH:mm", {
+                            locale: idLocale,
+                          })
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="text-white/85">
+                      {r.checkOutTime
+                        ? format(new Date(r.checkOutTime), "HH:mm", {
+                            locale: idLocale,
+                          })
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="text-white/85 tabular-nums">
+                      {r.workHours != null ? `${r.workHours}j` : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${status.className}`}
+                      >
+                        {status.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-white/55 hover:bg-amber-500/15 hover:text-amber-400"
+                          onClick={() => handleEdit(r)}
+                          aria-label="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-white/55 hover:bg-rose-500/15 hover:text-rose-400"
+                          onClick={() => handleDelete(r)}
+                          aria-label="Hapus"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            )}
+          </TableBody>
+        </Table>
+        {total > 0 && (
+          <DataTablePagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            onPageChange={setPage}
+            entityLabel="record"
+          />
+        )}
       </Card>
 
       <AttendanceEditDialog
         open={editOpen}
         record={editRecord}
-        onClose={() => { setEditOpen(false); setEditRecord(null) }}
-        onSaved={() => { loadRecords(); setMessage({ type: "success", text: MESSAGES.ATTENDANCE_UPDATED }) }}
+        onClose={() => {
+          setEditOpen(false)
+          setEditRecord(null)
+        }}
+        onSaved={() => {
+          loadRecords()
+          setMessage({ type: "success", text: MESSAGES.ATTENDANCE_UPDATED })
+        }}
       />
 
       <AttendanceCreateDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSaved={() => { loadRecords(); setMessage({ type: "success", text: MESSAGES.ATTENDANCE_CREATED }) }}
+        onSaved={() => {
+          loadRecords()
+          setMessage({ type: "success", text: MESSAGES.ATTENDANCE_CREATED })
+        }}
       />
     </div>
   )

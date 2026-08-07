@@ -7,10 +7,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogBody,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -18,8 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormField } from "@/components/ui/form-field"
+import { Textarea } from "@/components/ui/textarea"
+import { Loader2, Pencil } from "lucide-react"
 import { format } from "date-fns"
+import { id as idLocale } from "date-fns/locale"
 import { MESSAGES, STATUS_LABELS } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
 
@@ -51,7 +56,12 @@ function toDateString(value: string | Date): string {
   return format(d, "yyyy-MM-dd")
 }
 
-export function AttendanceEditDialog({ open, record, onClose, onSaved }: Props) {
+export function AttendanceEditDialog({
+  open,
+  record,
+  onClose,
+  onSaved,
+}: Props) {
   const [checkInTime, setCheckInTime] = useState("")
   const [checkOutTime, setCheckOutTime] = useState("")
   const [status, setStatus] = useState<AttendanceStatus>("present")
@@ -81,13 +91,15 @@ export function AttendanceEditDialog({ open, record, onClose, onSaved }: Props) 
     setError("")
 
     try {
-      // Construct as local time (no Z suffix) so toISOString() converts correctly.
-      // Using `Z` would treat the user's input as UTC, shifting it by the timezone offset.
       const checkInISO = checkInTime
-        ? new Date(`${toDateString(record.date)}T${checkInTime}:00`).toISOString()
+        ? new Date(
+            `${toDateString(record.date)}T${checkInTime}:00`
+          ).toISOString()
         : null
       const checkOutISO = checkOutTime
-        ? new Date(`${toDateString(record.date)}T${checkOutTime}:00`).toISOString()
+        ? new Date(
+            `${toDateString(record.date)}T${checkOutTime}:00`
+          ).toISOString()
         : null
 
       const res = await fetch("/api/superadmin/attendance", {
@@ -118,70 +130,111 @@ export function AttendanceEditDialog({ open, record, onClose, onSaved }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>Edit Record Absensi</DialogTitle>
+          <DialogTitle>
+            <Pencil className="h-5 w-5 text-amber-400" />
+            Edit Record Absensi
+          </DialogTitle>
           <DialogDescription>
             {record && (
-              <span>
-                {toDateString(record.date)} — {format(new Date(record.date), "dd MMM yyyy")}
+              <span className="inline-flex items-center gap-2">
+                <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-xs text-white/85">
+                  {toDateString(record.date)}
+                </span>
+                <span className="text-white/50">
+                  —{" "}
+                  {format(new Date(record.date), "dd MMMM yyyy", {
+                    locale: idLocale,
+                  })}
+                </span>
               </span>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Check-in</Label>
-              <Input
-                type="time"
-                value={checkInTime}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCheckInTime(e.target.value)}
-              />
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Check-in" htmlFor="edit-check-in">
+                <Input
+                  id="edit-check-in"
+                  type="time"
+                  variant="glass"
+                  value={checkInTime}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCheckInTime(e.target.value)
+                  }
+                />
+              </FormField>
+              <FormField label="Check-out" htmlFor="edit-check-out">
+                <Input
+                  id="edit-check-out"
+                  type="time"
+                  variant="glass"
+                  value={checkOutTime}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCheckOutTime(e.target.value)
+                  }
+                />
+              </FormField>
             </div>
-            <div className="space-y-2">
-              <Label>Check-out</Label>
-              <Input
-                type="time"
-                value={checkOutTime}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCheckOutTime(e.target.value)}
+
+            <FormField label="Status" htmlFor="edit-status" required>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as AttendanceStatus)}
+              >
+                <SelectTrigger id="edit-status" variant="glass">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="present">
+                    {STATUS_LABELS.present}
+                  </SelectItem>
+                  <SelectItem value="late">{STATUS_LABELS.late}</SelectItem>
+                  <SelectItem value="absent">
+                    {STATUS_LABELS.absent}
+                  </SelectItem>
+                  <SelectItem value="half_day">
+                    {STATUS_LABELS.half_day}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="Catatan" htmlFor="edit-notes">
+              <Textarea
+                id="edit-notes"
+                value={notes}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNotes(e.target.value)
+                }
+                placeholder="Catatan tambahan (opsional)..."
+                rows={3}
               />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as AttendanceStatus)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="present">{STATUS_LABELS.present}</SelectItem>
-                <SelectItem value="late">{STATUS_LABELS.late}</SelectItem>
-                <SelectItem value="absent">{STATUS_LABELS.absent}</SelectItem>
-                <SelectItem value="half_day">{STATUS_LABELS.half_day}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Catatan</Label>
-            <textarea
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px]"
-              value={notes}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
-              placeholder="Catatan..."
-              rows={3}
-            />
-          </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={onClose}>
+            </FormField>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </DialogBody>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+            >
               {MESSAGES.CANCEL}
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving} variant="glass">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {MESSAGES.SAVE}
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

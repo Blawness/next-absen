@@ -14,19 +14,24 @@ const SelectValue = SelectPrimitive.Value
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    variant?: "default" | "glass"
+  }
+>(({ className, children, variant = "default", ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-md border border-white/20 bg-white/10 backdrop-blur-sm px-3 py-2 text-sm text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:ring-offset-2 focus:border-emerald-400/50 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 transition-all duration-200",
+      "flex h-10 w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      variant === "glass"
+        ? "border-white/10 bg-white/5 text-white focus:border-emerald-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+        : "border-white/20 bg-white/10 text-white placeholder:text-white/60 backdrop-blur-sm focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:ring-offset-2",
       className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-70 text-white/70" />
+      <ChevronDown className="h-4 w-4 text-white/55" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))

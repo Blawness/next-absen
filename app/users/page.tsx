@@ -4,20 +4,15 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2, Plus, Download, UserCheck, X } from "lucide-react"
+import { Loader2, Plus, Download } from "lucide-react"
 import { AdvancedDataTable } from "@/components/ui/advanced-data-table"
 import { UsersSkeleton } from "@/components/ui/data-table/data-table-skeleton"
 import { NAVIGATION } from "@/lib/constants"
 import { UserRole } from "@prisma/client"
 import { UserStatistics } from "@/components/users/user-statistics"
-
 import { UserActivityDialog } from "@/components/users/user-activity-dialog"
-
+import { UserFormDialog, type UserFormData } from "@/components/users/user-form-dialog"
 
 interface User {
   id: string
@@ -29,16 +24,6 @@ interface User {
   isActive: boolean
   lastLogin: Date | null
   createdAt: Date
-}
-
-interface UserFormData {
-  name: string
-  email: string
-  department: string
-  position: string
-  role: UserRole
-  password: string
-  confirmPassword: string
 }
 
 export default function UsersPage() {
@@ -381,147 +366,17 @@ export default function UsersPage() {
 
 
       {/* User Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-gray-900/95 backdrop-blur-md border-white/10">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {editingUser ? 'Edit User' : 'Tambah User Baru'}
-            </DialogTitle>
-            <DialogDescription className="text-white/70">
-              {editingUser ? 'Perbarui informasi user' : 'Buat user baru dengan informasi lengkap'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama Lengkap</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Departemen</Label>
-                <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Pilih Departemen" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                    {departments.map(dept => (
-                      <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">Posisi</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
-                  <SelectItem value={UserRole.user} className="text-white hover:bg-white/10 focus:bg-white/10">User</SelectItem>
-                  <SelectItem value={UserRole.manager} className="text-white hover:bg-white/10 focus:bg-white/10">Manager</SelectItem>
-                  <SelectItem value={UserRole.admin} className="text-white hover:bg-white/10 focus:bg-white/10">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">
-                  Password {editingUser && <span className="text-xs text-white/50">(kosongkan jika tetap)</span>}
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required={!editingUser}
-                  minLength={8}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  required={!editingUser}
-                  minLength={8}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
-                Batal
-              </Button>
-              <Button type="submit" disabled={isSubmitting} variant="glass">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editingUser ? 'Perbarui' : 'Buat User'}
-              </Button>
-            </div>
-          </form>
-
-          {editingUser && (
-            <div className="mt-8 pt-6 border-t border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">User Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleToggleStatus(editingUser.id, editingUser.isActive)}
-                  className={`w-full justify-start ${editingUser.isActive ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-green-500/30 text-green-400 hover:bg-green-500/10'}`}
-                >
-                  {editingUser.isActive ? (
-                    <>
-                      <X className="mr-2 h-4 w-4" />
-                      Nonaktifkan
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Aktifkan
-                    </>
-                  )}
-                </Button>
-
-
-
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <UserFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        editingUser={editingUser}
+        departments={departments}
+        isSubmitting={isSubmitting}
+        formData={formData}
+        onFormDataChange={setFormData}
+        onSubmit={handleSubmit}
+        onToggleStatus={handleToggleStatus}
+      />
 
 
 

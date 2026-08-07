@@ -188,7 +188,7 @@ export function UserStatistics() {
                                             {dept.count}
                                         </span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-white/8 rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-700 opacity-70 group-hover:opacity-100`}
                                             style={{ width: `${pct}%` }}

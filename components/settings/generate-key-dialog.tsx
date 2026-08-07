@@ -8,10 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogBody,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Copy, Check } from "lucide-react"
+import { FormField } from "@/components/ui/form-field"
+import { Copy, Check, KeyRound, Sparkles } from "lucide-react"
 
 interface GenerateKeyDialogProps {
   open: boolean
@@ -90,9 +91,14 @@ export function GenerateKeyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
+            {rawKey ? (
+              <Sparkles className="h-5 w-5 text-emerald-400" />
+            ) : (
+              <KeyRound className="h-5 w-5 text-emerald-400" />
+            )}
             {rawKey ? "API Key Berhasil Dibuat" : "Buat API Key Baru"}
           </DialogTitle>
           <DialogDescription>
@@ -102,83 +108,101 @@ export function GenerateKeyDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-        {rawKey ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted p-4">
-              <code className="text-sm break-all select-all">{rawKey}</code>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCopy}
-            >
-              {copied ? (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Tersalin
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Salin Key
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-destructive text-center">
-              Key ini hanya ditampilkan sekali. Pastikan Anda sudah menyimpannya.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="key-name">Nama</Label>
-              <Input
-                id="key-name"
-                placeholder="Contoh: QR Scanner App"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="key-scope">Scope</Label>
-              <Select value={scope} onValueChange={setScope}>
-                <SelectTrigger id="key-scope">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="attendance:readwrite">
-                    Read + Auto Check-in
-                  </SelectItem>
-                  <SelectItem value="attendance:read">
-                    Read Only
-                  </SelectItem>
-                  <SelectItem value="attendance:auto-checkin">
-                    Auto Check-in Only
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleGenerate}
-              disabled={loading}
-            >
-              {loading ? "Membuat..." : "Buat API Key"}
-            </Button>
-          </div>
-        )}
+            {rawKey ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-white/5 p-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-emerald-300/80">
+                    API Key Anda
+                  </p>
+                  <code className="block break-all rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-xs text-white select-all">
+                    {rawKey}
+                  </code>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full border-white/10 bg-white/5 text-white/85 hover:bg-white/10"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4 text-emerald-400" />
+                      Tersalin
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Salin Key
+                    </>
+                  )}
+                </Button>
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200/85">
+                  ⚠️ Key ini hanya ditampilkan sekali. Pastikan Anda sudah
+                  menyimpannya.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <FormField label="Nama" htmlFor="key-name" required>
+                  <Input
+                    id="key-name"
+                    variant="glass"
+                    placeholder="Contoh: QR Scanner App"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </FormField>
+                <FormField
+                  label="Scope"
+                  htmlFor="key-scope"
+                  hint="Tentukan hak akses key ini"
+                >
+                  <Select value={scope} onValueChange={setScope}>
+                    <SelectTrigger id="key-scope" variant="glass">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="attendance:readwrite">
+                        Read + Auto Check-in
+                      </SelectItem>
+                      <SelectItem value="attendance:read">
+                        Read Only
+                      </SelectItem>
+                      <SelectItem value="attendance:auto-checkin">
+                        Auto Check-in Only
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <Button
+                  className="w-full"
+                  onClick={handleGenerate}
+                  disabled={loading}
+                  variant="glass"
+                >
+                  {loading ? "Membuat..." : "Buat API Key"}
+                </Button>
+              </div>
+            )}
+          </DialogBody>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={handleDone}>
-            {rawKey ? "Selesai" : "Batal"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={handleDone}
+              className="text-white/65 hover:bg-white/10 hover:text-white"
+            >
+              {rawKey ? "Selesai" : "Batal"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

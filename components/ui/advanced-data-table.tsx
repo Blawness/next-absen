@@ -6,15 +6,16 @@ import {
   DataTableToolbar,
   DataTableBulkActions,
   DataTableContent,
-  columns,
   DataTableSkeleton,
+  columns,
 } from "@/components/ui/data-table"
 import { DataTableProps, SortDirection, Density } from "@/types/data-table-types"
+import { getRoleConfig } from "@/lib/role-config"
 
 export function AdvancedDataTable({
   data,
   loading,
-  statusFilter = 'all',
+  statusFilter = "all",
   departments: propDepartments,
   onFilterChange,
   onEdit,
@@ -23,7 +24,9 @@ export function AdvancedDataTable({
   onPasswordReset,
   onViewActivity,
   onBulkDelete,
-  onBulkToggleStatus
+  onBulkActivate,
+  onBulkDeactivate,
+  onBulkToggleStatus,
 }: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
@@ -32,24 +35,25 @@ export function AdvancedDataTable({
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [density, setDensity] = useState<Density>("comfortable")
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(columns.map(col => col.id))
-  )
-  const [showBulkActions, setShowBulkActions] = useState(false)
 
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
-    const filtered = data.filter(user => {
-      const matchesSearch = searchQuery === "" ||
+    const filtered = data.filter((user) => {
+      const matchesSearch =
+        searchQuery === "" ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesDepartment = departmentFilter === "all" || user.department === departmentFilter
+      const matchesDepartment =
+        departmentFilter === "all" || user.department === departmentFilter
       const matchesRole = roleFilter === "all" || user.role === roleFilter
-      const matchesStatus = statusFilter === "all" ||
+      const matchesStatus =
+        statusFilter === "all" ||
         (statusFilter === "active" ? user.isActive : !user.isActive)
 
-      return matchesSearch && matchesDepartment && matchesRole && matchesStatus
+      return (
+        matchesSearch && matchesDepartment && matchesRole && matchesStatus
+      )
     })
 
     if (sortColumn && sortDirection) {
@@ -62,13 +66,16 @@ export function AdvancedDataTable({
         if (bVal === null) return -1
 
         let comparison = 0
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
+        if (typeof aVal === "string" && typeof bVal === "string") {
           comparison = aVal.localeCompare(bVal)
-        } else if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+        } else if (typeof aVal === "boolean" && typeof bVal === "boolean") {
           comparison = aVal === bVal ? 0 : aVal ? 1 : -1
         } else if (aVal instanceof Date && bVal instanceof Date) {
           comparison = aVal.getTime() - bVal.getTime()
-        } else if (aVal !== null && bVal !== null && typeof aVal === 'number' && typeof bVal === 'number') {
+        } else if (
+          typeof aVal === "number" &&
+          typeof bVal === "number"
+        ) {
           comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
         }
 
@@ -79,20 +86,28 @@ export function AdvancedDataTable({
     return filtered
   }, [data, searchQuery, departmentFilter, roleFilter, statusFilter, sortColumn, sortDirection])
 
-  // Get unique values for filters - use prop if available, otherwise generate from data
-  const departments = useMemo(() =>
-    propDepartments || Array.from(new Set(data.map(user => user.department).filter((dept): dept is string => Boolean(dept)))),
+  // Get unique values for filters
+  const departments = useMemo(
+    () =>
+      propDepartments ||
+      Array.from(
+        new Set(
+          data.map((user) => user.department).filter((d): d is string => Boolean(d))
+        )
+      ),
     [propDepartments, data]
   )
 
-  const roles = useMemo(() =>
-    Array.from(new Set(data.map(user => user.role))),
+  const roles = useMemo(
+    () => Array.from(new Set(data.map((user) => user.role))),
     [data]
   )
 
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
-      setSortDirection(prev => prev === "asc" ? "desc" : prev === "desc" ? null : "asc")
+      setSortDirection((prev) =>
+        prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
+      )
     } else {
       setSortColumn(columnId)
       setSortDirection("asc")
@@ -101,92 +116,107 @@ export function AdvancedDataTable({
 
   const handleRowSelect = (userId: string, checked: boolean) => {
     const newSelected = new Set(selectedRows)
-    if (checked) {
-      newSelected.add(userId)
-    } else {
-      newSelected.delete(userId)
-    }
+    if (checked) newSelected.add(userId)
+    else newSelected.delete(userId)
     setSelectedRows(newSelected)
-    setShowBulkActions(newSelected.size > 0)
   }
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRows(new Set(filteredAndSortedData.map(user => user.id)))
-      setShowBulkActions(true)
-    } else {
-      setSelectedRows(new Set())
-      setShowBulkActions(false)
-    }
+    setSelectedRows(
+      checked ? new Set(filteredAndSortedData.map((user) => user.id)) : new Set()
+    )
   }
+
+  const handleClearSelection = () => setSelectedRows(new Set())
 
   const handleBulkDelete = () => {
-    if (onBulkDelete) {
-      onBulkDelete(Array.from(selectedRows))
-    } else {
-      selectedRows.forEach(userId => {
-        const user = data.find(u => u.id === userId)
-        if (user) onDelete?.(user)
-      })
-    }
+    if (onBulkDelete) onBulkDelete(Array.from(selectedRows))
+    else selectedRows.forEach((id) => onDelete?.(data.find((u) => u.id === id)!))
     setSelectedRows(new Set())
-    setShowBulkActions(false)
   }
 
-  const handleBulkToggleStatus = () => {
-    if (onBulkToggleStatus) {
+  const handleBulkActivate = () => {
+    if (onBulkActivate) onBulkActivate(Array.from(selectedRows))
+    else if (onBulkToggleStatus)
       onBulkToggleStatus(Array.from(selectedRows))
-    } else {
-      selectedRows.forEach(userId => {
-        const user = data.find(u => u.id === userId)
-        if (user) onToggleStatus?.(user)
-      })
-    }
     setSelectedRows(new Set())
-    setShowBulkActions(false)
   }
 
-  const toggleColumnVisibility = () => {
-    const allColumns = columns.map(col => col.id)
-    if (visibleColumns.size === allColumns.length) {
-      setVisibleColumns(new Set())
-    } else {
-      setVisibleColumns(new Set(allColumns))
-    }
+  const handleBulkDeactivate = () => {
+    if (onBulkDeactivate) onBulkDeactivate(Array.from(selectedRows))
+    else if (onBulkToggleStatus)
+      onBulkToggleStatus(Array.from(selectedRows))
+    setSelectedRows(new Set())
   }
 
-  if (loading) {
-    return <DataTableSkeleton />
+  const handleResetFilters = () => {
+    setSearchQuery("")
+    setDepartmentFilter("all")
+    setRoleFilter("all")
+    onFilterChange?.({ status: "all" })
   }
+
+  if (loading) return <DataTableSkeleton />
 
   return (
     <div className="space-y-4">
       <DataTableToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        departmentFilter={departmentFilter}
-        onDepartmentFilterChange={setDepartmentFilter}
-        roleFilter={roleFilter}
-        onRoleFilterChange={setRoleFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={(status) => onFilterChange?.({ status: status as 'all' | 'active' | 'inactive' })}
+        searchPlaceholder="Cari nama, email, departemen..."
         density={density}
         onDensityChange={setDensity}
-        onToggleColumnVisibility={toggleColumnVisibility}
-        departments={departments}
-        roles={roles}
+        showDensityToggle
+        onResetFilters={handleResetFilters}
+        filters={[
+          {
+            id: "department",
+            label: "Departemen",
+            value: departmentFilter,
+            onChange: setDepartmentFilter,
+            options: [
+              { value: "all", label: "Semua Departemen" },
+              ...departments.map((d) => ({ value: d, label: d })),
+            ],
+          },
+          {
+            id: "role",
+            label: "Role",
+            value: roleFilter,
+            onChange: setRoleFilter,
+            options: [
+              { value: "all", label: "Semua Role" },
+              ...roles.map((r) => ({
+                value: r,
+                label: getRoleConfig(r).label,
+              })),
+            ],
+          },
+          {
+            id: "status",
+            label: "Status",
+            value: statusFilter,
+            onChange: (v) => onFilterChange?.({ status: v as 'all' | 'active' | 'inactive' }),
+            options: [
+              { value: "all", label: "Semua Status" },
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Nonaktif" },
+            ],
+          },
+        ]}
       />
 
       <DataTableBulkActions
         selectedCount={selectedRows.size}
-        show={showBulkActions}
-        onBulkDelete={handleBulkDelete}
-        onBulkToggleStatus={handleBulkToggleStatus}
+        onClearSelection={handleClearSelection}
+        onActivate={onBulkActivate || onBulkToggleStatus ? handleBulkActivate : undefined}
+        onDeactivate={onBulkDeactivate || onBulkToggleStatus ? handleBulkDeactivate : undefined}
+        onDelete={onBulkDelete || onDelete ? handleBulkDelete : undefined}
+        entityLabel="pengguna"
       />
 
       <DataTableContent
         columns={columns}
-        visibleColumns={visibleColumns}
         filteredAndSortedData={filteredAndSortedData}
         selectedRows={selectedRows}
         sortColumn={sortColumn}
@@ -200,8 +230,9 @@ export function AdvancedDataTable({
         onToggleStatus={onToggleStatus}
         onPasswordReset={onPasswordReset}
         onViewActivity={onViewActivity}
+        emptyTitle="Tidak ada pengguna ditemukan"
+        emptyDescription="Tidak ada data yang sesuai dengan filter yang dipilih."
       />
     </div>
   )
 }
-

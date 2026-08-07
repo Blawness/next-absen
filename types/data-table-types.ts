@@ -16,8 +16,12 @@ export interface Column<T = User> {
   label: string
   accessorKey: keyof T
   sortable?: boolean
+  /** Pinned to the left or right side of the table when horizontally scrolled */
   pinned?: "left" | "right"
+  /** Fixed column width in px (use with table.fixed = true) */
   width?: number
+  /** Alignment of cell content */
+  align?: "left" | "center" | "right"
   cell?: (item: T) => React.ReactNode
 }
 
@@ -33,6 +37,8 @@ export interface DataTableProps<T = User> {
   onPasswordReset?: (user: T) => void
   onViewActivity?: (user: T) => void
   onBulkDelete?: (userIds: string[]) => void
+  onBulkActivate?: (userIds: string[]) => void
+  onBulkDeactivate?: (userIds: string[]) => void
   onBulkToggleStatus?: (userIds: string[]) => void
 }
 
