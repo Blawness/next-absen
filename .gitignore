@@ -45,3 +45,6 @@ e2e/chromium-deps
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Audit scan output (root only — NOT the app/reports route)
+/reports/
