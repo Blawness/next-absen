@@ -191,7 +191,7 @@ export const ReportsFilter = ({
               >
                 <SelectValue placeholder="Semua Status" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+              <SelectContent>
                 <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Status</SelectItem>
                 <SelectItem value="present" className="text-white hover:bg-white/10 focus:bg-white/10">Hadir</SelectItem>
                 <SelectItem value="late" className="text-white hover:bg-white/10 focus:bg-white/10">Terlambat</SelectItem>
@@ -213,7 +213,7 @@ export const ReportsFilter = ({
               >
                 <SelectValue placeholder="Semua Pengguna" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+              <SelectContent>
                 <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Pengguna</SelectItem>
                 {users.map(user => (
                   <SelectItem key={user.id} value={user.id} className="text-white hover:bg-white/10 focus:bg-white/10">
@@ -237,7 +237,7 @@ export const ReportsFilter = ({
               >
                 <SelectValue placeholder="Semua Departemen" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900/95 backdrop-blur-md border-white/10">
+              <SelectContent>
                 <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Semua Departemen</SelectItem>
                 {departments.map(dept => (
                   <SelectItem key={dept} value={dept} className="text-white hover:bg-white/10 focus:bg-white/10">

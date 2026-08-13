@@ -235,7 +235,7 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
                   <SelectTrigger className="w-full glass-input border-emerald-500/20 text-white lg:w-48">
                     <SelectValue placeholder="Pilih divisi..." />
                   </SelectTrigger>
-                  <SelectContent className="glass-card border-emerald-500/20 text-white">
+                  <SelectContent className="border-emerald-500/20">
                     {isOrgWide && (
                       <SelectItem value="all">Semua Divisi</SelectItem>
                     )}
@@ -262,7 +262,7 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
                   <SelectTrigger className="w-full glass-input border-emerald-500/20 text-white lg:w-48">
                     <SelectValue placeholder="Pilih karyawan..." />
                   </SelectTrigger>
-                  <SelectContent className="glass-card border-emerald-500/20 text-white">
+                  <SelectContent className="border-emerald-500/20">
                     <SelectItem value="all">Semua Karyawan</SelectItem>
                     {filteredUsers.map((user) => (
                       <SelectItem key={user.id} value={user.id}>

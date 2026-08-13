@@ -129,7 +129,7 @@ export default function ActivityLogsPage() {
                             <SelectTrigger className="w-full bg-white/5 border-white/10 text-white sm:w-[200px]">
                                 <SelectValue placeholder="Filter Aksi" />
                             </SelectTrigger>
-                            <SelectContent className="bg-gray-900 border-white/10 text-white">
+                            <SelectContent>
                                 <SelectItem value="all">Semua Aksi</SelectItem>
                                 <SelectItem value="check_in">Check-in</SelectItem>
                                 <SelectItem value="check_out">Check-out</SelectItem>
