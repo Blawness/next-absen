@@ -84,30 +84,36 @@ export function UserActivityDialog({
 
   const getActionLabel = (action: string): string => {
     const labels: Record<string, string> = {
-      LOGIN: "Login",
-      LOGOUT: "Logout",
-      CHECK_IN: "Check-in",
-      CHECK_OUT: "Check-out",
+      check_in: "Check-in",
+      check_out: "Check-out",
       CREATE_USER: "Buat user",
       UPDATE_USER: "Update user",
       DELETE_USER: "Hapus user",
       ACTIVATE_USER: "Aktifkan user",
       DEACTIVATE_USER: "Nonaktifkan user",
       RESET_PASSWORD: "Reset password",
-      UPDATE_PROFILE: "Update profil",
+      update_profile: "Update profil",
+      change_password: "Ubah password",
       EXPORT_USERS: "Export data user",
-      VIEW_REPORT: "Lihat laporan",
-      EXPORT_REPORT: "Export laporan",
+      UPDATE_SETTINGS: "Update pengaturan",
+      MANAGE_ATTENDANCE: "Kelola absensi",
+      CREATE_API_KEY: "Buat API key",
+      UPDATE_API_KEY: "Update API key",
+      REVOKE_API_KEY: "Cabut API key",
+      DELETE_API_KEY: "Hapus API key",
+      EXTERNAL_API_AUTO_CHECKIN: "Auto check-in (external)",
+      EXTERNAL_API_READ_ATTENDANCE: "Baca absensi (external)",
     }
     return labels[action] || action
   }
 
   const getActionColor = (action: string): string => {
-    if (action.includes("DELETE") || action.includes("DEACTIVATE"))
+    const lower = action.toLowerCase()
+    if (lower.includes("delete") || lower.includes("deactivate") || lower.includes("revoke"))
       return "text-rose-300"
-    if (action.includes("CREATE") || action.includes("ACTIVATE"))
+    if (lower.includes("create") || lower.includes("activate"))
       return "text-emerald-300"
-    if (action.includes("UPDATE") || action.includes("RESET"))
+    if (lower.includes("update") || lower.includes("reset") || lower.includes("change"))
       return "text-amber-300"
     return "text-sky-300"
   }

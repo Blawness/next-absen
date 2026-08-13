@@ -8,6 +8,22 @@ import { isAdmin, isManagerOrAdmin, canAssignRole } from "@/lib/permissions"
 
 export { HttpError }
 
+/**
+ * Wrap a Prisma P2002 (unique constraint) violation as a clean HttpError
+ * with a caller-supplied message. Without this, users see the raw
+ * constraint name (which leaks the column) instead of a friendly message.
+ */
+function asUniqueConstraintError(cause: unknown, message: string): never {
+  if (
+    cause instanceof Error &&
+    "code" in cause &&
+    (cause as { code?: string }).code === "P2002"
+  ) {
+    throw new HttpError(message, 400)
+  }
+  throw cause
+}
+
 export async function getUsers(currentUser: { id: string; role: string }, statusFilter?: 'all' | 'active' | 'inactive') {
     if (!isManagerOrAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
@@ -55,7 +71,7 @@ interface CreateUserData {
     role: UserRole
 }
 
-export async function createUser(currentUser: { id: string; role: string }, data: CreateUserData) {
+export async function createUser(currentUser: { id: string; role: string; department?: string | null }, data: CreateUserData) {
     if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
@@ -75,6 +91,9 @@ export async function createUser(currentUser: { id: string; role: string }, data
         )
     }
 
+    // Pre-check for fast-fail UX, but the actual source of truth is the
+    // DB unique constraint. We catch P2002 below in case a concurrent
+    // request inserts the same email between this check and the create.
     const existingUser = await prisma.user.findUnique({
         where: { email }
     })
@@ -105,7 +124,7 @@ export async function createUser(currentUser: { id: string; role: string }, data
             isActive: true,
             createdAt: true
         }
-    })
+    }).catch((err) => asUniqueConstraintError(err, "Email already exists"))
 
     await prisma.activityLog.create({
         data: {
@@ -134,7 +153,7 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         throw new HttpError("Insufficient permissions", 403)
     }
 
-    const { name, email, department, position, role, password } = data
+    const { name, email, department, position, role } = data
 
     if (!name || !email || !role) {
         throw new HttpError("Missing required fields", 400)
@@ -157,7 +176,20 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         throw new HttpError("User not found", 404)
     }
 
+    // Additional guard: prevent an admin from changing the role of a
+    // superadmin, even if they're not the one creating the target user.
+    // Without this, an admin could downgrade a superadmin and break the
+    // system (or change a superadmin's email and re-create them).
+    if (existingUser.role === UserRole.superadmin &&
+        currentUser.role !== UserRole.superadmin) {
+      throw new HttpError(
+        "Insufficient permissions to modify a superadmin",
+        403
+      )
+    }
+
     if (email !== existingUser.email) {
+        // Pre-check, but catch P2002 below to handle concurrent inserts.
         const emailExists = await prisma.user.findUnique({
             where: { email }
         })
@@ -175,10 +207,10 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         role
     }
 
-    if (password) {
-        updateData.password = await bcrypt.hash(password, 12)
-    }
-
+    // NOTE: password changes go through /api/users/[id]/reset-password
+    // so they get the dedicated RESET_PASSWORD audit log entry. The
+    // userUpdateSchema no longer accepts a password field, but we
+    // defensively ignore any stray one too.
     const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updateData,
@@ -193,7 +225,7 @@ export async function updateUser(currentUser: { id: string; role: string }, user
             lastLogin: true,
             createdAt: true
         }
-    })
+    }).catch((err) => asUniqueConstraintError(err, "Email already exists"))
 
     await prisma.activityLog.create({
         data: {
@@ -201,7 +233,9 @@ export async function updateUser(currentUser: { id: string; role: string }, user
             action: "UPDATE_USER",
             resourceType: "USER",
             resourceId: userId,
-            details: { targetUser: email, passwordUpdated: !!password }
+            details: {
+              targetUser: email,
+            }
         }
     })
 
@@ -223,6 +257,16 @@ export async function deleteUser(currentUser: { id: string; role: string }, user
 
     if (!existingUser) {
         throw new HttpError("User not found", 404)
+    }
+
+    // Privilege escalation: cannot soft-delete a superadmin unless you
+    // are also a superadmin.
+    if (existingUser.role === UserRole.superadmin &&
+        currentUser.role !== UserRole.superadmin) {
+      throw new HttpError(
+        "Insufficient permissions to delete a superadmin",
+        403
+      )
     }
 
     // Soft delete
@@ -270,6 +314,17 @@ export async function toggleUserStatus(
         throw new HttpError("User not found", 404)
     }
 
+    // Privilege escalation: cannot deactivate a superadmin unless you
+    // are also a superadmin.
+    if (!isActive &&
+        existingUser.role === UserRole.superadmin &&
+        currentUser.role !== UserRole.superadmin) {
+      throw new HttpError(
+        "Insufficient permissions to deactivate a superadmin",
+        403
+      )
+    }
+
     const updatedUser = await prisma.user.update({
         where: { id: targetUserId },
         data: { isActive },
@@ -308,11 +363,21 @@ export async function resetUserPassword(
 
     const user = await prisma.user.findUnique({
         where: { id: targetUserId },
-        select: { id: true, email: true, name: true }
+        select: { id: true, email: true, name: true, role: true }
     })
 
     if (!user) {
         throw new HttpError("User not found", 404)
+    }
+
+    // Privilege escalation guard: an admin shouldn't be able to reset a
+    // superadmin's password. Resetting passwords gives effective login
+    // access — equivalent to creating the account.
+    if (!canAssignRole(currentUser.role as UserRole, user.role)) {
+      throw new HttpError(
+        `Cannot reset password for role "${user.role}" — your role does not have permission to manage it.`,
+        403
+      )
     }
 
     const newPassword = customPassword || generatePassword(12)
@@ -346,7 +411,7 @@ export async function resetUserPassword(
 }
 
 export async function getUserActivity(
-    currentUser: { id: string; role: string },
+    currentUser: { id: string; role: string; department?: string | null },
     targetUserId: string,
     options: { limit?: number; offset?: number; startDate?: string; endDate?: string }
 ) {
@@ -356,18 +421,26 @@ export async function getUserActivity(
 
     const user = await prisma.user.findUnique({
         where: { id: targetUserId },
-        select: { id: true, email: true, name: true }
+        select: { id: true, email: true, name: true, department: true }
     })
 
     if (!user) {
         throw new HttpError("User not found", 404)
     }
 
-    const limit = options.limit ?? 50
-    const offset = options.offset ?? 0
+    // Managers can only view activity logs of users in their own
+    // department. Without this check, a manager could pivot off the
+    // activity log to infer org-wide operational data.
+    if (currentUser.role === UserRole.manager) {
+      if (!currentUser.department || user.department !== currentUser.department) {
+        throw new HttpError("Insufficient permissions to view this user's activity", 403)
+      }
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: any = { userId: targetUserId }
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200)
+    const offset = Math.max(options.offset ?? 0, 0)
+
+    const whereClause: Prisma.ActivityLogWhereInput = { userId: targetUserId }
 
     if (options.startDate || options.endDate) {
         whereClause.createdAt = {}
@@ -426,6 +499,24 @@ export async function bulkUserAction(
         throw new HttpError("Cannot perform bulk actions on your own account", 400)
     }
 
+    // Privilege escalation guard: a non-superadmin admin must not be able
+    // to bulk-deactivate other admins or superadmins. Read all targets
+    // up front so we can validate before mutating any of them.
+    if (action === "deactivate") {
+        const targets = await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, role: true }
+        })
+        for (const t of targets) {
+            if (!canAssignRole(currentUser.role as UserRole, t.role)) {
+                throw new HttpError(
+                    `Cannot deactivate user with role "${t.role}" — your role does not have permission.`,
+                    403
+                )
+            }
+        }
+    }
+
     let successCount = 0
     const errors: { userId: string; error: string }[] = []
 
@@ -471,18 +562,21 @@ export async function bulkUserAction(
 }
 
 export async function exportUsers(
-    currentUser: { id: string; role: string },
+    currentUser: { id: string; role: string; department?: string | null },
     filters: { department?: string; role?: string; status?: string }
 ) {
     if (!isManagerOrAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: any = {}
+    const whereClause: Prisma.UserWhereInput = {}
 
-    if (filters.department) {
-        whereClause.department = filters.department
+    // Managers are always scoped to their own department regardless of
+    // what filter they pass. Admins/superadmins honor the query filter.
+    if (currentUser.role === UserRole.manager) {
+      whereClause.department = currentUser.department ?? "__never__"
+    } else if (filters.department) {
+      whereClause.department = filters.department
     }
 
     if (filters.role && ["admin", "manager", "user"].includes(filters.role)) {
@@ -541,4 +635,3 @@ export async function exportUsers(
 
     return { csvData, rowCount: users.length }
 }
-

@@ -16,8 +16,14 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     }
 
     const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "20")
+    // Bound page/limit so a misconfigured or malicious client can't pull
+    // huge pages or skip negative offsets.
+    const rawPage = parseInt(searchParams.get("page") || "1", 10)
+    const page = Number.isFinite(rawPage) ? Math.max(rawPage, 1) : 1
+    const rawLimit = parseInt(searchParams.get("limit") || "20", 10)
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), 200)
+      : 20
     const offset = (page - 1) * limit
     const userId = searchParams.get("userId")
     const action = searchParams.get("action")

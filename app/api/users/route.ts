@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
 import { parseBody, userCreateSchema } from "@/lib/validation"
+import { requireSameOrigin } from "@/lib/csrf"
 import { getUsers, createUser } from "./services"
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
@@ -28,6 +29,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 }, "fetching users")
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
@@ -40,7 +44,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const body = await parseBody(request, userCreateSchema)
   const newUser = await createUser({
     id: session.user.id,
-    role: session.user.role
+    role: session.user.role,
+    department: session.user.department,
   }, body)
 
   return NextResponse.json({

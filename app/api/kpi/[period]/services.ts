@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { AttendanceStatus, UserRole, Prisma } from "@prisma/client"
 
 import { HttpError } from "@/lib/errors"
+import { getUtcDateKey, getUtcDayBounds } from "@/lib/date-bounds"
+import { getBusinessHoursConfig } from "@/lib/business-hours"
 
 export { HttpError }
 
@@ -14,37 +16,42 @@ export interface DateRange {
   end: Date
 }
 
-function getMonday(d: Date): Date {
+function getUtcMonday(d: Date): Date {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
   const day = date.getUTCDay()
-  const diff = (day === 0 ? -6 : 1) - day // adjust so Monday is first day, Sunday -> -6
+  const diff = (day === 0 ? -6 : 1) - day // Monday-first week, Sunday wraps back
   date.setUTCDate(date.getUTCDate() + diff)
   return date
 }
 
-export function resolveRange(period: PeriodType, today = new Date(), customStart?: string, customEnd?: string): DateRange {
+export function resolveRange(
+  period: PeriodType,
+  today = new Date(),
+  customStart?: string,
+  customEnd?: string,
+): DateRange {
   if (customStart || customEnd) {
-    const start = customStart ? new Date(customStart) : today
-    const end = customEnd ? new Date(customEnd) : today
-    // Set end to end of day
-    end.setUTCHours(23, 59, 59, 999)
+    // Treat custom dates as UTC calendar dates (YYYY-MM-DD) for consistency
+    // with how the rest of the API handles date-only comparisons.
+    const startStr = customStart ?? customEnd!
+    const endStr = customEnd ?? customStart!
+    const start = new Date(`${startStr}T00:00:00.000Z`)
+    const end = new Date(`${endStr}T00:00:00.000Z`)
+    end.setUTCDate(end.getUTCDate() + 1) // include end date
     return { start, end }
   }
 
-  const now = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
   if (period === "weekly") {
-    const start = getMonday(now)
+    const start = getUtcMonday(today)
     const end = new Date(start)
     end.setUTCDate(start.getUTCDate() + 6)
-    // Set end to end of day
     end.setUTCHours(23, 59, 59, 999)
     return { start, end }
   }
 
   // monthly
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
-  // Set end to end of day
+  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
+  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
   end.setUTCHours(23, 59, 59, 999)
   return { start, end }
 }
@@ -98,44 +105,61 @@ export interface KpiQuery {
 }
 
 async function getGracePeriodMinutes(): Promise<number> {
-  try {
-    const settings = await prisma.systemSettings.findFirst()
-    const businessHours = settings?.businessHours as Record<string, unknown> | null
-    const minutes = businessHours?.gracePeriodMinutes
-    const num = typeof minutes === "number" ? minutes : parseInt(String(minutes || 0))
-    return Number.isFinite(num) && num >= 0 ? num : 15
-  } catch {
-    return 15
-  }
+  const config = await getBusinessHoursConfig()
+  return config.gracePeriodMinutes
 }
 
 export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const session = await validateSession()
 
+  const role = session.user.role
+
+  // ---- 1. Resolve effective scope & filter ----
+  //
+  // SECURITY: For non-admin/non-manager roles, we IGNORE any userId passed
+  // in the query string and force scope to "user" of the caller. Previously
+  // a regular user could pass `?userId=<other-id>` and read someone else's
+  // attendance via the API. (BUG-FIX)
+  const isOrgWideRole = role === UserRole.admin || role === UserRole.superadmin
+
   const effectiveScope: ScopeType = (() => {
-    if (session.user.role === UserRole.admin) return query.scope ?? "org"
-    if (session.user.role === UserRole.manager) return "department"
-    return "user"
+    // An org-wide role that drills into one employee is a "user" scope query.
+    // Previously userId was silently dropped here, so the employee filter in
+    // the KPI UI had no effect.
+    if (isOrgWideRole) {
+      if (query.userId) return "user"
+      if (query.department) return "department"
+      return query.scope ?? "org"
+    }
+    if (role === UserRole.manager) return "department"
+    return "user" // user
   })()
 
-  // 1. Resolve Date Range
+  // Hardcode userId for role=user. Managers can only query their department.
+  let effectiveUserId: string | undefined
+  if (effectiveScope === "user") {
+    effectiveUserId = isOrgWideRole && query.userId ? query.userId : session.user.id
+  }
+  let effectiveDepartment: string | undefined
+  if (effectiveScope === "department") {
+    effectiveDepartment = query.department ?? session.user.department ?? undefined
+  }
+
+  // ---- 2. Resolve Date Range ----
   const { start, end } = resolveRange(query.period, new Date(), query.start, query.end)
   const businessDays = countBusinessDays({ start, end })
 
-  // 2. Get Total Active Users (Denominator)
+  // ---- 3. Get Total Active Users (Denominator) ----
   const userWhere: Prisma.UserWhereInput = { isActive: true }
   if (effectiveScope === "user") {
-    userWhere.id = query.userId ?? session.user.id
-  } else if (effectiveScope === "department") {
-    const dept = query.department ?? (session.user.department || undefined)
-    if (dept) {
-      userWhere.department = dept
-    }
+    userWhere.id = effectiveUserId
+  } else if (effectiveScope === "department" && effectiveDepartment) {
+    userWhere.department = effectiveDepartment
   }
   const totalActiveUsers = await prisma.user.count({ where: userWhere })
   const denominator = Math.max(1, businessDays * totalActiveUsers)
 
-  // 3. Fetch Records
+  // ---- 4. Fetch Records ----
   const where: Prisma.AbsensiRecordWhereInput = {
     date: {
       gte: start,
@@ -144,12 +168,9 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   }
 
   if (effectiveScope === "user") {
-    where.userId = query.userId ?? session.user.id
-  } else if (effectiveScope === "department") {
-    const dept = query.department ?? (session.user.department || undefined)
-    if (dept) {
-      where.user = { department: dept }
-    }
+    where.userId = effectiveUserId
+  } else if (effectiveScope === "department" && effectiveDepartment) {
+    where.user = { department: effectiveDepartment }
   }
 
   const records = await prisma.absensiRecord.findMany({
@@ -166,21 +187,16 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
     orderBy: { date: "asc" },
   })
 
-  // 4. Calculate Metrics
+  // ---- 5. Calculate Metrics ----
   const attended = records.filter(r => r.status !== AttendanceStatus.absent)
   const lateCount = records.filter(r => r.status === AttendanceStatus.late).length
-  // Absent count is total potential attendance slots minus actual attendance
-  // But we also need to account for explicit "absent" records if any, though usually absence is lack of record?
-  // If the system creates "absent" records, we count them.
-  // If "silent absence", we infer it.
-  // Let's stick to explicit records for now, BUT the denominator is fixed.
-  // Wait, if we use totalActiveUsers, we can calculate "silent absences" as (denominator - attended.length).
-  // However, `absentCount` in the UI usually refers to explicit absence records or days missed.
-  // Let's calculate absentCount as (denominator - attended.length).
+  // Silent absences = expected attendance slots - actual attended records.
   const absentCount = Math.max(0, denominator - attended.length)
 
   const totalOvertime = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
-  const workHoursValues = records.map(r => (r.workHours == null ? null : Number(r.workHours))).filter((v): v is number => v != null)
+  const workHoursValues = records
+    .map(r => (r.workHours == null ? null : Number(r.workHours)))
+    .filter((v): v is number => v != null)
   const avgWorkHours = workHoursValues.length > 0
     ? workHoursValues.reduce((a, b) => a + b, 0) / workHoursValues.length
     : 0
@@ -191,10 +207,10 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const attendanceRate = attended.length / denominator
   const onTimeRate = attended.length > 0 ? onTime / attended.length : 0
 
-  // 5. Timeseries
+  // ---- 6. Timeseries (per business day) ----
   const byDate = new Map<string, { attended: number; onTime: number }>()
   for (const r of records) {
-    const key = r.date.toISOString().slice(0, 10)
+    const key = getUtcDateKey(r.date)
     if (!byDate.has(key)) byDate.set(key, { attended: 0, onTime: 0 })
     const entry = byDate.get(key)!
     if (r.status !== "absent") {
@@ -207,9 +223,8 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const iter = new Date(start)
   while (iter <= end) {
     if (isBusinessDay(iter)) {
-      const k = iter.toISOString().slice(0, 10)
+      const k = getUtcDateKey(iter)
       const entry = byDate.get(k)
-      // Daily denominator is totalActiveUsers
       timeseries.push({
         date: k,
         attendanceRate: entry ? entry.attended / totalActiveUsers : 0,
@@ -221,20 +236,35 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
 
   const round2 = (n: number) => Math.round(n * 100) / 100
 
-  // 6. Calculate Trends (Previous Period)
-  // Calculate previous period range
+  // ---- 7. Trends (Previous Period) ----
+  //
+  // BUG-FIX: previously, prevBusinessDays was multiplied by the CURRENT
+  // period's totalActiveUsers, which makes the denominator inaccurate
+  // when users have been added/removed between periods. We now compute
+  // the previous period's active user count independently.
   const duration = end.getTime() - start.getTime()
   const prevEnd = new Date(start.getTime() - 1)
   const prevStart = new Date(prevEnd.getTime() - duration)
 
-  // Recursive call for previous period would be expensive and complex due to infinite recursion risk if not careful.
-  // Instead, let's just do a simplified query for previous period metrics.
-  // We need: attendanceRate, onTimeRate, avgWorkHours, totalOvertime, lateCount, absentCount
-
+  const prevUserWhere: Prisma.UserWhereInput = { isActive: true }
+  if (effectiveScope === "user") {
+    prevUserWhere.id = effectiveUserId
+  } else if (effectiveScope === "department" && effectiveDepartment) {
+    prevUserWhere.department = effectiveDepartment
+  }
+  const prevTotalActiveUsers = await prisma.user.count({ where: prevUserWhere })
   const prevBusinessDays = countBusinessDays({ start: prevStart, end: prevEnd })
-  const prevDenominator = Math.max(1, prevBusinessDays * totalActiveUsers)
+  const prevDenominator = Math.max(1, prevBusinessDays * prevTotalActiveUsers)
 
-  const prevWhere = { ...where, date: { gte: prevStart, lte: prevEnd } }
+  const prevWhere: Prisma.AbsensiRecordWhereInput = {
+    date: { gte: prevStart, lte: prevEnd },
+  }
+  if (effectiveScope === "user") {
+    prevWhere.userId = effectiveUserId
+  } else if (effectiveScope === "department" && effectiveDepartment) {
+    prevWhere.user = { department: effectiveDepartment }
+  }
+
   const prevRecords = await prisma.absensiRecord.findMany({
     where: prevWhere,
     select: {
@@ -242,14 +272,16 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
       overtimeHours: true,
       lateMinutes: true,
       status: true,
-    }
+    },
   })
 
   const prevAttended = prevRecords.filter(r => r.status !== AttendanceStatus.absent)
   const prevLateCount = prevRecords.filter(r => r.status === AttendanceStatus.late).length
   const prevAbsentCount = Math.max(0, prevDenominator - prevAttended.length)
   const prevTotalOvertime = prevRecords.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
-  const prevWorkHoursValues = prevRecords.map(r => (r.workHours == null ? null : Number(r.workHours))).filter((v): v is number => v != null)
+  const prevWorkHoursValues = prevRecords
+    .map(r => (r.workHours == null ? null : Number(r.workHours)))
+    .filter((v): v is number => v != null)
   const prevAvgWorkHours = prevWorkHoursValues.length > 0
     ? prevWorkHoursValues.reduce((a, b) => a + b, 0) / prevWorkHoursValues.length
     : 0
@@ -261,27 +293,18 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const getTrend = (current: number, previous: number) => {
     const diff = current - previous
 
-    // For rates (0-1), diff * 100 gives percentage point difference.
-    // For counts, we might want percentage change.
-    // Let's stick to simple difference for rates, and percentage change for counts?
-    // The UI expects a "change" number.
-    // Let's normalize:
-    // Rates: percentage points (e.g. 0.8 vs 0.7 -> 10% change)
-    // Counts: percentage change (e.g. 10 vs 8 -> 25% change)
-
+    // Rates (0..1) → percentage point difference. Counts/hours → % change.
     let calculatedChange = 0
     if (current <= 1 && previous <= 1 && current >= 0 && previous >= 0) {
-      // It's likely a rate
       calculatedChange = Math.round(Math.abs(current - previous) * 100)
     } else {
-      // It's a count or hours
       if (previous === 0) calculatedChange = current === 0 ? 0 : 100
       else calculatedChange = Math.round(Math.abs((current - previous) / previous) * 100)
     }
 
     return {
       direction: diff > 0 ? "up" : diff < 0 ? "down" : "neutral",
-      change: calculatedChange
+      change: calculatedChange,
     } as const
   }
 
@@ -309,8 +332,6 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
       totalOvertime: getTrend(totalOvertime, prevTotalOvertime),
       lateCount: getTrend(lateCount, prevLateCount),
       absentCount: getTrend(absentCount, prevAbsentCount),
-    }
+    },
   }
 }
-
-

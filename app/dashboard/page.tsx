@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Map } from "@/components/ui/map"
 import { DashboardSkeleton } from "@/components/ui/data-table/data-table-skeleton"
-import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle, RefreshCw } from "lucide-react"
+import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle, RefreshCw, AlertTriangle } from "lucide-react"
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition, calculateDistance } from "@/lib/location"
-import { format } from "date-fns"
+import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
 import { id } from "date-fns/locale"
 
 interface AttendanceData {
@@ -45,12 +45,20 @@ interface LastLocationData {
   checkOutLongitude: number | null
 }
 
+interface WeekStats {
+  daysAttended: number
+  businessDays: number
+  avgWorkHours: number
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [todayAttendance, setTodayAttendance] = useState<AttendanceData | null>(null)
   const [lastLocation, setLastLocation] = useState<LastLocationData | null>(null)
+  const [weekStats, setWeekStats] = useState<WeekStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -64,6 +72,8 @@ export default function DashboardPage() {
     longitude: number
   } | null>(null)
   const [isReloadingLocation, setIsReloadingLocation] = useState(false)
+  // Guards the auto-GPS-fetch so it doesn't fire more than once.
+  const initialGpsFetchRef = useRef(false)
 
   // Helper function to format address display
   const formatAddress = (address?: string) => {
@@ -80,21 +90,59 @@ export default function DashboardPage() {
     return address
   }
 
-  useEffect(() => {
-    if (status === "loading") return
+  // Compute weekly stats from a list of attendance records (newest first).
+  const computeWeekStats = (records: AttendanceData[]): WeekStats => {
+    const now = new Date()
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
 
+    const inWeek = records.filter(r => {
+      const d = new Date(r.date)
+      return isWithinInterval(d, { start: weekStart, end: weekEnd })
+    })
+
+    const daysAttended = inWeek.filter(r => r.checkInTime != null).length
+
+    // Count business days in the current week (Mon-Fri).
+    let businessDays = 0
+    const cursor = new Date(weekStart)
+    while (cursor <= weekEnd) {
+      const day = cursor.getDay()
+      if (day !== 0 && day !== 6) businessDays++
+      cursor.setDate(cursor.getDate() + 1)
+    }
+
+    const workHoursValues = inWeek
+      .map(r => (r.workHours == null ? null : Number(r.workHours)))
+      .filter((v): v is number => v != null)
+    const avgWorkHours = workHoursValues.length > 0
+      ? workHoursValues.reduce((a, b) => a + b, 0) / workHoursValues.length
+      : 0
+
+    return { daysAttended, businessDays, avgWorkHours }
+  }
+
+  // Redirect to signin if unauthenticated. Wrapped to keep the call sites tidy.
+  const requireAuth = useCallback(() => {
+    if (status === "loading") return false
     if (status === "unauthenticated" || !session) {
       router.push("/auth/signin")
-      return
+      return false
     }
+    return true
+  }, [status, session, router])
+
+  useEffect(() => {
+    if (!requireAuth()) return
 
     const controller = new AbortController()
     Promise.all([
       loadTodayAttendance(controller.signal),
-      loadLastLocation(controller.signal)
+      loadWeekAndLastLocation(controller.signal),
     ])
     return () => controller.abort()
-  }, [status, session, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.id])
 
   const loadTodayAttendance = async (signal?: AbortSignal) => {
     try {
@@ -118,35 +166,52 @@ export default function DashboardPage() {
         } : null
 
         setTodayAttendance(parsedData)
+        setLoadError(null)
+      } else {
+        setLoadError("Gagal memuat data absensi hari ini")
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
       console.error('Error loading today attendance:', error)
+      setLoadError("Gagal memuat data absensi hari ini")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const loadLastLocation = async (signal?: AbortSignal) => {
+  const loadWeekAndLastLocation = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/attendance/history?limit=1&offset=0', { signal })
-      if (response.ok) {
-        const history = await response.json()
-        if (history && history.length > 0) {
-          const lastRecord = history[0]
-          setLastLocation({
-            checkInAddress: lastRecord.checkInAddress,
-            checkOutAddress: lastRecord.checkOutAddress,
-            checkInLatitude: lastRecord.checkInLatitude ? Number(lastRecord.checkInLatitude) : null,
-            checkInLongitude: lastRecord.checkInLongitude ? Number(lastRecord.checkInLongitude) : null,
-            checkOutLatitude: lastRecord.checkOutLatitude ? Number(lastRecord.checkOutLatitude) : null,
-            checkOutLongitude: lastRecord.checkOutLongitude ? Number(lastRecord.checkOutLongitude) : null,
-          })
-        }
+      // 14 records covers the longest possible week window + some buffer.
+      const response = await fetch('/api/attendance/history?limit=14&offset=0', { signal })
+      if (!response.ok) {
+        setLoadError("Gagal memuat data minggu ini")
+        return
+      }
+      const history = await response.json() as AttendanceData[]
+
+      // Weekly stats (days attended, avg work hours)
+      const normalized = history.map(h => ({
+        ...h,
+        date: new Date(h.date),
+      }))
+      setWeekStats(computeWeekStats(normalized))
+
+      // Last location is the most recent record (history is sorted desc).
+      if (history && history.length > 0) {
+        const lastRecord = history[0]
+        setLastLocation({
+          checkInAddress: lastRecord.checkInAddress,
+          checkOutAddress: lastRecord.checkOutAddress,
+          checkInLatitude: lastRecord.checkInLatitude ? Number(lastRecord.checkInLatitude) : null,
+          checkInLongitude: lastRecord.checkInLongitude ? Number(lastRecord.checkInLongitude) : null,
+          checkOutLatitude: lastRecord.checkOutLatitude ? Number(lastRecord.checkOutLatitude) : null,
+          checkOutLongitude: lastRecord.checkOutLongitude ? Number(lastRecord.checkOutLongitude) : null,
+        })
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
-      console.error('Error loading last location:', error)
+      console.error('Error loading week/last location:', error)
+      setLoadError("Gagal memuat data minggu ini")
     }
   }
 
@@ -184,6 +249,17 @@ export default function DashboardPage() {
     }
   }
 
+  // Auto-fetch GPS once on mount so the user sees their current location
+  // without having to click the reload button (BUG-FIX H6).
+  useEffect(() => {
+    if (status === "loading") return
+    if (!session) return
+    if (initialGpsFetchRef.current) return
+    initialGpsFetchRef.current = true
+    void handleReloadLocation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.id])
+
   const handleLocationChange = async (lat: number, lng: number) => {
     if (!currentLocation || !gpsLocation) return
 
@@ -195,10 +271,14 @@ export default function DashboardPage() {
 
     if (distance > 100) {
       setMessage({ type: 'error', text: 'Lokasi tidak boleh lebih dari 100m dari titik GPS asli' })
-      // Force re-render to snap back marker if needed (though React state didn't change, Leaflet might need reset)
-      // In this implementation, since we don't update state, the props to Map don't change.
-      // The Map component's useEffect will detect that the marker position (from drag) differs from the prop position
-      // and will reset it.
+      // Snap marker back to GPS origin (BUG-FIX M2). Previously the marker
+      // stayed at the invalid position until the user reloaded location.
+      setCurrentLocation({
+        ...currentLocation,
+        latitude: gpsLocation.latitude,
+        longitude: gpsLocation.longitude,
+        address: currentLocation.address,
+      })
       return
     }
 
@@ -235,7 +315,15 @@ export default function DashboardPage() {
         lat = currentLocation.latitude
         lng = currentLocation.longitude
         addr = currentLocation.address
-        acc = 10 // Default accuracy for manual pin
+        // When user dragged the pin, surface the drag distance as the
+        // accuracy so the server knows this is a manually-corrected point.
+        // A user at the edge of the 100m radius could otherwise claim 10m.
+        acc = gpsLocation
+          ? Math.max(10, Math.round(calculateDistance(
+              { latitude: lat, longitude: lng },
+              { latitude: gpsLocation.latitude, longitude: gpsLocation.longitude }
+            )))
+          : 10
       } else {
         const position = await getCurrentPosition()
         lat = position.latitude
@@ -273,7 +361,7 @@ export default function DashboardPage() {
       if (checkInResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
         await loadTodayAttendance()
-        await loadLastLocation() // Refresh last location after check-in
+        await loadWeekAndLastLocation()
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_IN_FAILED })
       }
@@ -295,7 +383,12 @@ export default function DashboardPage() {
         lat = currentLocation.latitude
         lng = currentLocation.longitude
         addr = currentLocation.address
-        acc = 10 // Default accuracy for manual pin
+        acc = gpsLocation
+          ? Math.max(10, Math.round(calculateDistance(
+              { latitude: lat, longitude: lng },
+              { latitude: gpsLocation.latitude, longitude: gpsLocation.longitude }
+            )))
+          : 10
       } else {
         const position = await getCurrentPosition()
         lat = position.latitude
@@ -333,7 +426,7 @@ export default function DashboardPage() {
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
         await loadTodayAttendance()
-        await loadLastLocation() // Refresh last location after check-out
+        await loadWeekAndLastLocation()
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_OUT_FAILED })
       }
@@ -349,13 +442,13 @@ export default function DashboardPage() {
   }
 
   if (!session) {
-    router.push("/auth/signin")
+    // Effect above already pushed to signin; render nothing in the meantime.
     return null
   }
 
   const canCheckIn = !todayAttendance?.checkInTime
-  const canCheckOut = todayAttendance?.checkInTime && !todayAttendance?.checkOutTime
-  const hasCheckedOut = todayAttendance?.checkOutTime !== null
+  const canCheckOut = todayAttendance?.checkInTime != null && todayAttendance?.checkOutTime == null
+  const isCheckedOut = todayAttendance?.checkOutTime != null
 
   return (
     <div className="space-y-8">
@@ -374,6 +467,14 @@ export default function DashboardPage() {
       {message && (
         <Alert variant={message.type === 'success' ? 'default' : 'destructive'}>
           <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Load Error Banner (BUG-FIX H5) */}
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{loadError}</AlertDescription>
         </Alert>
       )}
 
@@ -403,6 +504,8 @@ export default function DashboardPage() {
               </div>
               <p className="text-xs text-white/60">
                 {todayAttendance?.checkInTime && `Check-in: ${format(todayAttendance.checkInTime, 'HH:mm')}`}
+                {todayAttendance?.lateMinutes != null && todayAttendance.lateMinutes > 0 &&
+                  ` (terlambat ${todayAttendance.lateMinutes}m)`}
               </p>
             </CardContent>
           </Card>
@@ -421,7 +524,7 @@ export default function DashboardPage() {
                 {todayAttendance?.workHours ? `${todayAttendance.workHours.toFixed(1)}j` : "0j"}
               </div>
               <p className="text-xs text-white/60">
-                {todayAttendance?.checkOutTime ? "Sudah check-out" : "Belum check-out"}
+                {isCheckedOut ? "Sudah check-out" : "Belum check-out"}
               </p>
             </CardContent>
           </Card>
@@ -437,7 +540,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white mb-2">
-                -/5
+                {/* BUG-FIX C1: real count instead of "-/5" */}
+                {weekStats
+                  ? `${weekStats.daysAttended}/${weekStats.businessDays}`
+                  : "…"}
               </div>
               <p className="text-xs text-white/60">
                 Hari kerja minggu ini
@@ -456,7 +562,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white mb-2">
-                -j
+                {/* BUG-FIX C1: real avg instead of "-j" */}
+                {weekStats && weekStats.avgWorkHours > 0
+                  ? `${weekStats.avgWorkHours.toFixed(1)}j`
+                  : "…"}
               </div>
               <p className="text-xs text-white/60">
                 Per hari minggu ini
@@ -508,7 +617,7 @@ export default function DashboardPage() {
                   {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
                   {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
                   <span className="font-semibold">
-                    {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
+                    {isCheckedOut ? "Sudah Check-out" : "Check Out"}
                   </span>
                   <span className="text-sm opacity-80">
                     {todayAttendance?.checkOutTime ?
@@ -553,8 +662,9 @@ export default function DashboardPage() {
             <CardContent>
               {currentLocation ? (
                 <div className="space-y-4">
+                  {/* BUG-FIX M4: removed key prop so React reconciles instead
+                      of recreating the Leaflet instance on every prop change. */}
                   <Map
-                    key="current-location"
                     latitude={currentLocation.latitude}
                     longitude={currentLocation.longitude}
                     address={currentLocation.address}
@@ -575,7 +685,6 @@ export default function DashboardPage() {
                   {/* Show map for the most recent location (check-out if available, otherwise check-in) */}
                   {lastLocation.checkOutLatitude && lastLocation.checkOutLongitude ? (
                     <Map
-                      key="last-location-checkout"
                       latitude={lastLocation.checkOutLatitude}
                       longitude={lastLocation.checkOutLongitude}
                       address={lastLocation.checkOutAddress || undefined}
@@ -583,7 +692,6 @@ export default function DashboardPage() {
                     />
                   ) : lastLocation.checkInLatitude && lastLocation.checkInLongitude ? (
                     <Map
-                      key="last-location-checkin"
                       latitude={lastLocation.checkInLatitude}
                       longitude={lastLocation.checkInLongitude}
                       address={lastLocation.checkInAddress || undefined}
@@ -616,13 +724,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Today's Activity (BUG-FIX M1: renamed from "Aktivitas Terbaru" which
+          implied multi-day history but only ever showed today) */}
       <div className="animate-fade-up anim-delay-700">
         <Card variant="glass">
           <CardHeader>
-            <CardTitle className="text-white">Aktivitas Terbaru</CardTitle>
+            <CardTitle className="text-white">Aktivitas Hari Ini</CardTitle>
             <CardDescription className="text-white/70">
-              Riwayat absensi terbaru Anda
+              Check-in dan check-out Anda hari ini
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -636,6 +745,9 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-white">Check-in berhasil</p>
                         <p className="text-xs text-white/70">
                           {format(todayAttendance.checkInTime, 'dd MMM yyyy HH:mm', { locale: id })}
+                          {todayAttendance.lateMinutes != null && todayAttendance.lateMinutes > 0 &&
+                            ` · terlambat ${todayAttendance.lateMinutes}m`
+                          }
                         </p>
                         {todayAttendance.checkInAddress && (
                           <p className="text-xs text-white/60">

@@ -2,10 +2,28 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { rateLimit } from "@/lib/rate-limit"
 
-export default async function middleware(request: NextRequest) {
+/**
+ * Edge "proxy" (formerly `middleware.ts`).
+ *
+ * Runs at the Edge before any route handler. We do THREE things here:
+ *
+ *   1. Rate-limit POSTs to `/api/auth/*` to slow down credential stuffing.
+ *      NextAuth also has its own internal checks; this is a defense in
+ *      depth layer.
+ *   2. CORS preflight + headers for `/api/external/*` (used by external
+ *      API-key clients like QR scanners).
+ *   3. Redirect to /auth/signin when a page request has no session
+ *      cookie. We can't validate the JWT here (Prisma doesn't run on
+ *      the Edge runtime), so this is a presence check only — real
+ *      authorization is enforced per-request by `validateSession` in
+ *      route handlers.
+ *
+ * Anything else (all other /api/* and page routes) passes through.
+ */
+export default async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // Rate limit auth endpoints (5 requests per minute per IP)
+  // 1. Rate limit auth POSTs (5 req/min/IP)
   if (pathname.startsWith("/api/auth/") && request.method === "POST") {
     const rateLimitResult = await rateLimit(request, {
       maxRequests: 5,
@@ -14,7 +32,7 @@ export default async function middleware(request: NextRequest) {
     if (rateLimitResult) return rateLimitResult
   }
 
-  // Handle /api/external/* routes — CORS headers + OPTIONS preflight
+  // 2. CORS for external API
   if (pathname.startsWith("/api/external/")) {
     const origin = request.headers.get("origin") ?? "*"
 
@@ -37,16 +55,14 @@ export default async function middleware(request: NextRequest) {
     return response
   }
 
-  // API routes handle their own auth (or are auth endpoints themselves)
+  // 3. Page route auth protection (presence check only).
+  // Skip /api/* — NextAuth's own endpoints under /api/auth/* must
+  // work BEFORE login, and other API routes do their own per-handler
+  // auth check (validateSession in lib/auth.ts).
   if (pathname.startsWith("/api/")) {
     return NextResponse.next()
   }
 
-  // Page route auth protection.
-  // getToken() cannot be used here: the session cookie holds a DB-backed UUID,
-  // not a verifiable JWT, and Prisma cannot run in the Edge Runtime.
-  // Checking cookie presence is sufficient for redirect-gating; real
-  // authorization is enforced per-request by getServerSession in route handlers.
   const sessionCookie =
     request.cookies.get("__Secure-next-auth.session-token") ??
     request.cookies.get("next-auth.session-token")

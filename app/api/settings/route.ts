@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { withErrorHandling } from '@/lib/errors'
+import { requireSameOrigin } from '@/lib/csrf'
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@prisma/client'
 
@@ -10,6 +11,8 @@ interface BusinessHoursSettings {
   endTime: string
   checkInDeadline: string
   gracePeriodMinutes: number
+  autoCheckoutEnabled: boolean
+  maxWorkHours: number
 }
 
 interface LocationSettings {
@@ -39,6 +42,34 @@ interface SystemSettings {
   security: SecuritySettings
 }
 
+const DEFAULT_SETTINGS: SystemSettings = {
+  businessHours: {
+    startTime: "08:00",
+    endTime: "17:00",
+    checkInDeadline: "09:00",
+    gracePeriodMinutes: 15,
+    autoCheckoutEnabled: false,
+    maxWorkHours: 12
+  },
+  location: {
+    officeLatitude: null as unknown as number,
+    officeLongitude: null as unknown as number,
+    geofenceRadius: 100,
+    requireLocation: true
+  },
+  notifications: {
+    emailNotifications: false,
+    lateCheckinReminders: false,
+    dailySummaryEmail: false
+  },
+  security: {
+    sessionTimeout: 24,
+    maxLoginAttempts: 5,
+    passwordExpiryDays: 90,
+    requireStrongPassword: false
+  }
+}
+
 // GET /api/settings - Retrieve system settings
 export const GET = withErrorHandling(async () => {
   const session = await getServerSession(authOptions)
@@ -54,42 +85,17 @@ export const GET = withErrorHandling(async () => {
   const settings = await prisma.systemSettings.findFirst()
 
   if (!settings) {
-    // Return default settings
-    const defaultSettings = {
-      businessHours: {
-        startTime: "08:00",
-        endTime: "17:00",
-        checkInDeadline: "09:00",
-        gracePeriodMinutes: 15
-      },
-      location: {
-        officeLatitude: null,
-        officeLongitude: null,
-        geofenceRadius: 100,
-        requireLocation: true
-      },
-      notifications: {
-        emailNotifications: false,
-        lateCheckinReminders: false,
-        dailySummaryEmail: false
-      },
-      security: {
-        sessionTimeout: 24,
-        maxLoginAttempts: 5,
-        passwordExpiryDays: 90,
-        requireStrongPassword: false
-      }
-    }
-
-    return NextResponse.json(defaultSettings)
+    return NextResponse.json(DEFAULT_SETTINGS)
   }
 
-  // Parse the JSON settings from database
+  // Merge over the defaults rather than returning the stored JSON as-is.
+  // Rows written before a settings field existed would otherwise come back
+  // missing that field, and the client would save the gap right back.
   const parsedSettings: SystemSettings = {
-    businessHours: settings.businessHours as unknown as BusinessHoursSettings,
-    location: settings.location as unknown as LocationSettings,
-    notifications: settings.notifications as unknown as NotificationSettings,
-    security: settings.security as unknown as SecuritySettings
+    businessHours: { ...DEFAULT_SETTINGS.businessHours, ...(settings.businessHours as unknown as BusinessHoursSettings) },
+    location: { ...DEFAULT_SETTINGS.location, ...(settings.location as unknown as LocationSettings) },
+    notifications: { ...DEFAULT_SETTINGS.notifications, ...(settings.notifications as unknown as NotificationSettings) },
+    security: { ...DEFAULT_SETTINGS.security, ...(settings.security as unknown as SecuritySettings) }
   }
 
   return NextResponse.json(parsedSettings)
@@ -97,6 +103,9 @@ export const GET = withErrorHandling(async () => {
 
 // PUT /api/settings - Update system settings
 export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await getServerSession(authOptions)
 
   if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {

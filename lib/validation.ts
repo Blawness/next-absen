@@ -74,7 +74,9 @@ export const userUpdateSchema = z.object({
   name: z.string().min(1),
   email: z.string().email("Invalid email format"),
   role: z.enum(["superadmin", "admin", "manager", "user"]),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  // Password changes go through /api/users/[id]/reset-password, NOT here.
+  // Allowing it on the generic update endpoint bypassed the dedicated
+  // RESET_PASSWORD audit log action.
   department: z.string().optional(),
   position: z.string().optional(),
   phone: z.string().optional(),
@@ -86,10 +88,12 @@ export const bulkActionSchema = z.object({
 })
 
 export const profileUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
-  phone: z.string().optional(),
-  department: z.string().optional(),
-  position: z.string().optional(),
+  name: z.string().min(1).max(100).optional(),
+  phone: z.string().max(30).optional(),
+  // department/position are intentionally NOT here — they're
+  // managed by admins via the Users page. Allowing self-edit lets
+  // a user "move" themselves to another department and (after
+  // re-login) access that department's data.
 })
 
 export const passwordChangeSchema = z.object({
@@ -99,6 +103,10 @@ export const passwordChangeSchema = z.object({
 
 export const passwordResetSchema = z.object({
   newPassword: z.string().min(6).optional(),
+  // The password-reset dialog uses `customPassword`; accept either name
+  // for backwards compatibility.
+  customPassword: z.string().min(6).optional(),
+  sendEmail: z.boolean().optional(),
 })
 
 export const apiKeyCreateSchema = z.object({

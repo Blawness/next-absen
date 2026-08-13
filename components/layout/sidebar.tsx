@@ -190,7 +190,9 @@ const navigationItems: Array<{
       href: "/reports",
       label: NAVIGATION.REPORTS,
       icon: FileText,
-      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager]
+      // Regular users hold REPORT_READ too; the API scopes them to their own
+      // records, so the page is theirs as well (read-only, no export).
+      roles: [UserRole.superadmin, UserRole.admin, UserRole.manager, UserRole.user]
     },
     {
       href: "/users",

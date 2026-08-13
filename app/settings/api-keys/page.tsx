@@ -40,11 +40,23 @@ export default function ApiKeysPage() {
     }
   }, [])
 
+  const isAllowed =
+    !!session && (session.user.role === "admin" || session.user.role === "superadmin")
+
   useEffect(() => {
-    if (status !== "loading") {
-      fetchKeys()
+    if (status === "loading") return
+
+    // Redirect from an effect, not from the render body — navigating during
+    // render triggers "Cannot update a component while rendering".
+    if (!isAllowed) {
+      router.replace("/dashboard")
+      return
     }
-  }, [status, fetchKeys])
+
+    // Only fetch once the role is known to be allowed, otherwise every
+    // non-admin visit fires a request that comes back 403.
+    fetchKeys()
+  }, [status, isAllowed, fetchKeys, router])
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
@@ -70,8 +82,7 @@ export default function ApiKeysPage() {
     )
   }
 
-  if (!session || (session.user.role !== "admin" && session.user.role !== "superadmin")) {
-    router.push("/dashboard")
+  if (!isAllowed) {
     return null
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -59,19 +59,27 @@ export function AttendanceCreateDialog({ open, onClose, onSaved }: Props) {
     }
   }, [])
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      onClose()
-      return
-    }
+  // The dialog is controlled by the parent's `open` prop and has no
+  // DialogTrigger, so Radix never fires onOpenChange(true). Seed the form
+  // from an effect instead, otherwise the user list and date stay empty.
+  useEffect(() => {
+    if (!open) return
     loadUsers()
-    setDate(new Date().toISOString().split("T")[0])
+    // Today's calendar date in LOCAL time — toISOString() would roll over
+    // to the previous day for timezones ahead of UTC.
+    const now = new Date()
+    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    setDate(localToday)
     setCheckInTime("")
     setCheckOutTime("")
     setStatus("present")
     setNotes("")
     setSelectedUserId("")
     setError("")
+  }, [open, loadUsers])
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose()
   }
 
   const handleSave = async () => {
@@ -87,19 +95,31 @@ export function AttendanceCreateDialog({ open, onClose, onSaved }: Props) {
     setError("")
 
     try {
-      const checkInISO = checkInTime
-        ? `${date}T${checkInTime}:00.000Z`
-        : null
-      const checkOutISO = checkOutTime
-        ? `${date}T${checkOutTime}:00.000Z`
-        : null
+      // Build the check-in / check-out timestamps in the user's local
+      // timezone (NOT as UTC). Without this, an 08:00 check-in in
+      // Jakarta (+07:00) would be stored as 08:00 UTC = 15:00 local.
+      // We use Date(year, month, day, hour, minute) which constructs
+      // in the browser's local timezone, then serialise via
+      // getTime()/ISO so the server stores a real UTC instant that
+      // converts back to the same local wall-clock on display.
+      const buildLocalIso = (d: string, t: string): string => {
+        const [y, m, day] = d.split("-").map(Number)
+        const [hh, mm] = t.split(":").map(Number)
+        const local = new Date(y, m - 1, day, hh, mm, 0, 0)
+        return local.toISOString()
+      }
+      const checkInISO = checkInTime ? buildLocalIso(date, checkInTime) : null
+      const checkOutISO = checkOutTime ? buildLocalIso(date, checkOutTime) : null
 
       const res = await fetch("/api/superadmin/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: selectedUserId,
-          date: new Date(date).toISOString(),
+          // Send the calendar date only — server parses with the UTC
+          // calendar-date branch (lib/date-bounds.ts) to keep MySQL
+          // DATE storage consistent across server timezones.
+          date,
           checkInTime: checkInISO,
           checkOutTime: checkOutISO,
           status,
@@ -163,7 +183,7 @@ export function AttendanceCreateDialog({ open, onClose, onSaved }: Props) {
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Check-in" htmlFor="check-in">
                 <Input
                   id="check-in"

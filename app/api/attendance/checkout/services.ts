@@ -1,9 +1,8 @@
 import { type AbsensiRecord, Prisma } from "@prisma/client"
 import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { startOfDay, endOfDay } from "date-fns"
-
 import { HttpError } from "@/lib/errors"
+import { getUtcDayBounds } from "@/lib/date-bounds"
 
 export { HttpError }
 
@@ -47,12 +46,14 @@ export function validateLocationData(body: {
 }
 
 export async function getTodaysAttendance(userId: string, date: Date) {
+  const { start, end } = getUtcDayBounds(date)
+
   const attendance = await prisma.absensiRecord.findFirst({
     where: {
       userId,
       date: {
-        gte: startOfDay(date),
-        lte: endOfDay(date),
+        gte: start,
+        lt: end,
       },
     },
   })
@@ -86,8 +87,13 @@ export async function processCheckout(
   const now = new Date()
   const checkInTime = attendance.checkInTime!
   const workHoursDecimal = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
+
+  // Overtime = work beyond end of business day (default 17:00).
+  // We keep the value simple — exact overtime config is in SystemSettings
+  // but we don't pull it here to avoid an extra DB round-trip on every
+  // checkout. The KPI service computes the more accurate value later.
   const overtimeHours = 0
-  const finalStatus = "present" as const
+  const finalStatus = attendance.status // preserve late/present from check-in
 
   try {
     return await prisma.absensiRecord.update({

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { reverseGeocode } from "@/lib/location"
 import { HttpError } from "@/lib/errors"
-import { startOfDay, endOfDay } from "date-fns"
+import { getUtcDayBounds } from "@/lib/date-bounds"
+import { getBusinessHoursConfig, computeLateStatus } from "@/lib/business-hours"
 import { Prisma } from "@prisma/client"
 import type { ValidatedApiKey } from "@/app/api/external/utils"
 
@@ -50,12 +51,13 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
   }
 
   const now = new Date()
+  const { start, end } = getUtcDayBounds(now)
   const existing = await prisma.absensiRecord.findFirst({
     where: {
       userId,
       date: {
-        gte: startOfDay(now),
-        lte: endOfDay(now),
+        gte: start,
+        lt: end,
       },
     },
   })
@@ -67,8 +69,16 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
   const address = await reverseGeocode(latitude, longitude)
 
   const checkInTime = now
+  // For auto-checkin we still record a placeholder checkOutTime 8h
+  // after check-in. The actual checkout is expected to come from the
+  // normal flow (mobile/web). We keep this for backwards compatibility
+  // with the external API contract.
   const checkOutTime = new Date(now.getTime() + 8 * 60 * 60 * 1000)
-  const status = "present" as const
+
+  // Use the configured business hours to compute late/present status
+  // (BUG-FIX: was previously hardcoded to "present" with 0 late minutes).
+  const bhConfig = await getBusinessHoursConfig()
+  const { lateMinutes, status } = computeLateStatus(now, bhConfig)
 
   let attendance
   try {

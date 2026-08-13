@@ -115,6 +115,41 @@ async function main() {
     console.log(`✅ Created/Updated user: ${user.name} (${user.email}) - Role: ${user.role}`)
   }
 
+  // Seed default SystemSettings so the geofence / business-hours checks
+  // have a sensible baseline out of the box. Admins can edit these in
+  // the Settings page; this seed only runs if no settings row exists.
+  const existingSettings = await prisma.systemSettings.findFirst()
+  if (!existingSettings) {
+    await prisma.systemSettings.create({
+      data: {
+        businessHours: {
+          startTime: '08:00',
+          endTime: '17:00',
+          checkInDeadline: '09:00',
+          gracePeriodMinutes: 15,
+        },
+        location: {
+          officeLatitude: null,
+          officeLongitude: null,
+          geofenceRadius: 100,
+          requireLocation: false, // disabled by default until admin configures office
+        },
+        notifications: {
+          emailNotifications: false,
+          lateCheckinReminders: false,
+          dailySummaryEmail: false,
+        },
+        security: {
+          sessionTimeout: 24,
+          maxLoginAttempts: 5,
+          passwordExpiryDays: 90,
+          requireStrongPassword: false,
+        },
+      },
+    })
+    console.log('✅ Created default SystemSettings (location verification disabled until office is configured)')
+  }
+
   // Create some activity logs for demo purposes
   const adminUser = await prisma.user.findUnique({ where: { email: 'admin@demo.com' } })
   const managerUser = await prisma.user.findUnique({ where: { email: 'manager@demo.com' } })

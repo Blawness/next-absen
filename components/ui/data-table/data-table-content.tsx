@@ -1,6 +1,16 @@
 "use client"
 
-import { ChevronDown, ChevronUp, ChevronsUpDown, Edit, Activity } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Edit,
+  Activity,
+  KeyRound,
+  Trash2,
+  UserCheck,
+  UserX,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -47,6 +57,9 @@ export function DataTableContent({
   onRowSelect,
   onSelectAll,
   onEdit,
+  onDelete,
+  onToggleStatus,
+  onPasswordReset,
   onViewActivity,
   emptyTitle,
   emptyDescription,
@@ -180,6 +193,52 @@ export function DataTableContent({
                               aria-label="Lihat aktivitas"
                             >
                               <Activity className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {onPasswordReset && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onPasswordReset(user)}
+                              className="h-7 w-7 text-white/55 hover:bg-amber-500/15 hover:text-amber-400"
+                              aria-label="Reset password"
+                            >
+                              <KeyRound className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {onToggleStatus && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onToggleStatus(user)}
+                              className={cn(
+                                "h-7 w-7 text-white/55",
+                                user.isActive
+                                  ? "hover:bg-orange-500/15 hover:text-orange-400"
+                                  : "hover:bg-emerald-500/15 hover:text-emerald-400"
+                              )}
+                              aria-label={
+                                user.isActive
+                                  ? "Nonaktifkan pengguna"
+                                  : "Aktifkan pengguna"
+                              }
+                            >
+                              {user.isActive ? (
+                                <UserX className="h-3.5 w-3.5" />
+                              ) : (
+                                <UserCheck className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(user)}
+                              className="h-7 w-7 text-white/55 hover:bg-red-500/15 hover:text-red-400"
+                              aria-label="Hapus pengguna"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </div>

@@ -37,8 +37,16 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
                 type="number"
                 step="0.000001"
                 variant="glass"
-                value={settings?.location.officeLatitude || 0}
-                onChange={(e) => onUpdateSettings('location', 'officeLatitude', parseFloat(e.target.value))}
+                // Show empty string when null so admin sees the placeholder
+                // instead of a misleading "0". `0 || value` would have
+                // caused 0 to silently round-trip to the DB as a valid
+                // coordinate (somewhere off the coast of Africa).
+                value={settings?.location.officeLatitude ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value
+                  const parsed = raw === "" ? null : parseFloat(raw)
+                  onUpdateSettings('location', 'officeLatitude', Number.isFinite(parsed) ? parsed : null)
+                }}
                 placeholder="-6.2088"
               />
             </div>
@@ -49,8 +57,12 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
                 type="number"
                 step="0.000001"
                 variant="glass"
-                value={settings?.location.officeLongitude || 0}
-                onChange={(e) => onUpdateSettings('location', 'officeLongitude', parseFloat(e.target.value))}
+                value={settings?.location.officeLongitude ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value
+                  const parsed = raw === "" ? null : parseFloat(raw)
+                  onUpdateSettings('location', 'officeLongitude', Number.isFinite(parsed) ? parsed : null)
+                }}
                 placeholder="106.8456"
               />
             </div>
@@ -62,7 +74,7 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
                 min="10"
                 max="1000"
                 variant="glass"
-                value={settings?.location.geofenceRadius || 100}
+                value={settings?.location.geofenceRadius ?? 100}
                 onChange={(e) => onUpdateSettings('location', 'geofenceRadius', parseInt(e.target.value))}
               />
             </div>
@@ -90,7 +102,9 @@ export const LocationSettings = ({ settings, isSaving, onUpdateSettings, onSave 
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-300">Koordinat Kantor Saat Ini</p>
               <p className="text-xs text-blue-200">
-                Lat: {settings?.location.officeLatitude || 0}, Lng: {settings?.location.officeLongitude || 0}
+                {settings?.location.officeLatitude != null && settings?.location.officeLongitude != null
+                  ? `Lat: ${settings.location.officeLatitude}, Lng: ${settings.location.officeLongitude}`
+                  : "Belum dikonfigurasi — geofence tidak akan aktif sampai koordinat diisi."}
               </p>
             </div>
           </div>

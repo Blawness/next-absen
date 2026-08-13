@@ -42,16 +42,16 @@ export default function ProfilePage() {
   const { data: session, status } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
-  // Form state
+  // Form state — only fields the user can self-edit.
+  // department/position are managed by admins via the Users page.
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    department: "",
-    position: "",
   })
 
   // Password change state
@@ -85,15 +85,17 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json()
         setProfile(data)
+        setLoadError(null)
         setFormData({
           name: data.name || "",
           phone: data.phone || "",
-          department: data.department || "",
-          position: data.position || "",
         })
+      } else {
+        setLoadError("Gagal memuat profil. Coba muat ulang halaman.")
       }
     } catch (error) {
       console.error('Error loading profile:', error)
+      setLoadError("Gagal memuat profil. Coba muat ulang halaman.")
     } finally {
       setIsLoading(false)
     }
@@ -161,12 +163,19 @@ export default function ProfilePage() {
       const data = await response.json()
 
       if (response.ok) {
+        // The server revokes ALL of this user's sessions on a successful
+        // password change (see /api/profile/password). The current
+        // session's cookie is now invalid — redirect to signin.
+        // Use replace() so the back button can't return to this page.
         setMessage({ type: 'success', text: MESSAGES.PASSWORD_CHANGED })
         setPasswordData({
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
         })
+        setTimeout(() => {
+          window.location.replace("/auth/signin")
+        }, 1500)
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.ERROR })
       }
@@ -182,8 +191,6 @@ export default function ProfilePage() {
       setFormData({
         name: profile.name || "",
         phone: profile.phone || "",
-        department: profile.department || "",
-        position: profile.position || "",
       })
     }
     setIsEditing(false)
@@ -201,9 +208,22 @@ export default function ProfilePage() {
     )
   }
 
-  if (!session || !profile) {
-    router.push("/auth/signin")
+  // Only an absent session means "not signed in". A failed profile fetch is
+  // an error to show, not a reason to bounce the user back to the login page.
+  if (!session) {
     return null
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertDescription>
+            {loadError || "Profil tidak tersedia."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   return (
@@ -227,7 +247,7 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs defaultValue="profile" className="space-y-6" onValueChange={() => setMessage(null)}>
         <TabsList variant="glass" className="grid w-full grid-cols-2">
           <TabsTrigger variant="glass" value="profile">Informasi Profil</TabsTrigger>
           <TabsTrigger variant="glass" value="password">Ubah Password</TabsTrigger>
@@ -310,28 +330,6 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="department">{FORM_LABELS.DEPARTMENT}</Label>
-                    <Input
-                      id="department"
-                      variant="glass"
-                      value={formData.department}
-                      onChange={(e) => handleInputChange("department", e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="position">{FORM_LABELS.POSITION}</Label>
-                    <Input
-                      id="position"
-                      variant="glass"
-                      value={formData.position}
-                      onChange={(e) => handleInputChange("position", e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Role</Label>
                     <Input
                       variant="glass"
@@ -344,6 +342,12 @@ export default function ProfilePage() {
                     />
                     <p className="text-xs text-white/60">
                       Role tidak dapat diubah
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <p className="text-xs text-white/55">
+                      Untuk mengubah departemen atau posisi, hubungi administrator.
                     </p>
                   </div>
                 </div>

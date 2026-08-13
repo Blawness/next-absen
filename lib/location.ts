@@ -119,7 +119,12 @@ export function getCurrentPosition(): Promise<LocationData> {
   })
 }
 
-// Reverse geocoding using Google Maps API
+// Reverse geocoding using Google Maps API.
+//
+// NOTE: This helper is kept for server-side flows that already have
+// GOOGLE_MAPS_API_KEY configured (e.g. the external auto-checkin API).
+// Browser-facing flows go through `/api/geocode/reverse` which uses
+// Nominatim and is rate-limited / cached.
 export async function reverseGeocode(
   latitude: number,
   longitude: number

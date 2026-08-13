@@ -42,3 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 e2e/chromium-deps
+
+# Claude Code local settings
+.claude/settings.local.json

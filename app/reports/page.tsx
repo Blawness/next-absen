@@ -23,6 +23,7 @@ export default function ReportsPage() {
     departments,
     users,
     canExport,
+    canFilterOthers,
     loadReports,
     handleFilterChange,
     handleExport,
@@ -58,6 +59,7 @@ export default function ReportsPage() {
           departments={departments}
           users={users}
           canExport={canExport}
+          canFilterOthers={canFilterOthers}
           isExporting={isExporting}
           onFilterChange={handleFilterChange}
           onLoadReports={loadReports}

@@ -1,9 +1,10 @@
-import { type AbsensiRecord, Prisma } from "@prisma/client"
+import { type AbsensiRecord, Prisma, AttendanceStatus } from "@prisma/client"
 import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { startOfDay, endOfDay } from "date-fns"
-
 import { HttpError } from "@/lib/errors"
+import { getUtcDayBounds } from "@/lib/date-bounds"
+import { validateGeofence } from "@/lib/geofence"
+import { getBusinessHoursConfig, computeLateStatus } from "@/lib/business-hours"
 
 export { HttpError }
 
@@ -47,12 +48,14 @@ export function validateLocationData(body: {
 }
 
 export async function getExistingAttendance(userId: string, date: Date) {
+  const { start, end } = getUtcDayBounds(date)
+
   const existingAttendance = await prisma.absensiRecord.findFirst({
     where: {
       userId,
       date: {
-        gte: startOfDay(date),
-        lte: endOfDay(date),
+        gte: start,
+        lt: end,
       },
     },
   })
@@ -71,20 +74,41 @@ export interface CheckInData {
   accuracy: number
 }
 
+/**
+ * Resolve the late/present status for a check-in based on configured
+ * business hours. Wraps `computeLateStatus` so the check-in route stays
+ * short.
+ */
+export async function resolveCheckInStatus(now: Date = new Date()): Promise<{
+  lateMinutes: number
+  status: AttendanceStatus
+}> {
+  const config = await getBusinessHoursConfig()
+  const { lateMinutes, status } = computeLateStatus(now, config)
+  return { lateMinutes, status }
+}
+
+/**
+ * Atomically create or update today's attendance record.
+ *
+ * Race-safety: two concurrent requests can both pass the "no existing
+ * check-in" check, but only one will succeed in writing. We rely on
+ * Prisma's unique constraint `@@unique([userId, date])` and let the
+ * P2002 error decide the winner — no application-level locking needed.
+ */
 export async function createOrUpdateAttendance(
   userId: string,
   checkInData: CheckInData,
-  existingAttendance: AbsensiRecord | null
+  existingAttendance: AbsensiRecord | null,
+  lateMinutes: number,
+  status: AttendanceStatus
 ) {
   const now = new Date()
-  const today = new Date()
-
-  const lateMinutes = 0
-  const status = "present" as const
+  const { start, end } = getUtcDayBounds(now)
 
   const attendanceData = {
     userId,
-    date: today,
+    date: start,
     checkInTime: now,
     checkInLatitude: checkInData.latitude,
     checkInLongitude: checkInData.longitude,
@@ -107,8 +131,30 @@ export async function createOrUpdateAttendance(
     }
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+      // Race: another concurrent request already created today's record.
       throw new HttpError("Anda sudah check-in hari ini", 400)
     }
     throw error
+  }
+}
+
+/**
+ * Verify the user's location is inside the configured office geofence.
+ * Throws 403 if outside. Returns silently when geofence isn't configured.
+ */
+export async function enforceGeofence(checkInData: CheckInData) {
+  const result = await validateGeofence({
+    latitude: checkInData.latitude,
+    longitude: checkInData.longitude,
+    accuracy: checkInData.accuracy,
+    timestamp: new Date(),
+  })
+  if (result.withinGeofence === false) {
+    const distanceStr =
+      result.distance != null ? ` (${Math.round(result.distance)}m dari kantor)` : ""
+    throw new HttpError(
+      `Anda berada di luar area kantor${distanceStr}. Check-in tidak diizinkan.`,
+      403,
+    )
   }
 }

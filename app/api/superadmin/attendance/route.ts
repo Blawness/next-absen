@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withErrorHandling } from "@/lib/errors"
 import { parseBody } from "@/lib/validation"
+import { requireSameOrigin } from "@/lib/csrf"
 import {
   attendanceCreateSchema,
   attendanceUpdateSchema,
@@ -34,18 +35,27 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 }, "fetching attendance records")
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const body = await parseBody(request, attendanceCreateSchema)
   const record = await createAttendance(body)
   return NextResponse.json(record, { status: 201 })
 }, "creating attendance record")
 
 export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const body = await parseBody(request, attendanceUpdateSchema)
   const record = await updateAttendance(body)
   return NextResponse.json(record)
 }, "updating attendance record")
 
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const body = await parseBody(request, attendanceDeleteSchema)
   const result = await deleteAttendance(body.id)
   return NextResponse.json(result)

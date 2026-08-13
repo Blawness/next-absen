@@ -11,6 +11,25 @@ import {
   readSessionToken,
   revokeSessionToken,
 } from "./session-token-store"
+import {
+  isLoginAllowed,
+  registerFailedLogin,
+  registerSuccessfulLogin,
+} from "./login-attempts"
+
+// A bcrypt hash of a long random string. Used to equalize timing when
+// the supplied email doesn't match any user — without this, the
+// "user not found" branch returns ~immediately while the "wrong
+// password" branch waits for bcrypt (~100ms), letting attackers
+// enumerate valid emails via response timing.
+//
+// Computed once at module load so we don't pay the ~100ms hash cost
+// on every attempt.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
+  // Long random string — anything, the value never matches.
+  randomUUID() + randomUUID() + randomUUID(),
+  12,
+)
 
 const toPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -50,37 +69,56 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+      async authorize(credentials, req) {
+        const email = credentials?.email?.toString().trim().toLowerCase() ?? ""
+        const password = credentials?.password?.toString() ?? ""
+
+        if (!email || !password) {
+          return null
+        }
+
+        // Identify the caller (best-effort). Used for per-IP brute-force
+        // protection.
+        const headers = req?.headers ?? {}
+        const getHeader = (name: string): string => {
+          const value = headers[name]
+          if (Array.isArray(value)) return value[0] ?? ""
+          return value ?? ""
+        }
+        const fwd = getHeader("x-forwarded-for")
+        const ip = (fwd?.split(",")[0]?.trim()) || getHeader("x-real-ip") || "unknown"
+
+        // Pre-check lockout so an attacker who knows an email can't
+        // still probe passwords during the lockout window.
+        const allowed = isLoginAllowed(email, ip)
+        if (!allowed.allowed) {
+          // Intentionally return the same null as a real failure.
           return null
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
+            email
           }
         })
 
-        if (!user) {
+        // SECURITY: Always run bcrypt.compare on a known-length hash so
+        // the "user not found" branch has the same latency as the
+        // "wrong password" branch. Without this, attackers can
+        // enumerate valid emails via timing.
+        const hashToCompare = user?.password ?? DUMMY_PASSWORD_HASH
+        const isPasswordValid = await bcrypt.compare(password, hashToCompare)
+
+        if (!user || !user.isActive || !isPasswordValid) {
+          // Record the failed attempt for both per-email and per-IP
+          // lockout tracking. The IP path catches attackers spraying
+          // multiple emails from one host.
+          await registerFailedLogin(email, ip)
           return null
         }
 
-        // Reject deactivated users at the auth source. Without this, the
-        // login appears to succeed but every subsequent request fails
-        // (readSessionToken checks isActive) — confusing UX and a DoS
-        // vector (each attempt creates a PersistedSessionToken row).
-        if (!user.isActive) {
-          return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
+        // Success — clear any partial-failure counters.
+        registerSuccessfulLogin(email, ip)
 
         // Update last login
         await prisma.user.update({

@@ -1,21 +1,57 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { withErrorHandling } from "@/lib/errors"
+import { withErrorHandling, HttpError } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
-import { UserRole, AttendanceStatus } from "@prisma/client"
+import { UserRole, AttendanceStatus, Prisma } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 
-interface WhereClause {
-  date?: {
-    gte?: Date
-    lte?: Date
+/**
+ * Manager-scoped where clause for the export endpoint. Same IDOR fix
+ * as in the JSON reports route — a manager passing `?userId=...` or
+ * `?department=...` for someone outside their department must be
+ * rejected at the API boundary, not just at the UI.
+ */
+async function buildExportWhereClause(
+  session: { user: { id: string; role: UserRole; department?: string | null } },
+  query: { startDate?: string | null; endDate?: string | null; userId?: string | null; department?: string | null; status?: string | null }
+): Promise<Prisma.AbsensiRecordWhereInput> {
+  const where: Prisma.AbsensiRecordWhereInput = {}
+
+  if (query.startDate || query.endDate) {
+    where.date = {}
+    if (query.startDate) where.date.gte = new Date(query.startDate)
+    if (query.endDate) where.date.lte = new Date(query.endDate)
   }
-  userId?: string | { in: string[] }
-  status?: AttendanceStatus
+  if (query.status) where.status = query.status as AttendanceStatus
+
+  if (session.user.role === UserRole.manager) {
+    const dept = session.user.department
+    if (!dept) {
+      where.userId = session.user.id
+      return where
+    }
+    if (query.userId) {
+      const target = await prisma.user.findUnique({
+        where: { id: query.userId },
+        select: { department: true, isActive: true },
+      })
+      if (!target || !target.isActive || target.department !== dept) {
+        throw new HttpError("User not in your department", 403)
+      }
+      where.userId = query.userId
+    } else {
+      where.user = { department: dept }
+    }
+    return where
+  }
+
+  if (query.userId) where.userId = query.userId
+  else if (query.department) where.user = { department: query.department }
+  return where
 }
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
@@ -50,54 +86,10 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
   }
 
-  // Build where clause based on user role and filters
-  const whereClause: WhereClause = {}
-
-  // Date range filter
-  if (startDate || endDate) {
-    whereClause.date = {}
-    if (startDate) {
-      whereClause.date.gte = new Date(startDate)
-    }
-    if (endDate) {
-      whereClause.date.lte = new Date(endDate)
-    }
-  }
-
-  // User-based filtering based on role
-  if (userId) {
-    whereClause.userId = userId
-  } else if (department) {
-    const departmentUsers = await prisma.user.findMany({
-      where: { department },
-      select: { id: true }
-    })
-    whereClause.userId = {
-      in: departmentUsers.map(u => u.id)
-    }
-  } else if (session.user.role === UserRole.manager) {
-    // Managers without specific filters: scope to their department
-    const manager = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { department: true }
-    })
-
-    if (manager?.department) {
-      const departmentUsers = await prisma.user.findMany({
-        where: { department: manager.department },
-        select: { id: true }
-      })
-      whereClause.userId = {
-        in: departmentUsers.map(u => u.id)
-      }
-    } else {
-      whereClause.userId = session.user.id
-    }
-  }
-
-  if (status) {
-    whereClause.status = status as AttendanceStatus
-  }
+  const whereClause = await buildExportWhereClause(
+    { user: { id: session.user.id, role: session.user.role as UserRole, department: session.user.department } },
+    { startDate, endDate, userId, department, status },
+  )
 
   // Get attendance records
   const attendanceRecords = await prisma.absensiRecord.findMany({
@@ -119,7 +111,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     ]
   })
 
-  // Format the response data
   const records = attendanceRecords.map(record => ({
     id: record.id,
     date: record.date,
@@ -197,22 +188,18 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
   const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
   const uniqueUsers = new Set(records.map((r: any) => r.user.id)).size
 
-  // Title
   doc.setFontSize(16)
   doc.text("Laporan Absensi Karyawan", 14, 20)
 
-  // Period
   const startStr = startDate ? format(new Date(startDate), "dd MMMM yyyy", { locale: id }) : "Awal"
   const endStr = endDate ? format(new Date(endDate), "dd MMMM yyyy", { locale: id }) : "Akhir"
   doc.setFontSize(10)
   doc.text(`Periode: ${startStr} - ${endStr}`, 14, 28)
   doc.text(`Dibuat: ${format(new Date(), "dd MMMM yyyy HH:mm", { locale: id })}`, 14, 34)
 
-  // Summary card
   doc.setFontSize(11)
   doc.text(`Total: ${records.length} record | ${uniqueUsers} pengguna | ${totalWorkHours.toFixed(1)} jam kerja | ${totalOvertimeHours.toFixed(1)} jam lembur`, 14, 42)
 
-  // Table
   const rows = records.map((record: any) => [
     format(record.date, "dd/MM/yyyy", { locale: id }),
     record.user.name,
@@ -239,7 +226,7 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
   return new NextResponse(pdfBuffer, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="attendance-report-${format(new Date(), "yyyy-MM-dd")}.pdf"`,
+      "Content-Disposition": `attachment; filename="attendance-report-${format(new Date(), 'yyyy-MM-dd')}.pdf"`,
     },
   })
 }

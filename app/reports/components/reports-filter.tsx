@@ -13,6 +13,8 @@ interface ReportsFilterProps {
   departments: string[]
   users: { id: string; name: string; department: string }[]
   canExport: boolean
+  /** Regular users only see their own records — hide the org-wide pickers. */
+  canFilterOthers?: boolean
   isExporting: boolean
   onFilterChange: (field: keyof ReportFilters, value: string) => void
   onLoadReports: () => void
@@ -26,6 +28,7 @@ export const ReportsFilter = ({
   departments,
   users,
   canExport,
+  canFilterOthers = true,
   isExporting,
   onFilterChange,
   onLoadReports,
@@ -198,6 +201,7 @@ export const ReportsFilter = ({
             </Select>
           </div>
 
+          {canFilterOthers && (
           <div className="space-y-2">
             <Label htmlFor="userId" className="text-sm font-medium text-white/80">
               Pengguna
@@ -219,7 +223,9 @@ export const ReportsFilter = ({
               </SelectContent>
             </Select>
           </div>
+          )}
 
+          {canFilterOthers && (
           <div className="space-y-2">
             <Label htmlFor="department" className="text-sm font-medium text-white/80">
               Departemen
@@ -241,6 +247,7 @@ export const ReportsFilter = ({
               </SelectContent>
             </Select>
           </div>
+          )}
         </div>
 
         {/* Action Buttons */}

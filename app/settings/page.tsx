@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -25,12 +26,21 @@ export default function SettingsPage() {
     updateSettings
   } = useSettings()
 
+  const isAllowed =
+    !!session && (session.user.role === "admin" || session.user.role === "superadmin")
+
+  // Redirect from an effect — navigating during render triggers
+  // "Cannot update a component while rendering a different component".
+  useEffect(() => {
+    if (status === "loading") return
+    if (!isAllowed) router.replace("/dashboard")
+  }, [status, isAllowed, router])
+
   if (status === "loading" || isLoading) {
     return <SettingsSkeleton />
   }
 
-  if (!session || (session.user.role !== "admin" && session.user.role !== "superadmin")) {
-    router.push("/dashboard")
+  if (!isAllowed) {
     return null
   }
 

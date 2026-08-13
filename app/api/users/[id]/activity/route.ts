@@ -24,7 +24,11 @@ export const GET = withErrorHandling(async (request: NextRequest, { params }: Ro
     const endDate = searchParams.get("endDate") ?? undefined
 
     const result = await getUserActivity(
-        { id: session.user.id, role: session.user.role },
+        {
+          id: session.user.id,
+          role: session.user.role,
+          department: session.user.department,
+        },
         id,
         { limit, offset, startDate, endDate }
     )

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
 import { parseBody, profileUpdateSchema } from "@/lib/validation"
+import { requireSameOrigin } from "@/lib/csrf"
 import { prisma } from "@/lib/prisma"
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,6 +46,9 @@ export const GET = withErrorHandling(async (_request: NextRequest) => {
 }, "fetching profile")
 
 export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
@@ -55,17 +59,18 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
   }
 
   const body = await parseBody(request, profileUpdateSchema)
-  const { name, phone, department, position } = body
+  const { name, phone } = body
 
-  // Update user profile
+  // Sanitize string inputs — .trim() and coerce empties to null so the
+  // UI can later clear a phone by saving an empty field.
+  const trimmed = {
+    name: typeof name === "string" ? name.trim() : undefined,
+    phone: typeof phone === "string" ? (phone.trim() || null) : undefined,
+  }
+
   const updatedUser = await prisma.user.update({
     where: { id: session.user.id },
-    data: {
-      name: name?.trim(),
-      phone: phone?.trim() || null,
-      department: department?.trim() || null,
-      position: position?.trim() || null,
-    },
+    data: trimmed,
     select: {
       id: true,
       email: true,
@@ -82,7 +87,6 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
     },
   })
 
-  // Log activity
   await prisma.activityLog.create({
     data: {
       userId: session.user.id,
@@ -90,7 +94,7 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
       resourceType: "user",
       resourceId: session.user.id,
       details: {
-        updatedFields: { name, phone, department, position },
+        updatedFields: Object.keys(trimmed).filter((k) => trimmed[k as keyof typeof trimmed] !== undefined),
       },
     },
   })

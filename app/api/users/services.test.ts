@@ -17,9 +17,12 @@ jest.mock("@/lib/prisma", () => ({
             findUnique: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
+            count: jest.fn(),
         },
         activityLog: {
             create: jest.fn(),
+            findMany: jest.fn(),
+            count: jest.fn(),
         },
     },
 }))
@@ -129,6 +132,19 @@ describe("User Management Service", () => {
             )
             expect(result).toEqual(expect.objectContaining({ id: "new-id" }))
         })
+
+        it("should translate a P2002 unique-constraint error into a clean email message", async () => {
+            // Pre-check passes (no existing user) but a concurrent insert
+            // beats us. The DB raises P2002 and we must catch it gracefully.
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
+                ; (bcrypt.hash as jest.Mock).mockResolvedValue("hashed")
+            const p2002 = Object.assign(new Error("Unique constraint failed"), { code: "P2002" })
+                ; (prisma.user.create as jest.Mock).mockRejectedValue(p2002)
+
+            await expect(
+                createUser({ id: "admin1", role: UserRole.admin }, validData)
+            ).rejects.toThrow("Email already exists")
+        })
     })
 
     describe("updateUser", () => {
@@ -180,21 +196,30 @@ describe("User Management Service", () => {
             expect(result).toEqual(expect.objectContaining({ name: "Updated Name" }))
         })
 
-        it("should update password if provided", async () => {
+        it("should ignore stray password field — use reset-password route instead", async () => {
+            // Password updates are intentionally NOT allowed via updateUser.
+            // They must go through /api/users/[id]/reset-password so the
+            // dedicated RESET_PASSWORD audit log entry is written.
             (prisma.user.findUnique as jest.Mock).mockImplementation((args) => {
                 if (args.where.id === "user1") return Promise.resolve({ id: "user1", email: "old@example.com" });
                 if (args.where.email === "updated@example.com") return Promise.resolve(null);
                 return Promise.resolve(null);
             });
-            (bcrypt.hash as jest.Mock).mockResolvedValue("new_hashed_password");
             (prisma.user.update as jest.Mock).mockResolvedValue({ ...updateData, id: "user1" });
 
-            await updateUser({ id: "admin1", role: UserRole.admin }, "user1", { ...updateData, password: "newpassword" });
+            // Cast to any so we can attempt to pass a password even though
+            // the schema no longer allows it — this verifies the service
+            // strips it.
+            await updateUser(
+              { id: "admin1", role: UserRole.admin },
+              "user1",
+              { ...updateData, password: "newpassword" } as any,
+            );
 
-            expect(bcrypt.hash).toHaveBeenCalledWith("newpassword", 12);
+            expect(bcrypt.hash).not.toHaveBeenCalled();
             expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
-                data: expect.objectContaining({
-                    password: "new_hashed_password"
+                data: expect.not.objectContaining({
+                    password: expect.anything()
                 })
             }));
         })
@@ -254,6 +279,98 @@ describe("User Management Service", () => {
             }))
             expect(prisma.activityLog.create).toHaveBeenCalled()
             expect(result.isActive).toBe(false)
+        })
+
+        it("should reject admin trying to soft-delete a superadmin (privilege escalation)", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "super1", email: "super@x", role: UserRole.superadmin,
+            })
+            await expect(
+                deleteUser({ id: "admin1", role: UserRole.admin }, "super1")
+            ).rejects.toThrow(/Insufficient permissions to delete a superadmin/)
+        })
+    })
+
+    describe("privilege escalation guards", () => {
+        const baseData = { name: "X", email: "x@x.com", role: UserRole.user }
+
+        it("resetUserPassword: admin cannot reset a superadmin's password", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "super1", email: "super@x.com", name: "S", role: UserRole.superadmin,
+            })
+            const { resetUserPassword } = require("./services")
+            await expect(
+                resetUserPassword({ id: "admin1", role: UserRole.admin }, "super1")
+            ).rejects.toThrow(/Cannot reset password for role "superadmin"/)
+        })
+
+        it("toggleUserStatus: admin cannot deactivate a superadmin", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "super1", email: "super@x.com", role: UserRole.superadmin,
+            })
+            const { toggleUserStatus } = require("./services")
+            await expect(
+                toggleUserStatus({ id: "admin1", role: UserRole.admin }, "super1", false)
+            ).rejects.toThrow(/Insufficient permissions to deactivate a superadmin/)
+        })
+
+        it("bulkUserAction: admin cannot bulk-deactivate a superadmin", async () => {
+            ; (prisma.user.findMany as jest.Mock).mockResolvedValue([
+                { id: "admin2", role: UserRole.admin },
+                { id: "super1", role: UserRole.superadmin },
+            ])
+            const { bulkUserAction } = require("./services")
+            await expect(
+                bulkUserAction(
+                    { id: "admin1", role: UserRole.admin },
+                    "deactivate",
+                    ["admin2", "super1"]
+                )
+            ).rejects.toThrow(/Cannot deactivate user with role "superadmin"/)
+        })
+
+        it("bulkUserAction: admin can bulk-deactivate other admins", async () => {
+            ; (prisma.user.findMany as jest.Mock).mockResolvedValue([
+                { id: "admin2", role: UserRole.admin },
+            ])
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: "admin2", email: "admin2@x.com", isActive: true })
+            ; (prisma.user.update as jest.Mock).mockResolvedValue({})
+            const { bulkUserAction } = require("./services")
+            const result = await bulkUserAction(
+                { id: "admin1", role: UserRole.admin },
+                "deactivate",
+                ["admin2"]
+            )
+            expect(result.successCount).toBe(1)
+        })
+
+        it("getUserActivity: manager cannot view activity outside their department", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "target1", email: "t@x", name: "T", department: "Finance",
+            })
+            const { getUserActivity } = require("./services")
+            await expect(
+                getUserActivity(
+                    { id: "mgr1", role: UserRole.manager, department: "IT" },
+                    "target1",
+                    {}
+                )
+            ).rejects.toThrow(/Insufficient permissions to view this user/)
+        })
+
+        it("getUserActivity: manager can view activity inside their department", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "target1", email: "t@x", name: "T", department: "IT",
+            })
+            ; (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([])
+            ; (prisma.activityLog.count as jest.Mock).mockResolvedValue(0)
+            const { getUserActivity } = require("./services")
+            const result = await getUserActivity(
+                { id: "mgr1", role: UserRole.manager, department: "IT" },
+                "target1",
+                {}
+            )
+            expect(result.user.id).toBe("target1")
         })
     })
 })

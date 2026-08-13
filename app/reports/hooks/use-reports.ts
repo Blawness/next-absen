@@ -97,19 +97,26 @@ export const useReports = () => {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      router.push("/auth/signin")
+      router.replace("/auth/signin")
       return
     }
 
-    // Load filter options only once on mount
-    if (!filterOptionsLoadedRef.current) {
+    // Regular users keep REPORT_READ (lib/permissions.ts) and the API
+    // hard-scopes them to their own records, so they get the page too —
+    // just without the org-wide filters and export.
+    const isRegularUser = session.user.role === UserRole.user
+
+    // Load filter options only once on mount. Regular users cannot read the
+    // user/department lists, so skip it rather than fire two 403s.
+    if (!isRegularUser && !filterOptionsLoadedRef.current) {
       filterOptionsLoadedRef.current = true
       loadFilterOptions()
     }
 
     // Load reports whenever filters change
     loadReports()
-  }, [status, session, filters, loadReports, loadFilterOptions, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.id, session?.user?.role, filters, loadReports, loadFilterOptions, router])
 
   // Memoize handleFilterChange to prevent recreation on every render
   const handleFilterChange = useCallback((field: keyof ReportFilters, value: string) => {
@@ -117,19 +124,22 @@ export const useReports = () => {
   }, [])
 
   // Memoize handleExport function
-  const handleExport = useCallback(async (exportFormat: 'csv' | 'pdf') => {
-    // For PDF, we now open a print view instead of downloading a file
-    if (exportFormat === 'pdf') {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
-      params.append('format', 'pdf')
+  const buildExportParams = useCallback(() => {
+    const params = new URLSearchParams()
+    if (filters.startDate) params.append('startDate', filters.startDate)
+    if (filters.endDate) params.append('endDate', filters.endDate)
+    if (filters.userId) params.append('userId', filters.userId)
+    if (filters.department) params.append('department', filters.department)
+    if (filters.status) params.append('status', filters.status)
+    return params
+  }, [filters])
 
-      const url = `/api/reports/export?${params.toString()}`
-      window.open(url, '_blank', 'noopener,noreferrer')
+  const handleExport = useCallback(async (exportFormat: 'csv' | 'pdf') => {
+    // For PDF, open in new tab so the browser can render it.
+    if (exportFormat === 'pdf') {
+      const params = buildExportParams()
+      params.append('format', 'pdf')
+      window.open(`/api/reports/export?${params.toString()}`, '_blank', 'noopener,noreferrer')
       return
     }
 
@@ -137,12 +147,7 @@ export const useReports = () => {
     setMessage(null)
 
     try {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
+      const params = buildExportParams()
       params.append('format', exportFormat)
 
       const response = await fetch(`/api/reports/export?${params.toString()}`)
@@ -171,31 +176,29 @@ export const useReports = () => {
 
   // Handle PDF preview in new tab
   const handlePreview = useCallback(async () => {
-    setMessage(null)
-
     try {
-      const params = new URLSearchParams()
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
-      if (filters.userId) params.append('userId', filters.userId)
-      if (filters.department) params.append('department', filters.department)
-      if (filters.status) params.append('status', filters.status)
+      const params = buildExportParams()
       params.append('format', 'pdf')
       params.append('preview', 'true')
-
-      // Open PDF preview in new tab
-      const previewUrl = `/api/reports/export?${params.toString()}`
-      window.open(previewUrl, '_blank', 'noopener,noreferrer')
+      window.open(`/api/reports/export?${params.toString()}`, '_blank', 'noopener,noreferrer')
     } catch {
       setMessage({ type: 'error', text: 'Failed to open PDF preview' })
     }
-  }, [filters])
+  }, [buildExportParams])
 
   // Memoize canExport to prevent recreation on every render
   const canExport = useMemo(() =>
     session?.user.role === UserRole.admin ||
+    session?.user.role === UserRole.superadmin ||
     session?.user.role === UserRole.manager,
     [session?.user.role]
+  )
+
+  // Regular users only ever see their own records — hide the org-wide
+  // department/employee pickers for them.
+  const canFilterOthers = useMemo(() =>
+    !!session && session.user.role !== UserRole.user,
+    [session]
   )
 
   return {
@@ -209,6 +212,7 @@ export const useReports = () => {
     departments,
     users,
     canExport,
+    canFilterOthers,
 
     // Actions
     loadReports,

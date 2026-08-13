@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
+import { rateLimit } from "@/lib/rate-limit"
+
+// In-process cache: identical coordinates → cached address string.
+// Coordinates are rounded to 5 decimals (~1.1m precision) so dragging a
+// marker a few pixels doesn't bust the cache.
+const CACHE_TTL_MS = 5 * 60 * 1000
+const cache = new Map<string, { address: string; expiresAt: number }>()
+
+const geoKey = (lat: number, lng: number) =>
+  `${lat.toFixed(5)},${lng.toFixed(5)}`
+
+function getCached(lat: number, lng: number): string | null {
+  const entry = cache.get(geoKey(lat, lng))
+  if (!entry) return null
+  if (Date.now() > entry.expiresAt) {
+    cache.delete(geoKey(lat, lng))
+    return null
+  }
+  return entry.address
+}
+
+function setCached(lat: number, lng: number, address: string) {
+  cache.set(geoKey(lat, lng), { address, expiresAt: Date.now() + CACHE_TTL_MS })
+}
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   const session = await getServerSession(authOptions)
@@ -12,6 +36,17 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       { status: 401 }
     )
   }
+
+  // Rate limit: 20 requests / minute / user. Drag-pinning can fire
+  // several requests in a second, but a sustained burst above this
+  // means a misbehaving client. Nominatim's policy is ~1 req/sec
+  // sustained — we stay well under that.
+  const limited = await rateLimit(request, {
+    maxRequests: 20,
+    windowMs: 60 * 1000,
+    keyExtractor: () => `geocode:${session.user.id}`,
+  })
+  if (limited) return limited
 
   const { searchParams } = new URL(request.url)
   const lat = searchParams.get('lat')
@@ -34,7 +69,17 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
   }
 
-  // Use OpenStreetMap Nominatim API for reverse geocoding (free, no API key required)
+  // Check cache first.
+  const cached = getCached(latitude, longitude)
+  if (cached !== null) {
+    return NextResponse.json({
+      address: cached,
+      latitude,
+      longitude,
+      cached: true,
+    })
+  }
+
   let address: string
 
   try {
@@ -63,10 +108,13 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
   }
 
+  setCached(latitude, longitude, address)
+
   return NextResponse.json({
     address: address,
     latitude: latitude,
     longitude: longitude,
+    cached: false,
   })
 
 }, "reverse geocoding")

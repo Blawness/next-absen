@@ -18,7 +18,11 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const status = searchParams.get("status") ?? undefined
 
     const { csvData } = await exportUsers(
-        { id: session.user.id, role: session.user.role },
+        {
+          id: session.user.id,
+          role: session.user.role,
+          department: session.user.department,
+        },
         { department, role, status }
     )
 

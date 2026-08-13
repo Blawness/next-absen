@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { HttpError } from "@/lib/errors"
 import { hasPermission, Permission } from "@/lib/permissions"
+import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
 
 async function checkPermission() {
   const session = await getServerSession(authOptions)
@@ -43,6 +44,7 @@ export interface ListAttendanceParams {
 
 export async function listAttendance(params: ListAttendanceParams) {
   await checkPermission()
+  await maybeSweepAutoCheckout()
 
   const { userId, dateFrom, dateTo, status, page = 1, limit = 20 } = params
   const where: Record<string, unknown> = {}
@@ -106,7 +108,16 @@ export async function createAttendance(data: CreateAttendanceData) {
     throw new HttpError("User not found", 404)
   }
 
-  const dateObj = new Date(data.date)
+  // Parse the date string. Accept either YYYY-MM-DD (calendar date, UTC)
+  // or a full ISO timestamp; the calendar date form is what the UI uses.
+  // Using a UTC midnight Date keeps the MySQL DATE round-trip consistent
+  // regardless of the server's timezone (see lib/date-bounds.ts).
+  let dateObj: Date
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
+    dateObj = new Date(`${data.date}T00:00:00.000Z`)
+  } else {
+    dateObj = new Date(data.date)
+  }
   if (isNaN(dateObj.getTime())) {
     throw new HttpError("Invalid date format", 400)
   }

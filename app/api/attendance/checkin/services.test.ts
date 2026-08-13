@@ -121,7 +121,7 @@ describe("Check-in Service", () => {
       const newRecord = { id: "new-att-1" }
       ;(prisma.absensiRecord.create as jest.Mock).mockResolvedValue(newRecord)
 
-      const result = await createOrUpdateAttendance("user-1", checkInData, null)
+      const result = await createOrUpdateAttendance("user-1", checkInData, null, 0, "present" as never)
       expect(prisma.absensiRecord.create).toHaveBeenCalled()
       expect(prisma.absensiRecord.update).not.toHaveBeenCalled()
       expect(result).toEqual(newRecord)
@@ -135,11 +135,22 @@ describe("Check-in Service", () => {
       const result = await createOrUpdateAttendance(
         "user-1",
         checkInData,
-        existingRecord
+        existingRecord,
+        0,
+        "present" as never,
       )
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(prisma.absensiRecord.create).not.toHaveBeenCalled()
       expect(result).toEqual(updatedRecord)
+    })
+
+    it("should propagate P2002 unique-constraint errors as 'already checked in'", async () => {
+      const p2002 = Object.assign(new Error("Unique constraint failed"), { code: "P2002" })
+      ;(prisma.absensiRecord.create as jest.Mock).mockRejectedValue(p2002)
+
+      await expect(
+        createOrUpdateAttendance("user-1", checkInData, null, 0, "present" as never)
+      ).rejects.toThrow("Anda sudah check-in hari ini")
     })
   })
 

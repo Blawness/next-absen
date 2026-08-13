@@ -68,17 +68,18 @@ export default function ActivityLogsPage() {
         if (status === "loading") return
 
         if (status === "unauthenticated" || !session) {
-            router.push("/auth/signin")
+            router.replace("/auth/signin")
             return
         }
 
         if (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin) {
-            router.push("/dashboard")
+            router.replace("/dashboard")
             return
         }
 
         fetchLogs()
-    }, [status, session, fetchLogs, router])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status, session?.user?.id, session?.user?.role, fetchLogs, router])
 
     const getActionColor = (action: string) => {
         if (action.includes("DELETE") || action.includes("DEACTIVATE")) return "bg-red-500/20 text-red-400 border-red-500/30"
@@ -98,35 +99,57 @@ export default function ActivityLogsPage() {
     return (
         <div className="space-y-8">
             <div
-                className="flex items-center justify-between animate-fade-down"
+                className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-down"
               >
-                <div>
-                    <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+                <div className="min-w-0">
+                    <h1 className="text-3xl sm:text-4xl font-bold glass-title text-center lg:text-left">
                         {NAVIGATION.ACTIVITY_LOG}
                     </h1>
-                    <p className="text-white/80 text-lg">
+                    <p className="text-white/80 text-base sm:text-lg">
                         Pantau semua aktivitas sistem
                     </p>
                 </div>
             </div>
 
             <Card className="glass-card border-white/10">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardHeader className="flex flex-col gap-3 space-y-0 pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <CardTitle className="text-xl font-bold text-white">
                         Riwayat Aktivitas
                     </CardTitle>
-                    <div className="flex items-center space-x-2">
-                        <Select value={filterAction} onValueChange={setFilterAction}>
-                            <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white">
+                    <div className="flex w-full items-center sm:w-auto">
+                        <Select
+                            value={filterAction}
+                            onValueChange={(value) => {
+                                // Reset to the first page — keeping the old page
+                                // number strands the user past the new last page.
+                                setPage(1)
+                                setFilterAction(value)
+                            }}
+                        >
+                            <SelectTrigger className="w-full bg-white/5 border-white/10 text-white sm:w-[200px]">
                                 <SelectValue placeholder="Filter Aksi" />
                             </SelectTrigger>
                             <SelectContent className="bg-gray-900 border-white/10 text-white">
                                 <SelectItem value="all">Semua Aksi</SelectItem>
-                                <SelectItem value="LOGIN">Login</SelectItem>
-                                <SelectItem value="LOGOUT">Logout</SelectItem>
+                                <SelectItem value="check_in">Check-in</SelectItem>
+                                <SelectItem value="check_out">Check-out</SelectItem>
                                 <SelectItem value="CREATE_USER">Create User</SelectItem>
                                 <SelectItem value="UPDATE_USER">Update User</SelectItem>
+                                <SelectItem value="DELETE_USER">Delete User</SelectItem>
+                                <SelectItem value="ACTIVATE_USER">Activate User</SelectItem>
+                                <SelectItem value="DEACTIVATE_USER">Deactivate User</SelectItem>
+                                <SelectItem value="RESET_PASSWORD">Reset Password</SelectItem>
+                                <SelectItem value="update_profile">Update Profile</SelectItem>
+                                <SelectItem value="change_password">Change Password</SelectItem>
+                                <SelectItem value="MANAGE_ATTENDANCE">Manage Attendance</SelectItem>
+                                <SelectItem value="EXPORT_USERS">Export Users</SelectItem>
                                 <SelectItem value="UPDATE_SETTINGS">Update Settings</SelectItem>
+                                <SelectItem value="CREATE_API_KEY">Create API Key</SelectItem>
+                                <SelectItem value="UPDATE_API_KEY">Update API Key</SelectItem>
+                                <SelectItem value="REVOKE_API_KEY">Revoke API Key</SelectItem>
+                                <SelectItem value="DELETE_API_KEY">Delete API Key</SelectItem>
+                                <SelectItem value="EXTERNAL_API_AUTO_CHECKIN">External Auto Check-in</SelectItem>
+                                <SelectItem value="EXTERNAL_API_READ_ATTENDANCE">External Read Attendance</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -144,21 +167,21 @@ export default function ActivityLogsPage() {
                                         key={log.id}
                                         className="flex items-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors animate-slide-left"
                                     >
-                                        <Avatar className="h-10 w-10 border border-white/20">
+                                        <Avatar className="h-10 w-10 shrink-0 border border-white/20">
                                             <AvatarImage src={log.user.avatarUrl || undefined} />
                                             <AvatarFallback className="bg-blue-600 text-white">
                                                 {log.user.name.charAt(0)}
                                             </AvatarFallback>
                                         </Avatar>
 
-                                        <div className="flex-1 space-y-1">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
+                                        <div className="min-w-0 flex-1 space-y-1">
+                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                                <div className="flex min-w-0 flex-wrap items-center gap-x-2">
                                                     <span className="font-semibold text-white">{log.user.name}</span>
                                                     <span className="text-white/40 text-sm">•</span>
-                                                    <span className="text-white/60 text-sm">{log.user.email}</span>
+                                                    <span className="truncate text-white/60 text-sm">{log.user.email}</span>
                                                 </div>
-                                                <div className="flex items-center text-white/40 text-sm">
+                                                <div className="flex shrink-0 items-center text-white/40 text-sm">
                                                     <Clock className="mr-1 h-3 w-3" />
                                                     {format(new Date(log.createdAt), "dd MMM yyyy HH:mm", { locale: id })}
                                                 </div>

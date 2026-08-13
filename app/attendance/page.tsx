@@ -103,7 +103,8 @@ export default function AttendancePage() {
 
       loadData()
     }
-  }, [status, session, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.id, router])
 
   const loadTodayAttendance = async () => {
     try {
@@ -219,8 +220,9 @@ export default function AttendancePage() {
       if (checkInResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_IN_SUCCESS })
         setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
-        await loadTodayAttendance()
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Refresh the history table too — it renders on this page and would
+        // otherwise keep showing pre-check-in data until a manual reload.
+        await Promise.all([loadTodayAttendance(), loadAttendanceHistory()])
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_IN_FAILED })
       }
@@ -273,7 +275,7 @@ export default function AttendancePage() {
       if (checkOutResponse.ok) {
         setMessage({ type: 'success', text: MESSAGES.CHECK_OUT_SUCCESS })
         setCurrentLocation({ latitude: position.latitude, longitude: position.longitude, address })
-        await loadTodayAttendance()
+        await Promise.all([loadTodayAttendance(), loadAttendanceHistory()])
       } else {
         setMessage({ type: 'error', text: data.error || MESSAGES.CHECK_OUT_FAILED })
       }
@@ -290,8 +292,8 @@ export default function AttendancePage() {
   }
 
   const canCheckIn = !todayAttendance?.checkInTime
-  const canCheckOut = todayAttendance?.checkInTime && !todayAttendance?.checkOutTime
-  const hasCheckedOut = todayAttendance?.checkOutTime !== null
+  const canCheckOut = todayAttendance?.checkInTime != null && todayAttendance?.checkOutTime == null
+  const isCheckedOut = todayAttendance?.checkOutTime != null
 
   return (
     <div className="space-y-8">
@@ -349,7 +351,7 @@ export default function AttendancePage() {
                 {isCheckingOut && <Loader2 className="h-6 w-6 animate-spin" />}
                 {!isCheckingOut && <CheckCircle className="h-6 w-6" />}
                 <span className="font-semibold">
-                  {hasCheckedOut ? "Sudah Check-out" : "Check Out"}
+                  {isCheckedOut ? "Sudah Check-out" : "Check Out"}
                 </span>
                 <span className="text-sm opacity-80">
                   {todayAttendance?.checkOutTime ?
@@ -386,7 +388,11 @@ export default function AttendancePage() {
                 <div className="text-center">
                   <p className="text-sm font-medium">Status</p>
                   <Badge
-                    variant={todayAttendance.status === AttendanceStatus.present ? "default" : "secondary"}
+                    variant={
+                      todayAttendance.status === AttendanceStatus.present ? "default" :
+                      todayAttendance.status === AttendanceStatus.late ? "destructive" :
+                      "secondary"
+                    }
                     className="mt-1"
                   >
                     {STATUS_LABELS[todayAttendance.status]}
@@ -479,7 +485,7 @@ export default function AttendancePage() {
               Riwayat Absensi
             </CardTitle>
             <CardDescription className="text-white/70">
-              Data absensi 7 hari terakhir
+              Data absensi 30 hari terakhir
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -507,7 +513,13 @@ export default function AttendancePage() {
                         </div>
                       )}
                     </div>
-                    <Badge variant={record.status === AttendanceStatus.present ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        record.status === AttendanceStatus.present ? "default" :
+                        record.status === AttendanceStatus.late ? "destructive" :
+                        "secondary"
+                      }
+                    >
                       {STATUS_LABELS[record.status]}
                     </Badge>
                   </div>

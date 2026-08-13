@@ -13,6 +13,7 @@ import { UserRole } from "@prisma/client"
 import { UserStatistics } from "@/components/users/user-statistics"
 import { UserActivityDialog } from "@/components/users/user-activity-dialog"
 import { UserFormDialog, type UserFormData } from "@/components/users/user-form-dialog"
+import { PasswordResetDialog } from "@/components/users/password-reset-dialog"
 
 interface User {
   id: string
@@ -38,6 +39,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
 
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false)
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
   const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
@@ -55,18 +57,19 @@ export default function UsersPage() {
     if (status === "loading") return
 
     if (status === "unauthenticated" || !session) {
-      router.push("/auth/signin")
+      router.replace("/auth/signin")
       return
     }
 
     if (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin) {
-      router.push("/dashboard")
+      router.replace("/dashboard")
       return
     }
 
     loadUsers(statusFilter)
     loadDepartments()
-  }, [status, session, statusFilter, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.id, session?.user?.role, statusFilter, router])
 
   const loadUsers = async (status: 'all' | 'active' | 'inactive' = 'active') => {
     try {
@@ -157,12 +160,25 @@ export default function UsersPage() {
       const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users'
       const method = editingUser ? 'PUT' : 'POST'
 
+      // When editing, password changes must go through the dedicated
+      // /api/users/[id]/reset-password route so they get the proper
+      // RESET_PASSWORD audit log entry. Strip password fields here.
+      const payload = editingUser
+        ? {
+            name: formData.name,
+            email: formData.email,
+            department: formData.department,
+            position: formData.position,
+            role: formData.role,
+          }
+        : formData
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
@@ -246,11 +262,17 @@ export default function UsersPage() {
     setIsActivityLogOpen(true)
   }
 
-  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete', userIds: string[]) => {
+  const handlePasswordReset = (user: User) => {
+    setSelectedUserForAction(user)
+    setIsPasswordResetOpen(true)
+  }
+
+  // The bulk endpoint only accepts activate/deactivate (bulkActionSchema).
+  const handleBulkAction = async (action: 'activate' | 'deactivate', userIds: string[]) => {
     if (userIds.length === 0) return
 
-    const confirmMessage = `Are you sure you want to ${action} ${userIds.length} user(s)?`
-    if (!confirm(confirmMessage)) return
+    const actionLabel = action === 'activate' ? 'mengaktifkan' : 'menonaktifkan'
+    if (!confirm(`Yakin ingin ${actionLabel} ${userIds.length} pengguna?`)) return
 
     try {
       const response = await fetch('/api/users/bulk', {
@@ -268,15 +290,15 @@ export default function UsersPage() {
         const data = await response.json()
         setMessage({
           type: 'success',
-          text: `${data.successCount} user(s) ${action}d successfully`
+          text: `${data.successCount} pengguna berhasil ${action === 'activate' ? 'diaktifkan' : 'dinonaktifkan'}`
         })
         loadUsers(statusFilter)
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: error.error || `Failed to ${action} users` })
+        setMessage({ type: 'error', text: error.error || `Gagal ${actionLabel} pengguna` })
       }
     } catch {
-      setMessage({ type: 'error', text: 'An error occurred' })
+      setMessage({ type: 'error', text: 'Terjadi kesalahan' })
     }
   }
 
@@ -284,25 +306,27 @@ export default function UsersPage() {
     return <UsersSkeleton />
   }
 
+  // The effect above already redirects; render nothing while it happens.
+  // Navigating from the render body would setState during another
+  // component's render.
   if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {
-    router.push("/dashboard")
     return null
   }
 
   return (
     <div className="space-y-8">
       <div
-        className="flex items-center justify-between animate-fade-down"
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-down"
       >
-        <div>
-          <h1 className="text-4xl font-bold glass-title text-center lg:text-left">
+        <div className="min-w-0">
+          <h1 className="text-3xl sm:text-4xl font-bold glass-title text-center lg:text-left">
             {NAVIGATION.USERS}
           </h1>
-          <p className="text-white/80 text-lg">
+          <p className="text-white/80 text-base sm:text-lg">
             Kelola pengguna sistem dan peran mereka
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <Button
             onClick={handleExportUsers}
             variant="outline"
@@ -359,8 +383,10 @@ export default function UsersPage() {
           }}
           onEdit={handleEditUser}
           onToggleStatus={(user) => handleToggleStatus(user.id, user.isActive)}
+          onPasswordReset={handlePasswordReset}
           onViewActivity={handleViewActivity}
-          onBulkDelete={(ids) => handleBulkAction('delete', ids)}
+          onBulkActivate={(ids) => handleBulkAction('activate', ids)}
+          onBulkDeactivate={(ids) => handleBulkAction('deactivate', ids)}
         />
       </div>
 
@@ -385,6 +411,16 @@ export default function UsersPage() {
         <UserActivityDialog
           open={isActivityLogOpen}
           onOpenChange={setIsActivityLogOpen}
+          userId={selectedUserForAction.id}
+          userName={selectedUserForAction.name}
+        />
+      )}
+
+      {/* Password Reset Dialog */}
+      {selectedUserForAction && (
+        <PasswordResetDialog
+          open={isPasswordResetOpen}
+          onOpenChange={setIsPasswordResetOpen}
           userId={selectedUserForAction.id}
           userName={selectedUserForAction.name}
         />

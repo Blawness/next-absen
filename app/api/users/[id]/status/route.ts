@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
+import { requireSameOrigin } from "@/lib/csrf"
 import { toggleUserStatus } from "../../services"
 
 interface RouteParams {
@@ -9,6 +10,9 @@ interface RouteParams {
 }
 
 export const PATCH = withErrorHandling(async (request: NextRequest, { params }: RouteParams) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {

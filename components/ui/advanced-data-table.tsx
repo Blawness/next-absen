@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   DataTableToolbar,
   DataTableBulkActions,
@@ -39,10 +39,13 @@ export function AdvancedDataTable({
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     const filtered = data.filter((user) => {
+      const query = searchQuery.toLowerCase()
       const matchesSearch =
         searchQuery === "" ||
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        user.name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        (user.department?.toLowerCase().includes(query) ?? false) ||
+        (user.position?.toLowerCase().includes(query) ?? false)
 
       const matchesDepartment =
         departmentFilter === "all" || user.department === departmentFilter
@@ -103,6 +106,18 @@ export function AdvancedDataTable({
     [data]
   )
 
+  // Drop selections that are no longer visible. Without this, narrowing a
+  // filter leaves hidden rows selected and a bulk action silently applies to
+  // rows the user cannot see.
+  useEffect(() => {
+    setSelectedRows((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(filteredAndSortedData.map((user) => user.id))
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filteredAndSortedData])
+
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
       setSortDirection((prev) =>
@@ -130,8 +145,16 @@ export function AdvancedDataTable({
   const handleClearSelection = () => setSelectedRows(new Set())
 
   const handleBulkDelete = () => {
-    if (onBulkDelete) onBulkDelete(Array.from(selectedRows))
-    else selectedRows.forEach((id) => onDelete?.(data.find((u) => u.id === id)!))
+    if (onBulkDelete) {
+      onBulkDelete(Array.from(selectedRows))
+    } else if (onDelete) {
+      // Resolve each id before calling — a stale selection would otherwise
+      // hand `undefined` to the callback.
+      selectedRows.forEach((id) => {
+        const user = data.find((u) => u.id === id)
+        if (user) onDelete(user)
+      })
+    }
     setSelectedRows(new Set())
   }
 
@@ -163,7 +186,7 @@ export function AdvancedDataTable({
       <DataTableToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Cari nama, email, departemen..."
+        searchPlaceholder="Cari nama, email, departemen, posisi..."
         density={density}
         onDensityChange={setDensity}
         showDensityToggle

@@ -7,6 +7,35 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CalendarDays, Users, Filter, RefreshCw } from "lucide-react"
 import { UserRole } from "@prisma/client"
 
+/**
+ * Compute the [start, end] dates for the given period using LOCAL time.
+ * Monday-first week. Used so the displayed date range matches what the
+ * user sees in their calendar, not UTC. (BUG-FIX H2)
+ */
+function computePeriodRange(period: "weekly" | "monthly"): { start: Date; end: Date } {
+  const now = new Date()
+  if (period === "weekly") {
+    const dayOfWeek = now.getDay()
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const start = new Date(now.getFullYear(), now.getMonth(), diff)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    return { start, end }
+  }
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  // Day 0 of next month = last day of current month.
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  return { start, end }
+}
+
+/** Format a local Date as YYYY-MM-DD using local-time components (NOT UTC). */
+function toLocalIsoDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
 interface KpiFiltersProps {
   onFiltersChange: (filters: {
     period: "weekly" | "monthly"
@@ -32,6 +61,9 @@ interface User {
 }
 
 export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoading = false }: KpiFiltersProps) {
+  // superadmin has at least the same reach as admin — it was previously
+  // excluded from every check here, leaving it with no division/employee filter.
+  const isOrgWide = userRole === UserRole.admin || userRole === UserRole.superadmin
   const [period, setPeriod] = useState<"weekly" | "monthly">("weekly")
   const [department, setDepartment] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
@@ -45,7 +77,7 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
   // Fetch departments on mount
   useEffect(() => {
     const fetchDepartments = async () => {
-      if (userRole !== UserRole.admin && userRole !== UserRole.manager) return
+      if (!isOrgWide && userRole !== UserRole.manager) return
 
       setLoadingDepts(true)
       try {
@@ -66,12 +98,12 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
     }
 
     fetchDepartments()
-  }, [userRole])
+  }, [userRole, isOrgWide])
 
   // Fetch users on mount
   useEffect(() => {
     const fetchUsers = async () => {
-      if (userRole !== UserRole.admin && userRole !== UserRole.manager) return
+      if (!isOrgWide && userRole !== UserRole.manager) return
 
       setLoadingUsers(true)
       try {
@@ -88,7 +120,7 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
     }
 
     fetchUsers()
-  }, [userRole])
+  }, [userRole, isOrgWide])
 
   // Set default department for manager
   useEffect(() => {
@@ -99,25 +131,9 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
 
   // Auto-set date range based on period
   useEffect(() => {
-    const now = new Date()
-    let start: Date
-    let end: Date
-
-    if (period === "weekly") {
-      // Get start of current week (Monday)
-      const dayOfWeek = now.getDay()
-      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // adjust when day is sunday
-      start = new Date(now.setDate(diff))
-      end = new Date(start)
-      end.setDate(start.getDate() + 6)
-    } else {
-      // Get start and end of current month
-      start = new Date(now.getFullYear(), now.getMonth(), 1)
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    }
-
-    setStartDate(start.toISOString().split('T')[0])
-    setEndDate(end.toISOString().split('T')[0])
+    const { start, end } = computePeriodRange(period)
+    setStartDate(toLocalIsoDate(start))
+    setEndDate(toLocalIsoDate(end))
   }, [period])
 
   const handleApplyFilters = () => {
@@ -131,23 +147,9 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
   }
 
   const handleResetFilters = () => {
-    const now = new Date()
-    let start: Date
-    let end: Date
-
-    if (period === "weekly") {
-      const dayOfWeek = now.getDay()
-      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
-      start = new Date(now.setDate(diff))
-      end = new Date(start)
-      end.setDate(start.getDate() + 6)
-    } else {
-      start = new Date(now.getFullYear(), now.getMonth(), 1)
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    }
-
-    setStartDate(start.toISOString().split('T')[0])
-    setEndDate(end.toISOString().split('T')[0])
+    const { start, end } = computePeriodRange(period)
+    setStartDate(toLocalIsoDate(start))
+    setEndDate(toLocalIsoDate(end))
 
     if (userRole === UserRole.manager && userDepartment) {
       setDepartment(userDepartment)
@@ -159,12 +161,12 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
 
   const filteredUsers = users.filter(user => !department || user.department === department)
 
-  const canSelectDepartment = userRole === UserRole.admin || userRole === UserRole.manager
+  const canSelectDepartment = isOrgWide || userRole === UserRole.manager
 
   return (
     <Card className="mb-6" variant="glass">
       <CardContent className="pt-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+        <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 items-stretch lg:items-end">
           {/* Period Selection */}
           <div className="flex flex-col space-y-2">
             <label className="text-sm font-medium text-white/70">Periode</label>
@@ -195,20 +197,20 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
           {/* Date Range */}
           <div className="flex flex-col space-y-2">
             <label className="text-sm font-medium text-white/70">Rentang Tanggal</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 glass-input text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full min-w-0 px-3 py-2 glass-input text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 sm:w-auto"
                 disabled={isLoading}
               />
-              <span className="text-white/50 self-center">-</span>
+              <span className="hidden text-white/50 sm:inline">-</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 glass-input text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full min-w-0 px-3 py-2 glass-input text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 sm:w-auto"
                 disabled={isLoading}
               />
             </div>
@@ -230,11 +232,11 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
                   }}
                   disabled={loadingDepts || isLoading || (userRole === UserRole.manager && !!userDepartment)}
                 >
-                  <SelectTrigger className="w-48 glass-input border-emerald-500/20 text-white">
+                  <SelectTrigger className="w-full glass-input border-emerald-500/20 text-white lg:w-48">
                     <SelectValue placeholder="Pilih divisi..." />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-emerald-500/20 text-white">
-                    {userRole === UserRole.admin && (
+                    {isOrgWide && (
                       <SelectItem value="all">Semua Divisi</SelectItem>
                     )}
                     {departments.map((dept) => (
@@ -257,7 +259,7 @@ export function KpiFilters({ onFiltersChange, userRole, userDepartment, isLoadin
                   onValueChange={(value) => setUserId(value === "all" ? "" : value)}
                   disabled={loadingUsers || isLoading}
                 >
-                  <SelectTrigger className="w-48 glass-input border-emerald-500/20 text-white">
+                  <SelectTrigger className="w-full glass-input border-emerald-500/20 text-white lg:w-48">
                     <SelectValue placeholder="Pilih karyawan..." />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-emerald-500/20 text-white">

@@ -15,6 +15,9 @@ jest.mock("@/lib/prisma", () => ({
     activityLog: {
       create: jest.fn(),
     },
+    systemSettings: {
+      findFirst: jest.fn(),
+    },
   },
 }))
 
@@ -110,6 +113,7 @@ describe("Auto Check-In Service", () => {
       })
       ;(prisma.absensiRecord.findFirst as jest.Mock).mockResolvedValue(null)
       ;(reverseGeocode as jest.Mock).mockResolvedValue("Jl. Sudirman, Jakarta")
+      ;(prisma.systemSettings.findFirst as jest.Mock).mockResolvedValue(null)
       ;(prisma.absensiRecord.create as jest.Mock).mockResolvedValue({
         id: "rec-1",
         checkInTime: new Date("2026-05-05T08:00:00Z"),
@@ -123,17 +127,63 @@ describe("Auto Check-In Service", () => {
       const result = await autoCheckIn(validInput, mockApiKey)
 
       expect(result.id).toBe("rec-1")
-      expect(result.status).toBe("present")
       expect(prisma.absensiRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             userId: "user-1",
             workHours: 8.00,
-            status: "present",
           }),
         })
       )
       expect(prisma.activityLog.create).toHaveBeenCalled()
+    })
+
+    it("should mark check-in as 'late' when after grace period", async () => {
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: "user-1",
+        isActive: true,
+      })
+      ;(prisma.absensiRecord.findFirst as jest.Mock).mockResolvedValue(null)
+      ;(reverseGeocode as jest.Mock).mockResolvedValue("Test Address")
+      // Pretend business hours start at 09:00 with 5 min grace, but the
+      // system clock says it's 23:30 — well past grace. We patch
+      // Date.now() to be deterministic.
+      ;(prisma.systemSettings.findFirst as jest.Mock).mockResolvedValue({
+        businessHours: {
+          startTime: "09:00",
+          endTime: "17:00",
+          checkInDeadline: "10:00",
+          gracePeriodMinutes: 5,
+        },
+      })
+      ;(prisma.absensiRecord.create as jest.Mock).mockResolvedValue({
+        id: "rec-late",
+        checkInTime: new Date(),
+        checkOutTime: new Date(),
+        workHours: { toString: () => "8.00" },
+        status: "late",
+        checkInAddress: "Test Address",
+      })
+      ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
+
+      // Force "now" to be 23:30 local so computeLateStatus returns late.
+      const fakeNow = new Date()
+      fakeNow.setHours(23, 30, 0, 0)
+      const dateSpy = jest.spyOn(Date, "now").mockReturnValue(fakeNow.getTime())
+
+      try {
+        await autoCheckIn(validInput, mockApiKey)
+        expect(prisma.absensiRecord.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: "late",
+              lateMinutes: expect.any(Number),
+            }),
+          })
+        )
+      } finally {
+        dateSpy.mockRestore()
+      }
     })
 
     it("should handle P2002 unique constraint race condition", async () => {

@@ -1,14 +1,81 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { withErrorHandling } from "@/lib/errors"
+import { withErrorHandling, HttpError } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
-import { UserRole, AttendanceStatus } from "@prisma/client"
+import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
+import { UserRole, AttendanceStatus, Prisma } from "@prisma/client"
 
-interface WhereClause {
-  date?: { gte?: Date; lte?: Date }
-  userId?: string | { in: string[] }
-  status?: AttendanceStatus
+interface ReportsQuery {
+  startDate?: string | null
+  endDate?: string | null
+  userId?: string | null
+  department?: string | null
+  status?: string | null
+}
+
+/**
+ * Build the Prisma where clause for reports, enforcing that managers
+ * can never escape their department scope — regardless of the userId
+ * or department query params they pass.
+ *
+ * Without this helper, a manager could pass `?userId=<other-dept-user>`
+ * and get that user's attendance data (BUG-008 / IDOR). The UI may have
+ * a picker, but the API is the security boundary.
+ */
+async function buildReportsWhereClause(
+  session: { user: { id: string; role: UserRole; department?: string | null } },
+  query: ReportsQuery
+): Promise<Prisma.AbsensiRecordWhereInput> {
+  const where: Prisma.AbsensiRecordWhereInput = {}
+
+  if (query.startDate || query.endDate) {
+    where.date = {}
+    if (query.startDate) where.date.gte = new Date(query.startDate)
+    if (query.endDate) where.date.lte = new Date(query.endDate)
+  }
+
+  if (query.status) {
+    where.status = query.status as AttendanceStatus
+  }
+
+  if (session.user.role === UserRole.user) {
+    // Regular users can only see their own data — ignore all userId/department params.
+    where.userId = session.user.id
+    return where
+  }
+
+  if (session.user.role === UserRole.manager) {
+    // Managers are hard-scoped to their own department.
+    const dept = session.user.department
+    if (!dept) {
+      // Manager with no department: fail closed — see only self.
+      where.userId = session.user.id
+      return where
+    }
+    if (query.userId) {
+      // Verify the requested user is actually in the manager's department.
+      const target = await prisma.user.findUnique({
+        where: { id: query.userId },
+        select: { department: true, isActive: true },
+      })
+      if (!target || !target.isActive || target.department !== dept) {
+        throw new HttpError("User not in your department", 403)
+      }
+      where.userId = query.userId
+    } else {
+      where.user = { department: dept }
+    }
+    return where
+  }
+
+  // Admin / superadmin
+  if (query.userId) {
+    where.userId = query.userId
+  } else if (query.department) {
+    where.user = { department: query.department }
+  }
+  return where
 }
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
@@ -29,68 +96,13 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const status = searchParams.get('status')
   const includeSummary = searchParams.get('includeSummary') === 'true'
 
-  // Build where clause based on user role and filters
-  const whereClause: WhereClause = {}
+  // Reports must not count an unclosed shift as ongoing work.
+  await maybeSweepAutoCheckout()
 
-  // Date range filter
-  if (startDate || endDate) {
-    whereClause.date = {}
-    if (startDate) {
-      whereClause.date.gte = new Date(startDate)
-    }
-    if (endDate) {
-      whereClause.date.lte = new Date(endDate)
-    }
-  }
-
-  // User-based filtering based on role
-  if (session.user.role === UserRole.user) {
-    // Regular users can only see their own data — ignore userId/department params
-    whereClause.userId = session.user.id
-  } else if (session.user.role === UserRole.manager) {
-    // Managers are scoped to their own department unless they explicitly
-    // request a specific userId. Without this, a manager hitting the
-    // endpoint with no filters would see every department's records
-    // (BUG-008 — IDOR). If a manager explicitly passes a userId, trust
-    // it (the UI shows them the picker; presumably they have a reason).
-    if (userId) {
-      whereClause.userId = userId
-    } else {
-      const manager = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { department: true },
-      })
-      if (manager?.department) {
-        const departmentUsers = await prisma.user.findMany({
-          where: { department: manager.department },
-          select: { id: true },
-        })
-        whereClause.userId = {
-          in: departmentUsers.map((u) => u.id),
-        }
-      } else {
-        // Manager without a department: fall back to own data only.
-        whereClause.userId = session.user.id
-      }
-    }
-  } else {
-    // Admins and superadmins: apply optional userId or department filter
-    if (userId) {
-      whereClause.userId = userId
-    } else if (department) {
-      const departmentUsers = await prisma.user.findMany({
-        where: { department },
-        select: { id: true },
-      })
-      whereClause.userId = {
-        in: departmentUsers.map((u) => u.id),
-      }
-    }
-  }
-
-  if (status) {
-    whereClause.status = status as AttendanceStatus
-  }
+  const whereClause = await buildReportsWhereClause(
+    { user: { id: session.user.id, role: session.user.role as UserRole, department: session.user.department } },
+    { startDate, endDate, userId, department, status },
+  )
 
   // Get attendance records
   const attendanceRecords = await prisma.absensiRecord.findMany({
@@ -136,13 +148,11 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
     const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours), 0)
 
-    // Status breakdown
     const statusBreakdown = records.reduce((acc, record) => {
       acc[record.status] = (acc[record.status] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    // Department breakdown
     const departmentBreakdown = records.reduce((acc, record) => {
       const dept = record.user.department || 'Unknown'
       acc[dept] = (acc[dept] || 0) + 1

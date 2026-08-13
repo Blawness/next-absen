@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { validateSession } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
 import { parseBody, checkOutSchema } from "@/lib/validation"
+import { requireSameOrigin } from "@/lib/csrf"
 import {
   getTodaysAttendance,
   processCheckout,
@@ -9,6 +10,9 @@ import {
 } from "./services"
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await validateSession()
   const body = await parseBody(request, checkOutSchema)
 

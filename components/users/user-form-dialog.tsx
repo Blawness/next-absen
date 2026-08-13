@@ -99,7 +99,7 @@ export function UserFormDialog({
           className="flex min-h-0 flex-1 flex-col"
         >
           <DialogBody className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Nama Lengkap" htmlFor="name" required>
                 <Input
                   id="name"
@@ -125,7 +125,7 @@ export function UserFormDialog({
               </FormField>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Departemen" htmlFor="department">
                 <Select
                   value={formData.department}
@@ -177,50 +177,53 @@ export function UserFormDialog({
               </Select>
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                label={
-                  isEdit
-                    ? "Password Baru (opsional)"
-                    : "Password"
-                }
-                htmlFor="password"
-                hint={isEdit ? "Kosongkan jika tidak ingin mengubah" : undefined}
-                required={!isEdit}
-              >
-                <Input
-                  id="password"
-                  type="password"
-                  variant="glass"
-                  value={formData.password}
-                  onChange={(e) =>
-                    onFormDataChange({ ...formData, password: e.target.value })
-                  }
-                  required={!isEdit}
-                  minLength={8}
-                />
-              </FormField>
-              <FormField
-                label="Konfirmasi Password"
-                htmlFor="confirmPassword"
-                required={!isEdit}
-              >
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  variant="glass"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    onFormDataChange({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  required={!isEdit}
-                  minLength={8}
-                />
-              </FormField>
-            </div>
+            {!isEdit && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  label="Password"
+                  htmlFor="password"
+                  required
+                >
+                  <Input
+                    id="password"
+                    type="password"
+                    variant="glass"
+                    value={formData.password}
+                    onChange={(e) =>
+                      onFormDataChange({ ...formData, password: e.target.value })
+                    }
+                    required
+                    minLength={8}
+                  />
+                </FormField>
+                <FormField
+                  label="Konfirmasi Password"
+                  htmlFor="confirmPassword"
+                  required
+                >
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    variant="glass"
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      onFormDataChange({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    required
+                    minLength={8}
+                  />
+                </FormField>
+              </div>
+            )}
+
+            {isEdit && (
+              <p className="text-xs text-white/55">
+                Untuk mengubah password, gunakan tombol <span className="font-semibold text-white/80">Reset Password</span> di tabel.
+              </p>
+            )}
 
             {isEdit && editingUser && onToggleStatus && (
               <div className="pt-2">

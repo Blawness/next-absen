@@ -4,6 +4,7 @@ import { randomBytes } from "crypto"
 import bcrypt from "bcryptjs"
 import { authOptions } from "@/lib/auth"
 import { withErrorHandling } from "@/lib/errors"
+import { requireSameOrigin } from "@/lib/csrf"
 import { parseBody, apiKeyCreateSchema } from "@/lib/validation"
 import { prisma } from "@/lib/prisma"
 import { UserRole } from "@prisma/client"
@@ -38,6 +39,9 @@ export const GET = withErrorHandling(async () => {
 
 // POST /api/settings/api-keys — Generate new API key
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  const csrf = requireSameOrigin(request)
+  if (csrf) return csrf
+
   const session = await getServerSession(authOptions)
 
   if (!session || (session.user.role !== UserRole.admin && session.user.role !== UserRole.superadmin)) {

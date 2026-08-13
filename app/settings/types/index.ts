@@ -4,6 +4,8 @@ export interface SystemSettings {
     endTime: string
     checkInDeadline: string
     gracePeriodMinutes: number
+    autoCheckoutEnabled: boolean
+    maxWorkHours: number
   }
   location: {
     officeLatitude: number
