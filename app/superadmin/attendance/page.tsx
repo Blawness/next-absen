@@ -104,14 +104,18 @@ export default function SuperadminAttendancePage() {
 
   const limit = 15
 
+  const canManage =
+    !!session && hasPermission(session.user.role as UserRole, Permission.ABSENSI_MANAGE)
+
   useEffect(() => {
     if (sessionStatus === "loading") return
-    if (!session || !hasPermission(session.user.role as UserRole, Permission.ABSENSI_MANAGE)) {
+    if (!canManage) {
       router.replace("/dashboard")
       return
     }
     loadUsers()
-  }, [session, sessionStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus, canManage, router])
 
   const loadUsers = async () => {
     try {
@@ -147,8 +151,11 @@ export default function SuperadminAttendancePage() {
   }, [filters, page])
 
   useEffect(() => {
-    if (session) loadRecords()
-  }, [session, loadRecords])
+    // Gate on the permission, not just on having a session — otherwise every
+    // non-superadmin visit fires a request that comes back 403 before the
+    // redirect lands.
+    if (canManage) loadRecords()
+  }, [canManage, loadRecords])
 
   const handleEdit = (record: AttendanceRecord) => {
     setEditRecord(record)
