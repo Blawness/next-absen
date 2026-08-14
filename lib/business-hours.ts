@@ -84,10 +84,11 @@ export async function getBusinessHoursConfig(): Promise<BusinessHoursConfig> {
 }
 
 /**
- * Parse an "HH:mm" string into [hours, minutes] using the local clock of
- * the given reference date. Returns null if the input is malformed.
+ * Resolve an "HH:mm" string against the local-clock date of `reference`.
+ * Returns [timestampMs, dstShifted] where dstShifted is 1 when the wall
+ * clock time does not exist on that date, or null if the input is malformed.
  */
-function parseClock(time: string, reference: Date): [number, number] | null {
+export function parseClock(time: string, reference: Date): [number, number] | null {
   const match = /^(\d{2}):(\d{2})$/.exec(time)
   if (!match) return null
   const hours = Number(match[1])

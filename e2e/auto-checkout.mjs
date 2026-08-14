@@ -1,14 +1,19 @@
 /**
- * E2E test: Auto-checkout on exceeded max work hours (piggyback sweep)
+ * E2E test: Auto-checkout at end of shift (piggyback sweep)
  *
  * Verifies the whole loop against a real DB and a real server:
- * 1. Admin enables auto-checkout + sets max work hours through the Settings UI
- * 2. A shift left open past the limit is closed when a user simply opens the app
+ * 1. Admin enables auto-checkout + sets the shift end through the Settings UI
+ * 2. A shift left open past its end is closed when a user simply opens the app
  *    (no cron job involved — the sweep piggybacks on the read request)
- * 3. The recorded checkout is checkInTime + maxWorkHours, NOT the sweep time
+ * 3. The recorded checkout is the configured endTime, NOT the sweep time
  * 4. An existing note is preserved, not overwritten
- * 5. A shift still within the limit is left untouched
+ * 5. A shift whose end has not arrived is left untouched
  * 6. An "auto_check_out" ActivityLog is written for the record's owner
+ *
+ * The shift end is derived from the current clock (one hour ago) so the run
+ * is deterministic regardless of the time of day. Because endTime resolves
+ * against the check-in's own local date, the test needs the planted check-in
+ * to land on today — so it refuses to run before 05:00 local.
  *
  * Usage:
  *   npm run dev
@@ -27,6 +32,16 @@ const WORKER = { email: 'user1@demo.com', password: 'password123' };
 const MAX_WORK_HOURS = 12;
 const EXISTING_NOTE = 'Catatan lama dari user';
 
+// Shift end = one hour ago, so a check-in planted earlier today is already
+// past its end and the sweep is due to close it right now.
+const SHIFT_END = new Date(Date.now() - 60 * 60 * 1000);
+SHIFT_END.setSeconds(0, 0);
+const END_TIME = `${String(SHIFT_END.getHours()).padStart(2, '0')}:${String(SHIFT_END.getMinutes()).padStart(2, '0')}`;
+
+// Hours the planted stale shift will have worked: check-in this far before
+// the shift end, so the expected workHours is exactly this number.
+const STALE_SHIFT_HOURS = 4;
+
 // Dates far enough in the past that they cannot collide with real records
 // on the [userId, date] unique constraint.
 const STALE_DATE = new Date(Date.UTC(2020, 0, 6));
@@ -38,8 +53,6 @@ const results = [];
 function pass(name) { results.push({ test: name, pass: true }); console.log(`  PASS  ${name}`); }
 function fail(name, err) { results.push({ test: name, pass: false, error: err }); console.log(`  FAIL  ${name}: ${err}`); }
 
-function hoursAgo(h) { return new Date(Date.now() - h * 60 * 60 * 1000); }
-
 async function login(page, { email, password }) {
   await page.goto(`${BASE}/auth/signin`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#email', { timeout: 15000 });
@@ -50,6 +63,13 @@ async function login(page, { email, password }) {
 }
 
 async function main() {
+  if (SHIFT_END.getHours() < STALE_SHIFT_HOURS + 1) {
+    throw new Error(
+      `Too early in the day to run this test (shift end would be ${END_TIME}). ` +
+      `The planted check-in must land on the same local date as the shift end. Run after 05:00 local.`
+    );
+  }
+
   const worker = await prisma.user.findUnique({ where: { email: WORKER.email } });
   if (!worker) throw new Error(`Seed user ${WORKER.email} not found — run npm run db:seed`);
 
@@ -77,25 +97,31 @@ async function main() {
     pass('Max work hours input appears once the toggle is on');
 
     await hoursInput.fill(String(MAX_WORK_HOURS));
+    await page.locator('#endTime').fill(END_TIME);
     await page.getByRole('button', { name: /simpan/i }).first().click();
     await page.waitForTimeout(2500);
 
     const savedSettings = await prisma.systemSettings.findFirst();
     const savedHours = savedSettings?.businessHours ?? {};
-    if (savedHours.autoCheckoutEnabled === true && Number(savedHours.maxWorkHours) === MAX_WORK_HOURS) {
-      pass('Settings UI persists autoCheckoutEnabled + maxWorkHours');
+    if (
+      savedHours.autoCheckoutEnabled === true &&
+      Number(savedHours.maxWorkHours) === MAX_WORK_HOURS &&
+      savedHours.endTime === END_TIME
+    ) {
+      pass('Settings UI persists autoCheckoutEnabled + maxWorkHours + endTime');
     } else {
-      fail('Settings UI persists autoCheckoutEnabled + maxWorkHours', JSON.stringify(savedHours));
+      fail('Settings UI persists autoCheckoutEnabled + maxWorkHours + endTime', JSON.stringify(savedHours));
       throw new Error('Cannot proceed without the feature enabled');
     }
 
-    // ── 2. Plant one stale shift and one still-running shift ──────────
-    console.log('\n[2] Plant a stale shift (18h ago) and a fresh one (2h ago)...');
+    // ── 2. Plant one shift past its end and one not yet due ───────────
+    console.log(`\n[2] Plant a shift that started ${STALE_SHIFT_HOURS}h before the ${END_TIME} shift end, and one that started just now...`);
     await prisma.absensiRecord.deleteMany({
       where: { userId: worker.id, date: { in: [STALE_DATE, FRESH_DATE] } },
     });
 
-    const staleCheckIn = hoursAgo(18);
+    // Ends at END_TIME, which is already an hour in the past → due now.
+    const staleCheckIn = new Date(SHIFT_END.getTime() - STALE_SHIFT_HOURS * 60 * 60 * 1000);
     const stale = await prisma.absensiRecord.create({
       data: {
         userId: worker.id,
@@ -107,7 +133,9 @@ async function main() {
       },
     });
 
-    const freshCheckIn = hoursAgo(2);
+    // Checked in after today's shift end, so the safety bound applies instead
+    // and its checkout is still MAX_WORK_HOURS away → must stay untouched.
+    const freshCheckIn = new Date(Date.now() - 10 * 60 * 1000);
     const fresh = await prisma.absensiRecord.create({
       data: {
         userId: worker.id,
@@ -145,17 +173,17 @@ async function main() {
 
     // ── 4. Checkout time is derived, not "now" ────────────────────────
     console.log('\n[4] Verify the written values...');
-    const expected = new Date(staleCheckIn.getTime() + MAX_WORK_HOURS * 3600 * 1000);
+    const expected = SHIFT_END;
     const driftMs = Math.abs(closed.checkOutTime.getTime() - expected.getTime());
     // The DB column has second precision; anything under 2s is storage rounding.
     if (driftMs < 2000) {
-      pass(`checkOutTime = checkIn + ${MAX_WORK_HOURS}h, not the sweep time (drift ${driftMs}ms)`);
+      pass(`checkOutTime = shift end ${END_TIME}, not the sweep time (drift ${driftMs}ms)`);
     } else {
-      fail('checkOutTime = checkIn + maxWorkHours', `expected ${expected.toISOString()}, got ${closed.checkOutTime.toISOString()}`);
+      fail('checkOutTime = configured endTime', `expected ${expected.toISOString()}, got ${closed.checkOutTime.toISOString()}`);
     }
 
-    if (Number(closed.workHours) === MAX_WORK_HOURS) pass(`workHours = ${MAX_WORK_HOURS}`);
-    else fail('workHours = maxWorkHours', `got ${closed.workHours}`);
+    if (Number(closed.workHours) === STALE_SHIFT_HOURS) pass(`workHours = ${STALE_SHIFT_HOURS}`);
+    else fail(`workHours = ${STALE_SHIFT_HOURS}`, `got ${closed.workHours}`);
 
     if (closed.status === 'present') pass('status preserved');
     else fail('status preserved', `got ${closed.status}`);
@@ -167,12 +195,12 @@ async function main() {
       fail('Existing note preserved and marker appended', `notes=${JSON.stringify(closed.notes)}`);
     }
 
-    // ── 6. The still-running shift is untouched ───────────────────────
+    // ── 6. The shift whose end has not arrived is untouched ───────────
     const freshAfter = await prisma.absensiRecord.findUnique({ where: { id: fresh.id } });
     if (freshAfter?.checkOutTime === null && freshAfter?.notes === null) {
-      pass('Shift still within the limit is left untouched');
+      pass('Shift whose checkout is not yet due is left untouched');
     } else {
-      fail('Shift still within the limit is left untouched', `checkOutTime=${freshAfter?.checkOutTime}, notes=${freshAfter?.notes}`);
+      fail('Shift whose checkout is not yet due is left untouched', `checkOutTime=${freshAfter?.checkOutTime}, notes=${freshAfter?.notes}`);
     }
 
     // ── 7. Activity log written for the record's owner ────────────────
