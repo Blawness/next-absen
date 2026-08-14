@@ -13,7 +13,8 @@ import { Clock, MapPin, Calendar, TrendingUp, Loader2, CheckCircle, RefreshCw, A
 import { STATUS_LABELS, TIME_LABELS, MESSAGES, NAVIGATION } from "@/lib/constants"
 import { AttendanceStatus } from "@prisma/client"
 import { getCurrentPosition, calculateDistance } from "@/lib/location"
-import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
+import { computeWeekStats, type WeekStats } from "@/lib/week-stats"
+import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
 interface AttendanceData {
@@ -43,12 +44,6 @@ interface LastLocationData {
   checkInLongitude: number | null
   checkOutLatitude: number | null
   checkOutLongitude: number | null
-}
-
-interface WeekStats {
-  daysAttended: number
-  businessDays: number
-  avgWorkHours: number
 }
 
 export default function DashboardPage() {
@@ -91,37 +86,6 @@ export default function DashboardPage() {
   }
 
   // Compute weekly stats from a list of attendance records (newest first).
-  const computeWeekStats = (records: AttendanceData[]): WeekStats => {
-    const now = new Date()
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
-
-    const inWeek = records.filter(r => {
-      const d = new Date(r.date)
-      return isWithinInterval(d, { start: weekStart, end: weekEnd })
-    })
-
-    const daysAttended = inWeek.filter(r => r.checkInTime != null).length
-
-    // Count business days in the current week (Mon-Fri).
-    let businessDays = 0
-    const cursor = new Date(weekStart)
-    while (cursor <= weekEnd) {
-      const day = cursor.getDay()
-      if (day !== 0 && day !== 6) businessDays++
-      cursor.setDate(cursor.getDate() + 1)
-    }
-
-    const workHoursValues = inWeek
-      .map(r => (r.workHours == null ? null : Number(r.workHours)))
-      .filter((v): v is number => v != null)
-    const avgWorkHours = workHoursValues.length > 0
-      ? workHoursValues.reduce((a, b) => a + b, 0) / workHoursValues.length
-      : 0
-
-    return { daysAttended, businessDays, avgWorkHours }
-  }
-
   // Redirect to signin if unauthenticated. Wrapped to keep the call sites tidy.
   const requireAuth = useCallback(() => {
     if (status === "loading") return false
@@ -568,7 +532,7 @@ export default function DashboardPage() {
                   : "…"}
               </div>
               <p className="text-xs text-white/60">
-                Per hari minggu ini
+                Per hari kerja minggu ini
               </p>
             </CardContent>
           </Card>
