@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { withErrorHandling, HttpError } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
+import { averageWorkHoursPerDay, countReportBusinessDays } from "@/lib/business-days"
 import { UserRole, AttendanceStatus, Prisma } from "@prisma/client"
 
 interface ReportsQuery {
@@ -148,6 +149,16 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
     const totalOvertimeHours = records.reduce((sum, r) => sum + Number(r.overtimeHours), 0)
 
+    // Average is per business day per person, matching the dashboard and KPI.
+    // Dividing by record count instead would quietly reward absence: fewer
+    // records, same hours, higher "average".
+    const reportBusinessDays = countReportBusinessDays(
+      records.map(r => r.date),
+      startDate ? new Date(startDate) : null,
+      endDate ? new Date(endDate) : null,
+      new Date(),
+    )
+
     const statusBreakdown = records.reduce((acc, record) => {
       acc[record.status] = (acc[record.status] || 0) + 1
       return acc
@@ -164,7 +175,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       totalUsers,
       totalWorkHours: Number(totalWorkHours.toFixed(2)),
       totalOvertimeHours: Number(totalOvertimeHours.toFixed(2)),
-      averageWorkHours: totalRecords > 0 ? Number((totalWorkHours / totalRecords).toFixed(2)) : 0,
+      averageWorkHours: Number(
+        averageWorkHoursPerDay(totalWorkHours, reportBusinessDays, totalUsers).toFixed(2)
+      ),
       statusBreakdown,
       departmentBreakdown,
       dateRange: {

@@ -5,6 +5,12 @@ import { AttendanceStatus, UserRole, Prisma } from "@prisma/client"
 import { HttpError } from "@/lib/errors"
 import { getUtcDateKey, getUtcDayBounds } from "@/lib/date-bounds"
 import { getBusinessHoursConfig } from "@/lib/business-hours"
+import {
+  averageWorkHoursPerDay,
+  countBusinessDays,
+  countElapsedBusinessDays,
+  isBusinessDay,
+} from "@/lib/business-days"
 
 export { HttpError }
 
@@ -56,20 +62,6 @@ export function resolveRange(
   return { start, end }
 }
 
-function isBusinessDay(date: Date): boolean {
-  const day = date.getUTCDay()
-  return day !== 0 && day !== 6 // Mon-Fri only
-}
-
-export function countBusinessDays(range: DateRange): number {
-  let count = 0
-  const d = new Date(range.start)
-  while (d <= range.end) {
-    if (isBusinessDay(d)) count++
-    d.setUTCDate(d.getUTCDate() + 1)
-  }
-  return count
-}
 
 export interface KpiMetrics {
   period: PeriodType
@@ -146,8 +138,10 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   }
 
   // ---- 2. Resolve Date Range ----
-  const { start, end } = resolveRange(query.period, new Date(), query.start, query.end)
-  const businessDays = countBusinessDays({ start, end })
+  const now = new Date()
+  const { start, end } = resolveRange(query.period, now, query.start, query.end)
+  const businessDays = countBusinessDays(start, end)
+  const elapsedBusinessDays = countElapsedBusinessDays(start, end, now)
 
   // ---- 3. Get Total Active Users (Denominator) ----
   const userWhere: Prisma.UserWhereInput = { isActive: true }
@@ -194,12 +188,12 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const absentCount = Math.max(0, denominator - attended.length)
 
   const totalOvertime = records.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
-  const workHoursValues = records
-    .map(r => (r.workHours == null ? null : Number(r.workHours)))
-    .filter((v): v is number => v != null)
-  const avgWorkHours = workHoursValues.length > 0
-    ? workHoursValues.reduce((a, b) => a + b, 0) / workHoursValues.length
-    : 0
+  const totalWorkHours = records.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
+  const avgWorkHours = averageWorkHoursPerDay(
+    totalWorkHours,
+    elapsedBusinessDays,
+    totalActiveUsers,
+  )
 
   const grace = await getGracePeriodMinutes()
   const onTime = attended.filter(r => (r.lateMinutes ?? 0) <= grace).length
@@ -253,7 +247,7 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
     prevUserWhere.department = effectiveDepartment
   }
   const prevTotalActiveUsers = await prisma.user.count({ where: prevUserWhere })
-  const prevBusinessDays = countBusinessDays({ start: prevStart, end: prevEnd })
+  const prevBusinessDays = countBusinessDays(prevStart, prevEnd)
   const prevDenominator = Math.max(1, prevBusinessDays * prevTotalActiveUsers)
 
   const prevWhere: Prisma.AbsensiRecordWhereInput = {
@@ -279,12 +273,13 @@ export async function getKpi(query: KpiQuery): Promise<KpiMetrics> {
   const prevLateCount = prevRecords.filter(r => r.status === AttendanceStatus.late).length
   const prevAbsentCount = Math.max(0, prevDenominator - prevAttended.length)
   const prevTotalOvertime = prevRecords.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
-  const prevWorkHoursValues = prevRecords
-    .map(r => (r.workHours == null ? null : Number(r.workHours)))
-    .filter((v): v is number => v != null)
-  const prevAvgWorkHours = prevWorkHoursValues.length > 0
-    ? prevWorkHoursValues.reduce((a, b) => a + b, 0) / prevWorkHoursValues.length
-    : 0
+  // The previous period is fully elapsed, so its business days are all of them.
+  const prevTotalWorkHours = prevRecords.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
+  const prevAvgWorkHours = averageWorkHoursPerDay(
+    prevTotalWorkHours,
+    prevBusinessDays,
+    prevTotalActiveUsers,
+  )
   const prevOnTime = prevAttended.filter(r => (r.lateMinutes ?? 0) <= grace).length
 
   const prevAttendanceRate = prevAttended.length / prevDenominator

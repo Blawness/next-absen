@@ -65,7 +65,7 @@ export function KpiCharts({ data, isLoading = false }: KpiChartsProps) {
       title: "Avg Work Hours",
       value: `${data.metrics.avgWorkHours}j`,
       rawValue: data.metrics.avgWorkHours,
-      description: "Rata-rata jam kerja",
+      description: "Rata-rata per hari kerja",
       icon: TrendingUp,
       color: "text-purple-400",
       bgColor: "bg-purple-500/20",

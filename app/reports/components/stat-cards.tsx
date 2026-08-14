@@ -26,7 +26,7 @@ export const StatCards = ({ summary }: StatCardsProps) => {
     {
       title: "Total Jam Kerja",
       value: `${summary.totalWorkHours}j`,
-      description: `Rata-rata ${summary.averageWorkHours}j per hari`,
+      description: `Rata-rata ${summary.averageWorkHours}j per hari kerja`,
       icon: Clock,
       color: "text-white/70"
     },
