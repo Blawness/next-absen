@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev              # prisma generate + db push + next dev --port 3004 --hostname 0.0.0.0
 npm run build            # prisma generate + next build
+npm run clean            # rm -rf .next (see "Stale .next cache" below)
 npm run lint             # ESLint --max-warnings 0
 npm run type-check       # tsc --noEmit
 npm test                 # Jest (ts-jest, node environment)
@@ -22,9 +23,21 @@ Run a single test file: `npx jest lib/auth.test.ts`
 
 Dev server runs on **port 3004** (not 3000).
 
+### Stale `.next` cache
+
+If `next dev` answers **404 with Next's own HTML error page** on routes that
+exist — the giveaway is every `/api/auth/*` endpoint 404ing so login is
+impossible, while `next build` + `next start` serve the same routes fine —
+the dev cache is stale, not the code. Run `npm run clean`, then `npm run dev`.
+
+`.next` survives Next upgrades and holds dev and production artifacts side by
+side, so it can keep entries from a much older layout (this repo carried
+compiled `middleware.ts` output months after the file became `proxy.ts`).
+Nothing in the app or in next-auth needs changing when this happens.
+
 ## Architecture
 
-**Next.js 15 App Router** with TypeScript. MySQL via Prisma v6. next-auth v4 with `CredentialsProvider`.
+**Next.js 16 App Router** with TypeScript. MySQL via Prisma v6. next-auth v4 with `CredentialsProvider`.
 
 ### API Pattern
 
@@ -40,8 +53,9 @@ Services throw `HttpError` (from `lib/errors.ts`) with a `message` and HTTP `sta
 
 - Sessions use next-auth with `CredentialsProvider`. The session cookie holds a DB-backed UUID (not a verifiable JWT), so `getToken()` cannot be used in middleware.
 - `PersistedSessionToken` stores AES-256-GCM encrypted tokens in the DB.
-- Auth for **pages** is enforced in `middleware.ts` by checking cookie presence only (Prisma cannot run in Edge Runtime). Real authorization is enforced per-request inside route handlers via `validateSession()`.
-- Auth for **API routes** is handled entirely inside each route handler — middleware passes all `/api/` requests through.
+- Auth for **pages** is enforced in `proxy.ts` by checking cookie presence only (Prisma cannot run in Edge Runtime). Real authorization is enforced per-request inside route handlers via `validateSession()`.
+- Auth for **API routes** is handled entirely inside each route handler — the proxy passes all `/api/` requests through.
+- `role` and `department` are re-read from the database on every session read (`readSessionToken` in `lib/session-token-store.ts`), not trusted from the stored token — a role change takes effect on the next request, without a re-login.
 
 ### Permission System
 
@@ -52,9 +66,15 @@ Services throw `HttpError` (from `lib/errors.ts`) with a `message` and HTTP `sta
 - `manager`: read users, read/create/update attendance, read/export reports, read settings
 - `user`: create/read own attendance, read reports
 
-### Middleware
+### Proxy (formerly middleware)
 
-`middleware.ts` handles only two things: rate-limiting `/api/auth/` POST endpoints (5 req/min per IP) and adding CORS headers to `/api/external/` routes.
+Next 16 renamed `middleware.ts` to `proxy.ts`; the file at the repo root is `proxy.ts`. It handles three things:
+
+1. Rate-limits `/api/auth/` POST endpoints (5 req/min per IP).
+2. Adds CORS headers (and answers preflight) for `/api/external/` routes.
+3. Redirects page requests with no session cookie to `/auth/signin` — presence check only, since Prisma cannot run on the Edge.
+
+Everything under `/api/` otherwise passes straight through; those routes do their own auth.
 
 ### Key Schema Details
 
