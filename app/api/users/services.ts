@@ -207,36 +207,59 @@ export async function updateUser(currentUser: { id: string; role: string }, user
         role
     }
 
-    // NOTE: password changes go through /api/users/[id]/reset-password
-    // so they get the dedicated RESET_PASSWORD audit log entry. The
-    // userUpdateSchema no longer accepts a password field, but we
-    // defensively ignore any stray one too.
-    const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: updateData,
-        select: {
-            id: true,
-            name: true,
-            department: true,
-            position: true,
-            email: true,
-            role: true,
-            isActive: true,
-            lastLogin: true,
-            createdAt: true
-        }
-    }).catch((err) => asUniqueConstraintError(err, "Email already exists"))
+    const emailChanged = email !== existingUser.email
 
-    await prisma.activityLog.create({
-        data: {
-            userId: currentUser.id,
-            action: "UPDATE_USER",
-            resourceType: "USER",
-            resourceId: userId,
-            details: {
-              targetUser: email,
+    // One transaction, so a failed revocation can never leave the account
+    // renamed with its old sessions still live — which is the exact hole
+    // the revocation exists to close.
+    const updatedUser = await prisma.$transaction(async (tx) => {
+        // NOTE: password changes go through /api/users/[id]/reset-password
+        // so they get the dedicated RESET_PASSWORD audit log entry. The
+        // userUpdateSchema no longer accepts a password field, but we
+        // defensively ignore any stray one too.
+        const user = await tx.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                department: true,
+                position: true,
+                email: true,
+                role: true,
+                isActive: true,
+                lastLogin: true,
+                createdAt: true
             }
+        }).catch((err) => asUniqueConstraintError(err, "Email already exists"))
+
+        // SECURITY: changing the address someone signs in with must end the
+        // sessions opened under the old one. Sessions read the user row live
+        // (see readSessionToken), so without this the old session would keep
+        // working and silently adopt the new email.
+        if (emailChanged) {
+            await tx.persistedSessionToken.updateMany({
+                where: { userId, revokedAt: null },
+                data: { revokedAt: new Date() },
+            })
         }
+
+        await tx.activityLog.create({
+            data: {
+                userId: currentUser.id,
+                action: "UPDATE_USER",
+                resourceType: "USER",
+                resourceId: userId,
+                details: {
+                  targetUser: email,
+                  ...(emailChanged
+                    ? { previousEmail: existingUser.email, sessionsRevoked: true }
+                    : {}),
+                }
+            }
+        })
+
+        return user
     })
 
     return updatedUser
@@ -383,24 +406,36 @@ export async function resetUserPassword(
     const newPassword = customPassword || generatePassword(12)
     const hashedPassword = await bcrypt.hash(newPassword, 12)
 
-    await prisma.user.update({
-        where: { id: targetUserId },
-        data: { password: hashedPassword }
-    })
-
     const sendEmail = false
 
-    await prisma.activityLog.create({
-        data: {
-            userId: currentUser.id,
-            action: "RESET_PASSWORD",
-            resourceType: "USER",
-            resourceId: targetUserId,
-            details: {
-                targetUser: user.email,
-                emailSent: sendEmail
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: targetUserId },
+            data: { password: hashedPassword }
+        })
+
+        // SECURITY: same rule the self-service change already follows in
+        // /api/profile/password — a new password must end every session
+        // opened with the old one, or the reset gives the admin a new
+        // password while whoever was already signed in keeps their access.
+        await tx.persistedSessionToken.updateMany({
+            where: { userId: targetUserId, revokedAt: null },
+            data: { revokedAt: new Date() },
+        })
+
+        await tx.activityLog.create({
+            data: {
+                userId: currentUser.id,
+                action: "RESET_PASSWORD",
+                resourceType: "USER",
+                resourceId: targetUserId,
+                details: {
+                    targetUser: user.email,
+                    emailSent: sendEmail,
+                    sessionsRevoked: true
+                }
             }
-        }
+        })
     })
 
     return {
