@@ -26,6 +26,11 @@ jobs:
 
       - run: npm run type-check
 
+      # Jest runs on ts-jest in a node environment and mocks Prisma, so it
+      # needs no database. `deploy` waits on this job, so a red test now
+      # blocks the deploy.
+      - run: npm test
+
   deploy:
     needs: build-and-test
     runs-on: ubuntu-latest
