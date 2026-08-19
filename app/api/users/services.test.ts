@@ -10,8 +10,8 @@ import {
 } from "./services"
 
 // Mock dependencies
-jest.mock("@/lib/prisma", () => ({
-    prisma: {
+jest.mock("@/lib/prisma", () => {
+    const client: Record<string, unknown> = {
         user: {
             findMany: jest.fn(),
             findUnique: jest.fn(),
@@ -24,8 +24,15 @@ jest.mock("@/lib/prisma", () => ({
             findMany: jest.fn(),
             count: jest.fn(),
         },
-    },
-}))
+        persistedSessionToken: {
+            updateMany: jest.fn(),
+        },
+    }
+    // Hand the callback the same mocked client, so assertions on
+    // prisma.user.update still see calls made inside a transaction.
+    client.$transaction = jest.fn((cb: (tx: unknown) => unknown) => cb(client))
+    return { prisma: client }
+})
 
 jest.mock("bcryptjs", () => ({
     hash: jest.fn(),
@@ -288,6 +295,62 @@ describe("User Management Service", () => {
             await expect(
                 deleteUser({ id: "admin1", role: UserRole.admin }, "super1")
             ).rejects.toThrow(/Insufficient permissions to delete a superadmin/)
+        })
+    })
+
+    describe("session revocation", () => {
+        const revokeMock = () =>
+            (prisma as unknown as {
+                persistedSessionToken: { updateMany: jest.Mock }
+            }).persistedSessionToken.updateMany
+
+        const mockLookups = (currentEmail: string, newEmail: string) => {
+            ; (prisma.user.findUnique as jest.Mock).mockImplementation((args) => {
+                if (args.where.id === "user1")
+                    return Promise.resolve({ id: "user1", email: currentEmail })
+                if (args.where.email === newEmail) return Promise.resolve(null)
+                return Promise.resolve(null)
+            })
+            ; (prisma.user.update as jest.Mock).mockResolvedValue({ id: "user1" })
+        }
+
+        it("revokes every active session when a user's email changes", async () => {
+            mockLookups("old@example.com", "new@example.com")
+
+            await updateUser({ id: "admin1", role: UserRole.admin }, "user1", {
+                name: "N", email: "new@example.com", role: UserRole.user,
+            })
+
+            expect(revokeMock()).toHaveBeenCalledWith({
+                where: { userId: "user1", revokedAt: null },
+                data: { revokedAt: expect.any(Date) },
+            })
+        })
+
+        it("leaves sessions alone when the email is unchanged", async () => {
+            mockLookups("same@example.com", "same@example.com")
+
+            await updateUser({ id: "admin1", role: UserRole.admin }, "user1", {
+                name: "Renamed", email: "same@example.com", role: UserRole.manager,
+            })
+
+            expect(revokeMock()).not.toHaveBeenCalled()
+        })
+
+        it("revokes every active session when an admin resets a password", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "user1", email: "u@x.com", name: "U", role: UserRole.user,
+            })
+            ; (prisma.user.update as jest.Mock).mockResolvedValue({ id: "user1" })
+            ; (bcrypt.hash as jest.Mock).mockResolvedValue("hashed")
+
+            const { resetUserPassword } = require("./services")
+            await resetUserPassword({ id: "admin1", role: UserRole.admin }, "user1")
+
+            expect(revokeMock()).toHaveBeenCalledWith({
+                where: { userId: "user1", revokedAt: null },
+                data: { revokedAt: expect.any(Date) },
+            })
         })
     })
 
