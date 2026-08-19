@@ -1,5 +1,8 @@
 import { AttendanceStatus } from "@prisma/client"
 
+export type { UserAttendanceStat } from "@/lib/attendance-stats"
+import type { UserAttendanceStat } from "@/lib/attendance-stats"
+
 export interface ReportRecord {
   id: string
   date: Date
@@ -28,7 +31,7 @@ export interface ReportSummary {
   totalOvertimeHours: number
   averageWorkHours: number
   statusBreakdown: Record<string, number>
-  departmentBreakdown: Record<string, number>
+  userBreakdown: UserAttendanceStat[]
   dateRange: {
     startDate: Date | null
     endDate: Date | null
