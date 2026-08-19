@@ -105,6 +105,8 @@ export const readSessionToken = async (sessionToken: string): Promise<JWT | null
           role: true,
           department: true,
           position: true,
+          name: true,
+          email: true,
         },
       },
     },
@@ -140,18 +142,24 @@ export const readSessionToken = async (sessionToken: string): Promise<JWT | null
     data: { lastUsedAt: now },
   })
 
-  // Authorization fields come from the row we just read, never from the
+  // The user's own fields come from the row we just read, never from the
   // stored payload. The payload is written once at sign-in (see the `jwt`
   // callback in lib/auth.ts, which only fills these when `user` is present),
-  // so a role or department changed afterwards would otherwise stay stale
-  // for the life of the session — up to 30 days. Every route that calls
-  // hasPermission() or scopes a query by role would be deciding on what was
-  // true at login, not what is true now.
+  // so anything edited afterwards would otherwise stay stale for the life of
+  // the session — up to 30 days.
+  //
+  // For role and department that is an authorization bug: every route calling
+  // hasPermission() or scoping a query by role would decide on what was true
+  // at login, not what is true now. For name and email it is milder — the
+  // sidebar and profile would keep showing the old values — but there is no
+  // reason to serve either from a stale copy when the row is already loaded.
   return {
     ...parsedPayload,
     role: storedToken.user.role,
     department: storedToken.user.department,
     position: storedToken.user.position,
+    name: storedToken.user.name,
+    email: storedToken.user.email,
   }
 }
 
