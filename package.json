@@ -9,6 +9,7 @@
     "dev": "prisma generate && prisma db push && next dev --port 3004 --hostname 0.0.0.0",
     "build": "prisma generate && next build",
     "start": "node start.mjs",
+    "clean": "rm -rf .next",
     "lint": "eslint . --max-warnings 0",
     "test": "jest",
     "db:generate": "prisma generate",
