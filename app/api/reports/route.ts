@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { withErrorHandling, HttpError } from "@/lib/errors"
+import { withErrorHandling } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
 import { averageWorkHoursPerDay, countReportBusinessDays } from "@/lib/business-days"
@@ -16,18 +16,23 @@ interface ReportsQuery {
 }
 
 /**
- * Build the Prisma where clause for reports, enforcing that managers
- * can never escape their department scope — regardless of the userId
- * or department query params they pass.
+ * Build the Prisma where clause for reports.
  *
- * Without this helper, a manager could pass `?userId=<other-dept-user>`
- * and get that user's attendance data (BUG-008 / IDOR). The UI may have
- * a picker, but the API is the security boundary.
+ * Regular users are pinned to their own records here. The UI hides the
+ * pickers from them, but the API is the security boundary, so any userId
+ * or department param they pass is ignored (BUG-008 / IDOR).
+ *
+ * Managers are deliberately org-wide, same as admins. They used to be
+ * hard-scoped to their own department, but `/api/users` fills the employee
+ * picker with the whole org, so picking anyone from another department
+ * 403'd the whole request and every summary card disappeared. At this
+ * company's size a manager reading any employee's attendance is intended,
+ * so the two halves now agree on the wider scope rather than the narrower.
  */
-async function buildReportsWhereClause(
-  session: { user: { id: string; role: UserRole; department?: string | null } },
+export function buildReportsWhereClause(
+  session: { user: { id: string; role: UserRole } },
   query: ReportsQuery
-): Promise<Prisma.AbsensiRecordWhereInput> {
+): Prisma.AbsensiRecordWhereInput {
   const where: Prisma.AbsensiRecordWhereInput = {}
 
   if (query.startDate || query.endDate) {
@@ -46,31 +51,7 @@ async function buildReportsWhereClause(
     return where
   }
 
-  if (session.user.role === UserRole.manager) {
-    // Managers are hard-scoped to their own department.
-    const dept = session.user.department
-    if (!dept) {
-      // Manager with no department: fail closed — see only self.
-      where.userId = session.user.id
-      return where
-    }
-    if (query.userId) {
-      // Verify the requested user is actually in the manager's department.
-      const target = await prisma.user.findUnique({
-        where: { id: query.userId },
-        select: { department: true, isActive: true },
-      })
-      if (!target || !target.isActive || target.department !== dept) {
-        throw new HttpError("User not in your department", 403)
-      }
-      where.userId = query.userId
-    } else {
-      where.user = { department: dept }
-    }
-    return where
-  }
-
-  // Admin / superadmin
+  // Manager / admin / superadmin
   if (query.userId) {
     where.userId = query.userId
   } else if (query.department) {
@@ -100,8 +81,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   // Reports must not count an unclosed shift as ongoing work.
   await maybeSweepAutoCheckout()
 
-  const whereClause = await buildReportsWhereClause(
-    { user: { id: session.user.id, role: session.user.role as UserRole, department: session.user.department } },
+  const whereClause = buildReportsWhereClause(
+    { user: { id: session.user.id, role: session.user.role as UserRole } },
     { startDate, endDate, userId, department, status },
   )
 
