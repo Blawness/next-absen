@@ -5,6 +5,7 @@ import { withErrorHandling } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
 import { averageWorkHoursPerDay, countReportBusinessDays } from "@/lib/business-days"
+import { buildUserAttendanceStats } from "@/lib/attendance-stats"
 import { UserRole, AttendanceStatus, Prisma } from "@prisma/client"
 
 interface ReportsQuery {
@@ -145,11 +146,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       return acc
     }, {} as Record<string, number>)
 
-    const departmentBreakdown = records.reduce((acc, record) => {
-      const dept = record.user.department || 'Unknown'
-      acc[dept] = (acc[dept] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
+    const userBreakdown = buildUserAttendanceStats(records)
 
     summary = {
       totalRecords,
@@ -160,7 +157,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         averageWorkHoursPerDay(totalWorkHours, reportBusinessDays, totalUsers).toFixed(2)
       ),
       statusBreakdown,
-      departmentBreakdown,
+      userBreakdown,
       dateRange: {
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null
