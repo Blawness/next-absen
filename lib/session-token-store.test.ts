@@ -63,6 +63,35 @@ describe("readSessionToken", () => {
     })
   })
 
+  it("re-reads name and email from the database", async () => {
+    // Renamed after marriage and moved to the new address, mid-session.
+    await storedTokenFor(
+      {
+        sub: USER_ID,
+        role: "user",
+        department: "Legal",
+        position: "Staff",
+        name: "Sri Wahyuni",
+        email: "sri.wahyuni@demo.com",
+      },
+      {
+        isActive: true,
+        role: "user",
+        department: "Legal",
+        position: "Staff",
+        name: "Sri Wahyuni Pratama",
+        email: "sri.pratama@demo.com",
+      },
+    )
+
+    const token = await readSessionToken(SESSION_TOKEN)
+
+    expect(token).toMatchObject({
+      name: "Sri Wahyuni Pratama",
+      email: "sri.pratama@demo.com",
+    })
+  })
+
   it("keeps the rest of the payload intact", async () => {
     await storedTokenFor(
       { sub: USER_ID, sid: "abc", role: "admin", department: "IT", position: "Lead" },
