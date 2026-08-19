@@ -1,58 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { withErrorHandling, HttpError } from "@/lib/errors"
+import { withErrorHandling } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
-import { UserRole, AttendanceStatus, Prisma } from "@prisma/client"
+import { UserRole } from "@prisma/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
-
-/**
- * Manager-scoped where clause for the export endpoint. Same IDOR fix
- * as in the JSON reports route — a manager passing `?userId=...` or
- * `?department=...` for someone outside their department must be
- * rejected at the API boundary, not just at the UI.
- */
-async function buildExportWhereClause(
-  session: { user: { id: string; role: UserRole; department?: string | null } },
-  query: { startDate?: string | null; endDate?: string | null; userId?: string | null; department?: string | null; status?: string | null }
-): Promise<Prisma.AbsensiRecordWhereInput> {
-  const where: Prisma.AbsensiRecordWhereInput = {}
-
-  if (query.startDate || query.endDate) {
-    where.date = {}
-    if (query.startDate) where.date.gte = new Date(query.startDate)
-    if (query.endDate) where.date.lte = new Date(query.endDate)
-  }
-  if (query.status) where.status = query.status as AttendanceStatus
-
-  if (session.user.role === UserRole.manager) {
-    const dept = session.user.department
-    if (!dept) {
-      where.userId = session.user.id
-      return where
-    }
-    if (query.userId) {
-      const target = await prisma.user.findUnique({
-        where: { id: query.userId },
-        select: { department: true, isActive: true },
-      })
-      if (!target || !target.isActive || target.department !== dept) {
-        throw new HttpError("User not in your department", 403)
-      }
-      where.userId = query.userId
-    } else {
-      where.user = { department: dept }
-    }
-    return where
-  }
-
-  if (query.userId) where.userId = query.userId
-  else if (query.department) where.user = { department: query.department }
-  return where
-}
+import { buildReportsWhereClause } from "../route"
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   const session = await getServerSession(authOptions)
@@ -86,8 +42,10 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
   }
 
-  const whereClause = await buildExportWhereClause(
-    { user: { id: session.user.id, role: session.user.role as UserRole, department: session.user.department } },
+  // Same scope rule as the JSON reports route, shared rather than copied so
+  // the two can't drift apart again. Role `user` never reaches here.
+  const whereClause = buildReportsWhereClause(
+    { user: { id: session.user.id, role: session.user.role as UserRole } },
     { startDate, endDate, userId, department, status },
   )
 
