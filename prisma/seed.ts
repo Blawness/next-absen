@@ -33,76 +33,6 @@ async function main() {
       phone: '+62-811-0000-0000',
       isActive: true,
     },
-    {
-      email: 'manager@demo.com',
-      password: hashedPassword,
-      name: 'Manager Demo',
-      role: 'manager' as const,
-      department: 'Human Resource',
-      position: 'HR Manager',
-      phone: '+62-811-2345-6789',
-      isActive: true,
-    },
-    {
-      email: 'user1@demo.com',
-      password: hashedPassword,
-      name: 'Employee One',
-      role: 'user' as const,
-      department: 'Finance',
-      position: 'Accountant',
-      phone: '+62-813-4567-8901',
-      isActive: true,
-    },
-    {
-      email: 'user2@demo.com',
-      password: hashedPassword,
-      name: 'Employee Two',
-      role: 'user' as const,
-      department: 'Legal',
-      position: 'Legal Officer',
-      phone: '+62-814-5678-9012',
-      isActive: true,
-    },
-    {
-      email: 'user3@demo.com',
-      password: hashedPassword,
-      name: 'Employee Three',
-      role: 'user' as const,
-      department: 'Operational',
-      position: 'Field Surveyor',
-      phone: '+62-815-6789-0123',
-      isActive: true,
-    },
-    {
-      email: 'user4@demo.com',
-      password: hashedPassword,
-      name: 'Employee Four',
-      role: 'user' as const,
-      department: 'IT',
-      position: 'IT Support',
-      phone: '+62-816-7890-1234',
-      isActive: true,
-    },
-    {
-      email: 'manager2@demo.com',
-      password: hashedPassword,
-      name: 'Manager Two',
-      role: 'manager' as const,
-      department: 'Finance',
-      position: 'Finance Manager',
-      phone: '+62-817-8901-2345',
-      isActive: true,
-    },
-    {
-      email: 'user5@demo.com',
-      password: hashedPassword,
-      name: 'Employee Five',
-      role: 'user' as const,
-      department: 'Legal',
-      position: 'Legal Assistant',
-      phone: '+62-818-9012-3456',
-      isActive: true,
-    },
   ]
 
   // Create users
@@ -152,7 +82,6 @@ async function main() {
 
   // Create some activity logs for demo purposes
   const adminUser = await prisma.user.findUnique({ where: { email: 'admin@demo.com' } })
-  const managerUser = await prisma.user.findUnique({ where: { email: 'manager@demo.com' } })
 
   if (adminUser) {
     await prisma.activityLog.createMany({
@@ -162,13 +91,6 @@ async function main() {
           action: 'LOGIN',
           resourceType: 'auth',
           details: { ip: '192.168.1.100', userAgent: 'Demo Browser' },
-        },
-        {
-          userId: adminUser.id,
-          action: 'CREATE_USER',
-          resourceType: 'user',
-          resourceId: managerUser?.id,
-          details: { targetUser: 'manager@demo.com' },
         },
       ],
       skipDuplicates: true,

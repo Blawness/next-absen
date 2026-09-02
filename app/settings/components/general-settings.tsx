@@ -87,7 +87,8 @@ export const GeneralSettings = ({ settings, isSaving, onUpdateSettings, onSave }
                   </Label>
                 </div>
                 <p className="text-sm text-white/60">
-                  Tutup otomatis absensi yang lupa di-checkout setelah melebihi batas jam kerja
+                  Tutup otomatis absensi yang lupa di-checkout pada Jam Selesai Kerja
+                  ({settings?.businessHours.endTime || "17:00"})
                 </p>
               </div>
               <Switch
@@ -100,7 +101,7 @@ export const GeneralSettings = ({ settings, isSaving, onUpdateSettings, onSave }
 
             {settings?.businessHours.autoCheckoutEnabled && (
               <div className="space-y-2">
-                <Label htmlFor="maxWorkHours" className="text-white">Maksimal Jam Kerja</Label>
+                <Label htmlFor="maxWorkHours" className="text-white">Batas Aman Durasi Kerja (jam)</Label>
                 <Input
                   id="maxWorkHours"
                   type="number"
@@ -112,7 +113,9 @@ export const GeneralSettings = ({ settings, isSaving, onUpdateSettings, onSave }
                   onChange={(e) => onUpdateSettings('businessHours', 'maxWorkHours', parseFloat(e.target.value))}
                 />
                 <p className="text-sm text-white/60">
-                  Absensi ditutup pada jam check-in + {settings?.businessHours.maxWorkHours ?? 12} jam, berapa pun waktu sistem mendeteksinya
+                  Hanya pengaman: dipakai saat Jam Selesai Kerja tidak masuk akal, yaitu check-in
+                  lintas malam atau check-in setelah jam selesai. Absensi tidak akan pernah ditutup
+                  lebih dari {settings?.businessHours.maxWorkHours ?? 12} jam setelah check-in.
                 </p>
               </div>
             )}
