@@ -38,6 +38,10 @@ jest.mock("bcryptjs", () => ({
     hash: jest.fn(),
 }))
 
+jest.mock("@/lib/password-policy", () => ({
+    checkPasswordPolicy: jest.fn().mockResolvedValue({ ok: true }),
+}))
+
 describe("User Management Service", () => {
     afterEach(() => {
         jest.clearAllMocks()
@@ -345,12 +349,48 @@ describe("User Management Service", () => {
             ; (bcrypt.hash as jest.Mock).mockResolvedValue("hashed")
 
             const { resetUserPassword } = require("./services")
-            await resetUserPassword({ id: "admin1", role: UserRole.admin }, "user1")
+            await resetUserPassword({ id: "admin1", role: UserRole.admin }, "user1", "NewPass123")
 
             expect(revokeMock()).toHaveBeenCalledWith({
                 where: { userId: "user1", revokedAt: null },
                 data: { revokedAt: expect.any(Date) },
             })
+        })
+
+        it("hashes the password the admin typed and never echoes it back", async () => {
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "user1", email: "u@x.com", name: "U", role: UserRole.user,
+            })
+            ; (bcrypt.hash as jest.Mock).mockResolvedValue("hashed")
+
+            const { resetUserPassword } = require("./services")
+            const result = await resetUserPassword(
+                { id: "admin1", role: UserRole.admin }, "user1", "NewPass123"
+            )
+
+            expect(bcrypt.hash).toHaveBeenCalledWith("NewPass123", 12)
+            expect(prisma.user.update).toHaveBeenCalledWith({
+                where: { id: "user1" },
+                data: { password: "hashed" },
+            })
+            expect(JSON.stringify(result)).not.toContain("NewPass123")
+            expect(result).not.toHaveProperty("temporaryPassword")
+        })
+
+        it("rejects a password that fails the password policy", async () => {
+            const { checkPasswordPolicy } = require("@/lib/password-policy")
+            ; (checkPasswordPolicy as jest.Mock).mockResolvedValueOnce({
+                ok: false, reason: "Password minimal 8 karakter",
+            })
+            ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+                id: "user1", email: "u@x.com", name: "U", role: UserRole.user,
+            })
+
+            const { resetUserPassword } = require("./services")
+            await expect(
+                resetUserPassword({ id: "admin1", role: UserRole.admin }, "user1", "short")
+            ).rejects.toMatchObject({ status: 400, message: "Password minimal 8 karakter" })
+            expect(prisma.user.update).not.toHaveBeenCalled()
         })
     })
 
@@ -363,7 +403,7 @@ describe("User Management Service", () => {
             })
             const { resetUserPassword } = require("./services")
             await expect(
-                resetUserPassword({ id: "admin1", role: UserRole.admin }, "super1")
+                resetUserPassword({ id: "admin1", role: UserRole.admin }, "super1", "NewPass123")
             ).rejects.toThrow(/Cannot reset password for role "superadmin"/)
         })
 

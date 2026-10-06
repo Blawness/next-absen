@@ -3,7 +3,7 @@ import { UserRole, Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 import { HttpError } from "@/lib/errors"
-import { generatePassword } from "@/lib/password"
+import { checkPasswordPolicy } from "@/lib/password-policy"
 import { isAdmin, isManagerOrAdmin, canAssignRole } from "@/lib/permissions"
 
 export { HttpError }
@@ -378,7 +378,7 @@ export async function toggleUserStatus(
 export async function resetUserPassword(
     currentUser: { id: string; role: string },
     targetUserId: string,
-    customPassword?: string
+    newPassword: string
 ) {
     if (!isAdmin(currentUser.role as UserRole)) {
         throw new HttpError("Insufficient permissions", 403)
@@ -403,10 +403,14 @@ export async function resetUserPassword(
       )
     }
 
-    const newPassword = customPassword || generatePassword(12)
-    const hashedPassword = await bcrypt.hash(newPassword, 12)
+    // The admin always types the new password — nothing is generated, so
+    // it must meet the same policy as a self-service change.
+    const policy = await checkPasswordPolicy(newPassword)
+    if (!policy.ok) {
+        throw new HttpError(policy.reason ?? "Password tidak memenuhi kebijakan", 400)
+    }
 
-    const sendEmail = false
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
 
     await prisma.$transaction(async (tx) => {
         await tx.user.update({
@@ -431,18 +435,13 @@ export async function resetUserPassword(
                 resourceId: targetUserId,
                 details: {
                     targetUser: user.email,
-                    emailSent: sendEmail,
                     sessionsRevoked: true
                 }
             }
         })
     })
 
-    return {
-        message: "Password reset successfully",
-        temporaryPassword: sendEmail ? undefined : newPassword,
-        emailSent: sendEmail
-    }
+    return { message: "Password reset successfully" }
 }
 
 export async function getUserActivity(
