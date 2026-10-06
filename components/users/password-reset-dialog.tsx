@@ -13,9 +13,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FormField, FormToggleRow } from "@/components/ui/form-field"
-import { Loader2, Copy, Check, Key } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
+import { FormField } from "@/components/ui/form-field"
+import { Loader2, Key, Eye, EyeOff } from "lucide-react"
+
+// Mirrors MIN_LENGTH in lib/password-policy, which the API enforces; that
+// module pulls in Prisma, so it can't be imported into a client component.
+const PASSWORD_MIN_LENGTH = 8
 
 interface PasswordResetDialogProps {
   open: boolean
@@ -33,22 +36,20 @@ export function PasswordResetDialog({
   onSuccess,
 }: PasswordResetDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [customPassword, setCustomPassword] = useState("")
-  const [sendEmail, setSendEmail] = useState(false)
-  const [useCustomPassword, setUseCustomPassword] = useState(false)
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [message, setMessage] = useState<{
     type: "success" | "error"
     text: string
   } | null>(null)
 
+  const isDone = message?.type === "success"
+
   const reset = () => {
-    setCustomPassword("")
-    setSendEmail(false)
-    setUseCustomPassword(false)
-    setGeneratedPassword(null)
-    setCopied(false)
+    setNewPassword("")
+    setConfirmPassword("")
+    setIsPasswordVisible(false)
     setMessage(null)
   }
 
@@ -59,56 +60,49 @@ export function PasswordResetDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
     setMessage(null)
-    setGeneratedPassword(null)
 
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setMessage({ type: "error", text: `Password minimal ${PASSWORD_MIN_LENGTH} karakter` })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: "error", text: "Konfirmasi password tidak cocok" })
+      return
+    }
+
+    setIsSubmitting(true)
     try {
       const response = await fetch(`/api/users/${userId}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customPassword: useCustomPassword ? customPassword : undefined,
-          sendEmail,
-        }),
+        body: JSON.stringify({ newPassword }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setMessage({ type: "success", text: data.message })
-
-        if (data.temporaryPassword) {
-          setGeneratedPassword(data.temporaryPassword)
-        }
-
-        onSuccess?.()
-
-        if (sendEmail) {
-          setTimeout(() => {
-            handleClose()
-          }, 3000)
-        }
-      } else {
+      if (!response.ok) {
         const error = await response.json()
         setMessage({
           type: "error",
-          text: error.error || "Failed to reset password",
+          text: error.error || "Gagal mengganti password",
         })
+        return
       }
+
+      setNewPassword("")
+      setConfirmPassword("")
+      setMessage({
+        type: "success",
+        text: "Password berhasil diganti. Semua sesi login user ini telah diakhiri.",
+      })
+      onSuccess?.()
     } catch {
-      setMessage({ type: "error", text: "An error occurred" })
+      setMessage({ type: "error", text: "Terjadi kesalahan" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleCopy = async () => {
-    if (generatedPassword) {
-      await navigator.clipboard.writeText(generatedPassword)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
+  const passwordType = isPasswordVisible ? "text" : "password"
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -116,93 +110,70 @@ export function PasswordResetDialog({
         <DialogHeader>
           <DialogTitle>
             <Key className="h-5 w-5 text-emerald-400" />
-            Reset Password
+            Ganti Password
           </DialogTitle>
           <DialogDescription>
-            Reset password untuk{" "}
+            Atur password baru untuk{" "}
             <span className="font-semibold text-white">{userName}</span>
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogBody className="space-y-4">
-            <FormToggleRow
-              title="Gunakan password kustom"
-              description="Tetapkan password sendiri, sistem akan menghasilkan jika nonaktif"
-            >
-              <Switch
-                checked={useCustomPassword}
-                onCheckedChange={setUseCustomPassword}
-              />
-            </FormToggleRow>
-
-            {useCustomPassword && (
-              <FormField
-                label="Password Kustom"
-                htmlFor="custom-password"
-                hint="Minimal 8 karakter"
-                required
-              >
-                <Input
-                  id="custom-password"
-                  type="password"
-                  variant="glass"
-                  value={customPassword}
-                  onChange={(e) => setCustomPassword(e.target.value)}
-                  placeholder="Masukkan password baru"
-                  required={useCustomPassword}
-                  minLength={8}
-                />
-              </FormField>
-            )}
-
-            <FormToggleRow
-              title="Kirim notifikasi email"
-              description={
-                sendEmail
-                  ? "Password akan dikirim via email"
-                  : "Password akan ditampilkan di sini"
-              }
-            >
-              <Switch
-                checked={sendEmail}
-                onCheckedChange={setSendEmail}
-              />
-            </FormToggleRow>
-
-            {generatedPassword && (
-              <Alert className="border-emerald-500/30 bg-emerald-500/10">
-                <AlertDescription className="space-y-2">
-                  <p className="text-sm font-medium text-white/90">
-                    Password Sementara:
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm text-white">
-                      {generatedPassword}
-                    </code>
+            {!isDone && (
+              <>
+                <FormField
+                  label="Password Baru"
+                  htmlFor="new-password"
+                  hint={`Minimal ${PASSWORD_MIN_LENGTH} karakter`}
+                  required
+                >
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={passwordType}
+                      variant="glass"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Masukkan password baru"
+                      autoComplete="new-password"
+                      required
+                      minLength={PASSWORD_MIN_LENGTH}
+                      className="pr-11"
+                    />
                     <Button
                       type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={handleCopy}
-                      className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
-                      aria-label="Salin password"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 text-white/70 hover:bg-white/10"
+                      onClick={() => setIsPasswordVisible((prev) => !prev)}
+                      aria-label={isPasswordVisible ? "Sembunyikan password" : "Tampilkan password"}
                     >
-                      {copied ? (
-                        <Check className="h-4 w-4 text-emerald-400" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
+                      {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-white/55">
-                    Simpan password ini. Tidak akan ditampilkan lagi.
-                  </p>
-                </AlertDescription>
-              </Alert>
+                </FormField>
+
+                <FormField
+                  label="Konfirmasi Password"
+                  htmlFor="confirm-password"
+                  required
+                >
+                  <Input
+                    id="confirm-password"
+                    type={passwordType}
+                    variant="glass"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Ulangi password baru"
+                    autoComplete="new-password"
+                    required
+                  />
+                </FormField>
+              </>
             )}
 
-            {message && !generatedPassword && (
+            {message && (
               <Alert
                 variant={message.type === "success" ? "default" : "destructive"}
                 className={
@@ -223,14 +194,14 @@ export function PasswordResetDialog({
               onClick={handleClose}
               className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
             >
-              {generatedPassword ? "Tutup" : "Batal"}
+              {isDone ? "Tutup" : "Batal"}
             </Button>
-            {!generatedPassword && (
+            {!isDone && (
               <Button type="submit" disabled={isSubmitting} variant="glass">
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Reset Password
+                Simpan Password
               </Button>
             )}
           </DialogFooter>

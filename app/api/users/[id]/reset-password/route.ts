@@ -26,7 +26,7 @@ export const POST = withErrorHandling(async (request: NextRequest, { params }: R
     const result = await resetUserPassword(
         { id: session.user.id, role: session.user.role },
         id,
-        body.customPassword ?? body.newPassword
+        body.newPassword
     )
 
     return NextResponse.json(result)

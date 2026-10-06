@@ -102,11 +102,7 @@ export const passwordChangeSchema = z.object({
 })
 
 export const passwordResetSchema = z.object({
-  newPassword: z.string().min(6).optional(),
-  // The password-reset dialog uses `customPassword`; accept either name
-  // for backwards compatibility.
-  customPassword: z.string().min(6).optional(),
-  sendEmail: z.boolean().optional(),
+  newPassword: z.string().min(1, "Password baru wajib diisi"),
 })
 
 export const apiKeyCreateSchema = z.object({
