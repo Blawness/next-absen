@@ -167,9 +167,21 @@ describe("Auto Check-In Service", () => {
       ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
 
       // Force "now" to be 23:30 local so computeLateStatus returns late.
+      // The service reads the clock with `new Date()`, which a spy on
+      // Date.now does not reach, so fake the Date itself — and only Date,
+      // so the awaited mocks still resolve.
       const fakeNow = new Date()
       fakeNow.setHours(23, 30, 0, 0)
-      const dateSpy = jest.spyOn(Date, "now").mockReturnValue(fakeNow.getTime())
+      jest.useFakeTimers({
+        now: fakeNow,
+        doNotFake: [
+          "hrtime", "nextTick", "performance", "queueMicrotask",
+          "requestAnimationFrame", "cancelAnimationFrame",
+          "requestIdleCallback", "cancelIdleCallback",
+          "setImmediate", "clearImmediate", "setInterval", "clearInterval",
+          "setTimeout", "clearTimeout",
+        ],
+      })
 
       try {
         await autoCheckIn(validInput, mockApiKey)
@@ -182,7 +194,7 @@ describe("Auto Check-In Service", () => {
           })
         )
       } finally {
-        dateSpy.mockRestore()
+        jest.useRealTimers()
       }
     })
 
