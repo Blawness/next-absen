@@ -42,6 +42,10 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          # The action's default is 10m. npm ci, prisma and next build on the
+          # server can run past that, and a timeout cuts the deploy off after
+          # npm ci has already wiped node_modules.
+          command_timeout: 30m
           script: |
             set -e
             cd ~/htdocs/absen.presisikonsulindoprima.com/next-absen

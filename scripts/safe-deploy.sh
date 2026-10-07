@@ -38,7 +38,7 @@ log "Deploy start: $(date)"
 # 1. install deps
 # ──────────────────────────────────────
 log "Installing dependencies..."
-npm ci --production=false || fail "npm ci failed"
+npm ci --include=dev --no-audit --no-fund || fail "npm ci failed"
 ok "Dependencies installed"
 
 # ──────────────────────────────────────
