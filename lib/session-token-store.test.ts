@@ -9,11 +9,15 @@ jest.mock("@/lib/prisma", () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    user: {
+      update: jest.fn(),
+    },
   },
 }))
 
 const upsert = prisma.persistedSessionToken.upsert as unknown as jest.Mock
 const findUnique = prisma.persistedSessionToken.findUnique as unknown as jest.Mock
+const updateUser = prisma.user.update as unknown as jest.Mock
 
 const SESSION_TOKEN = "session-token-under-test"
 const USER_ID = "user-1"
@@ -123,5 +127,40 @@ describe("readSessionToken", () => {
     })
 
     expect(await readSessionToken(SESSION_TOKEN)).toBeNull()
+  })
+
+  describe("last login", () => {
+    const user = { isActive: true, role: "user", department: "IT", position: "Staff" }
+
+    it("records activity on a long-lived session that has not touched lastLogin lately", async () => {
+      // Signed in three weeks ago and has kept using the same session since.
+      const threeWeeksAgo = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000)
+      await storedTokenFor({ sub: USER_ID, role: "user" }, { ...user, lastLogin: threeWeeksAgo })
+
+      await readSessionToken(SESSION_TOKEN)
+
+      expect(updateUser).toHaveBeenCalledWith({
+        where: { id: USER_ID },
+        data: { lastLogin: expect.any(Date) },
+      })
+      const recorded: Date = updateUser.mock.calls[0][0].data.lastLogin
+      expect(Date.now() - recorded.getTime()).toBeLessThan(5_000)
+    })
+
+    it("records activity when lastLogin was never set", async () => {
+      await storedTokenFor({ sub: USER_ID, role: "user" }, { ...user, lastLogin: null })
+
+      await readSessionToken(SESSION_TOKEN)
+
+      expect(updateUser).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not write on every request when lastLogin is recent", async () => {
+      await storedTokenFor({ sub: USER_ID, role: "user" }, { ...user, lastLogin: new Date(Date.now() - 30_000) })
+
+      await readSessionToken(SESSION_TOKEN)
+
+      expect(updateUser).not.toHaveBeenCalled()
+    })
   })
 })

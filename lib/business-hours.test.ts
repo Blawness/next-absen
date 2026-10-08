@@ -1,4 +1,4 @@
-import { computeLateStatus, getBusinessHoursConfig } from "./business-hours"
+import { computeLateStatus, computeOvertimeHours, getBusinessHoursConfig } from "./business-hours"
 import { AttendanceStatus } from "@prisma/client"
 
 jest.mock("@/lib/prisma", () => ({
@@ -24,39 +24,88 @@ describe("computeLateStatus", () => {
   }
 
   it("returns present with 0 minutes when check-in is exactly at start", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:00:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:00:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns present when check-in is within grace period", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:10:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:10:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns present when check-in is exactly at grace boundary", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:15:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:15:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns late with floor-rounded minutes when past grace period", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:45:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:45:00+07:00"), config)
     expect(result.lateMinutes).toBe(45)
     expect(result.status).toBe(AttendanceStatus.late)
   })
 
   it("returns present for early check-in (before start)", () => {
-    const result = computeLateStatus(new Date("2025-01-15T07:30:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T07:30:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
+  })
+
+  it("reads startTime on the office clock, not the server clock", () => {
+    // 08:45 WIB is 01:45 UTC. On a UTC server, reading 08:00 off the server
+    // clock would put the start at 15:00 WIB and call this check-in early.
+    const result = computeLateStatus(new Date("2025-01-15T01:45:00Z"), config)
+    expect(result.lateMinutes).toBe(45)
+    expect(result.status).toBe(AttendanceStatus.late)
   })
 
   it("handles malformed startTime gracefully", () => {
     const result = computeLateStatus(new Date(), { ...config, startTime: "bogus" })
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
+  })
+})
+
+describe("computeOvertimeHours", () => {
+  const config = {
+    startTime: "08:00",
+    endTime: "17:00",
+    checkInDeadline: "09:00",
+    gracePeriodMinutes: 15,
+    autoCheckoutEnabled: false,
+    maxWorkHours: 12,
+  }
+  const wib = (iso: string) => new Date(`${iso}+07:00`)
+
+  it("is zero when the shift ends before endTime", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T08:00:00"), wib("2025-01-15T16:30:00"), config)).toBe(0)
+  })
+
+  it("is zero when checking out exactly at endTime", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T08:00:00"), wib("2025-01-15T17:00:00"), config)).toBe(0)
+  })
+
+  it("counts the time worked past endTime", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T08:00:00"), wib("2025-01-15T19:30:00"), config)).toBe(2.5)
+  })
+
+  it("counts the whole shift when check-in is already past endTime", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T18:00:00"), wib("2025-01-15T21:00:00"), config)).toBe(3)
+  })
+
+  it("reads endTime on the office clock, not the server clock", () => {
+    // 08:00-19:00 WIB is 01:00-12:00 UTC: a UTC-clock 17:00 would see no overtime.
+    expect(computeOvertimeHours(new Date("2025-01-15T01:00:00Z"), new Date("2025-01-15T12:00:00Z"), config)).toBe(2)
+  })
+
+  it("rounds to two decimals, matching the DECIMAL(4,2) column", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T08:00:00"), wib("2025-01-15T17:20:00"), config)).toBe(0.33)
+  })
+
+  it("is zero when endTime is malformed", () => {
+    expect(computeOvertimeHours(wib("2025-01-15T08:00:00"), wib("2025-01-15T22:00:00"), { ...config, endTime: "oops" })).toBe(0)
   })
 })
 

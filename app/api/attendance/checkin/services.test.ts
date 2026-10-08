@@ -152,6 +152,21 @@ describe("Check-in Service", () => {
         createOrUpdateAttendance("user-1", checkInData, null, 0, "present" as never)
       ).rejects.toThrow("Anda sudah check-in hari ini")
     })
+
+    it("files an early-morning check-in under the office date, not the UTC date", async () => {
+      ;(prisma.absensiRecord.create as jest.Mock).mockResolvedValue({ id: "early" })
+      // 06:45 WIB on the 15th — still the 14th in UTC.
+      jest.useFakeTimers({ now: new Date("2025-01-15T06:45:00+07:00"), doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] })
+
+      try {
+        await createOrUpdateAttendance("user-1", checkInData, null, 0, "present" as never)
+      } finally {
+        jest.useRealTimers()
+      }
+
+      const { data } = (prisma.absensiRecord.create as jest.Mock).mock.calls[0][0]
+      expect(data.date.toISOString()).toBe("2025-01-15T00:00:00.000Z")
+    })
   })
 
   describe("logCheckInActivity", () => {

@@ -104,9 +104,13 @@ export const columns: Column[] = [
       if (!user.lastLogin)
         return <span className="text-xs text-white/30">Belum pernah</span>
 
-      const now = new Date()
-      const diffMs = now.getTime() - user.lastLogin.getTime()
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+      // Count calendar days, not 24h blocks: a login at 23:00 yesterday
+      // is "Kemarin" at 08:00 today, not "Hari ini".
+      const startOfDay = (date: Date) =>
+        new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+      const diffDays = Math.round(
+        (startOfDay(new Date()) - startOfDay(user.lastLogin)) / (1000 * 60 * 60 * 24)
+      )
 
       let relativeTime = ""
       let colorClass = "text-white/60"

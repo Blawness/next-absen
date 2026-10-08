@@ -8,6 +8,9 @@ import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { convertToCSV } from "@/lib/csv"
+import { getUtcDateKey } from "@/lib/date-bounds"
+import { calendarDateForDisplay, toOfficeCalendarDate, toOfficeDisplayDate } from "@/lib/office-time"
 import { buildReportsWhereClause } from "../route"
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
@@ -111,29 +114,30 @@ function generateCSV(records: any[]): NextResponse {
     'Catatan'
   ]
 
-  const csvData = [
-    headers.join(','),
-    ...records.map(record => [
-      format(record.date, 'yyyy-MM-dd'),
-      record.user.name,
-      record.user.department || '',
-      record.user.position || '',
-      record.checkInTime ? format(record.checkInTime, 'HH:mm') : '',
-      record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '',
-      record.workHours || '',
-      record.overtimeHours || '',
-      record.lateMinutes || '',
-      record.status,
-      record.checkInAddress || '',
-      record.checkOutAddress || '',
-      record.notes || ''
-    ].map(field => `"${field}"`).join(','))
-  ].join('\n')
+  const rows = records.map(record => ({
+    'Tanggal': getUtcDateKey(record.date),
+    'Nama': record.user.name,
+    'Departemen': record.user.department || '',
+    'Posisi': record.user.position || '',
+    'Check-in': record.checkInTime ? format(toOfficeDisplayDate(record.checkInTime), 'HH:mm') : '',
+    'Check-out': record.checkOutTime ? format(toOfficeDisplayDate(record.checkOutTime), 'HH:mm') : '',
+    'Jam Kerja': record.workHours || '',
+    'Lembur': record.overtimeHours || '',
+    'Terlambat (menit)': record.lateMinutes || '',
+    'Status': record.status,
+    'Lokasi Check-in': record.checkInAddress || '',
+    'Lokasi Check-out': record.checkOutAddress || '',
+    'Catatan': record.notes || '',
+  }))
+
+  // convertToCSV escapes quotes/commas/newlines and neutralises formula
+  // text, so a note like `=HYPERLINK(...)` can't run when opened in Excel.
+  const csvData = convertToCSV(rows, headers)
 
   return new NextResponse(csvData, {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="attendance-report-${format(new Date(), 'yyyy-MM-dd')}.csv"`
+      'Content-Disposition': `attachment; filename="attendance-report-${getUtcDateKey(toOfficeCalendarDate(new Date()))}.csv"`
     }
   })
 }
@@ -149,21 +153,21 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
   doc.setFontSize(16)
   doc.text("Laporan Absensi Karyawan", 14, 20)
 
-  const startStr = startDate ? format(new Date(startDate), "dd MMMM yyyy", { locale: id }) : "Awal"
-  const endStr = endDate ? format(new Date(endDate), "dd MMMM yyyy", { locale: id }) : "Akhir"
+  const startStr = startDate ? format(calendarDateForDisplay(new Date(startDate)), "dd MMMM yyyy", { locale: id }) : "Awal"
+  const endStr = endDate ? format(calendarDateForDisplay(new Date(endDate)), "dd MMMM yyyy", { locale: id }) : "Akhir"
   doc.setFontSize(10)
   doc.text(`Periode: ${startStr} - ${endStr}`, 14, 28)
-  doc.text(`Dibuat: ${format(new Date(), "dd MMMM yyyy HH:mm", { locale: id })}`, 14, 34)
+  doc.text(`Dibuat: ${format(toOfficeDisplayDate(new Date()), "dd MMMM yyyy HH:mm", { locale: id })}`, 14, 34)
 
   doc.setFontSize(11)
   doc.text(`Total: ${records.length} record | ${uniqueUsers} pengguna | ${totalWorkHours.toFixed(1)} jam kerja | ${totalOvertimeHours.toFixed(1)} jam lembur`, 14, 42)
 
   const rows = records.map((record: any) => [
-    format(record.date, "dd/MM/yyyy", { locale: id }),
+    format(calendarDateForDisplay(record.date), "dd/MM/yyyy", { locale: id }),
     record.user.name,
     record.user.department || "-",
-    record.checkInTime ? format(record.checkInTime, "HH:mm") : "-",
-    record.checkOutTime ? format(record.checkOutTime, "HH:mm") : "-",
+    record.checkInTime ? format(toOfficeDisplayDate(record.checkInTime), "HH:mm") : "-",
+    record.checkOutTime ? format(toOfficeDisplayDate(record.checkOutTime), "HH:mm") : "-",
     record.workHours ? `${record.workHours}j` : "-",
     `${record.overtimeHours || 0}j`,
     getStatusLabel(record.status),
@@ -184,7 +188,7 @@ async function generatePDF(records: any[], startDate?: string | null, endDate?: 
   return new NextResponse(pdfBuffer, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="attendance-report-${format(new Date(), 'yyyy-MM-dd')}.pdf"`,
+      "Content-Disposition": `attachment; filename="attendance-report-${getUtcDateKey(toOfficeCalendarDate(new Date()))}.pdf"`,
     },
   })
 }

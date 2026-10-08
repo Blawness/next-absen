@@ -1,5 +1,6 @@
 import { prisma } from "./prisma"
 import { AttendanceStatus } from "@prisma/client"
+import { getOfficeClock, officeClockOn } from "./office-time"
 
 export interface BusinessHoursConfig {
   startTime: string      // "HH:mm"
@@ -84,7 +85,8 @@ export async function getBusinessHoursConfig(): Promise<BusinessHoursConfig> {
 }
 
 /**
- * Resolve an "HH:mm" string against the local-clock date of `reference`.
+ * Resolve an "HH:mm" string on the office clock, on the office date of
+ * `reference` (see lib/office-time.ts — never the server's clock).
  * Returns [timestampMs, dstShifted] where dstShifted is 1 when the wall
  * clock time does not exist on that date, or null if the input is malformed.
  */
@@ -95,9 +97,8 @@ export function parseClock(time: string, reference: Date): [number, number] | nu
   const minutes = Number(match[2])
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
 
-  const start = new Date(reference)
-  start.setHours(hours, minutes, 0, 0)
-  return [start.getTime(), start.getHours() === hours ? 0 : 1] // 1 if DST shifted
+  const start = officeClockOn(hours, minutes, reference)
+  return [start.getTime(), getOfficeClock(start).hour === hours ? 0 : 1] // 1 if DST shifted
 }
 
 /**
@@ -126,4 +127,23 @@ export function computeLateStatus(
   }
   const lateMinutes = Math.floor(diffMs / (60 * 1000))
   return { lateMinutes, status: AttendanceStatus.late }
+}
+
+/**
+ * Overtime for a closed shift: the time worked past `endTime` on the office
+ * clock, on the check-in's office date. A check-in already past `endTime`
+ * makes the whole shift overtime. Rounded to two decimals to match the
+ * DECIMAL(4,2) column.
+ */
+export function computeOvertimeHours(
+  checkInTime: Date,
+  checkOutTime: Date,
+  config: BusinessHoursConfig,
+): number {
+  const parsed = parseClock(config.endTime, checkInTime)
+  if (!parsed) return 0
+  const overtimeStartMs = Math.max(parsed[0], checkInTime.getTime())
+  const overtimeMs = checkOutTime.getTime() - overtimeStartMs
+  if (overtimeMs <= 0) return 0
+  return Math.round((overtimeMs / (60 * 60 * 1000)) * 100) / 100
 }

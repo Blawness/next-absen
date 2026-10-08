@@ -1,16 +1,18 @@
 import { computeWeekStats } from "./week-stats"
 
 /**
- * Local literals (no Z): the week runs on the user's own clock.
+ * Office wall-clock literals (WIB, UTC+7): the week runs on the office
+ * clock, whatever timezone the browser or test machine is in.
  * Reference week is Mon 2025-01-06 .. Sun 2025-01-12.
  */
-const at = (iso: string) => new Date(iso)
+const at = (iso: string) => new Date(`${iso}+07:00`)
 
 const wednesday = at("2025-01-08T12:00:00")
 
 function record(date: string, workHours: number | null, attended = true) {
   return {
-    date: at(`${date}T00:00:00`),
+    // As the API returns it: a calendar date pinned to UTC midnight.
+    date: new Date(`${date}T00:00:00.000Z`),
     checkInTime: attended ? at(`${date}T08:00:00`) : null,
     workHours,
   }
@@ -89,7 +91,7 @@ describe("computeWeekStats", () => {
 
   it("accepts serialized dates coming back from the API", () => {
     const stats = computeWeekStats(
-      [{ date: "2025-01-06T00:00:00", checkInTime: "2025-01-06T08:00:00", workHours: 8 }],
+      [{ date: "2025-01-06T00:00:00.000Z", checkInTime: "2025-01-06T01:00:00.000Z", workHours: 8 }],
       wednesday,
     )
 

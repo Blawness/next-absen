@@ -14,15 +14,15 @@ import {
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`)
 
 describe("toCalendarDate", () => {
-  it("keeps the local calendar date and pins it to UTC midnight", () => {
-    // Local literal (no Z): late evening must not roll into the next date.
-    const result = toCalendarDate(new Date("2025-01-08T23:30:00"))
+  it("keeps the office calendar date and pins it to UTC midnight", () => {
+    // Late evening WIB must not roll into the next date.
+    const result = toCalendarDate(new Date("2025-01-08T23:30:00+07:00"))
 
     expect(result.toISOString()).toBe("2025-01-08T00:00:00.000Z")
   })
 
   it("is idempotent for a date already at UTC midnight in UTC-ish zones", () => {
-    const once = toCalendarDate(new Date("2025-01-08T09:00:00"))
+    const once = toCalendarDate(new Date("2025-01-08T09:00:00+07:00"))
     const twice = toCalendarDate(once)
 
     expect(twice.getTime()).toBe(once.getTime())
@@ -131,9 +131,9 @@ describe("countElapsedBusinessDays", () => {
     expect(countElapsedBusinessDays(weekStart, weekEnd, day("2025-01-01"))).toBe(0)
   })
 
-  it("derives the calendar date from the local clock of the given moment", () => {
-    // Wednesday evening local time — still Wednesday, so three days.
-    const wednesdayEvening = new Date("2025-01-08T22:00:00")
+  it("derives the calendar date from the office clock of the given moment", () => {
+    // Wednesday evening WIB — still Wednesday, so three days.
+    const wednesdayEvening = new Date("2025-01-08T22:00:00+07:00")
 
     expect(countElapsedBusinessDays(weekStart, weekEnd, wednesdayEvening)).toBe(3)
   })
