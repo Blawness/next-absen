@@ -3,6 +3,11 @@ import type { JWT } from "next-auth/jwt"
 
 import { prisma } from "@/lib/prisma"
 
+// How stale users.last_login may get before a session read refreshes it.
+// Keeps "Terakhir Login" accurate for long-lived sessions without writing
+// the users row on every request.
+const LAST_LOGIN_REFRESH_MS = 5 * 60 * 1000
+
 const KEY_LENGTH_BYTES = 32
 const IV_LENGTH_BYTES = 12
 const ALGORITHM = "aes-256-gcm"
@@ -107,6 +112,7 @@ export const readSessionToken = async (sessionToken: string): Promise<JWT | null
           position: true,
           name: true,
           email: true,
+          lastLogin: true,
         },
       },
     },
@@ -141,6 +147,17 @@ export const readSessionToken = async (sessionToken: string): Promise<JWT | null
     where: { tokenHash },
     data: { lastUsedAt: now },
   })
+
+  // Sessions last up to 30 days, so the credentials sign-in in lib/auth.ts is
+  // rare: someone using the app daily would otherwise show a lastLogin from
+  // weeks ago. Treat any authenticated use of the session as a login.
+  const lastLogin = storedToken.user.lastLogin
+  if (!lastLogin || now.getTime() - lastLogin.getTime() >= LAST_LOGIN_REFRESH_MS) {
+    await prisma.user.update({
+      where: { id: storedToken.userId },
+      data: { lastLogin: now },
+    })
+  }
 
   // The user's own fields come from the row we just read, never from the
   // stored payload. The payload is written once at sign-in (see the `jwt`
