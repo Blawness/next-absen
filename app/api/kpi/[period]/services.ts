@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { AttendanceStatus, UserRole, Prisma } from "@prisma/client"
 
 import { HttpError } from "@/lib/errors"
-import { getUtcDateKey, getUtcDayBounds } from "@/lib/date-bounds"
+import { getUtcDateKey } from "@/lib/date-bounds"
+import { toOfficeCalendarDate } from "@/lib/office-time"
 import { getBusinessHoursConfig } from "@/lib/business-hours"
 import {
   averageWorkHoursPerDay,
@@ -47,8 +48,12 @@ export function resolveRange(
     return { start, end }
   }
 
+  // Which week or month we are in is decided on the office date; the UTC
+  // date still says "yesterday" for the first hours of a WIB morning.
+  const officeToday = toOfficeCalendarDate(today)
+
   if (period === "weekly") {
-    const start = getUtcMonday(today)
+    const start = getUtcMonday(officeToday)
     const end = new Date(start)
     end.setUTCDate(start.getUTCDate() + 6)
     end.setUTCHours(23, 59, 59, 999)
@@ -56,8 +61,8 @@ export function resolveRange(
   }
 
   // monthly
-  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
-  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+  const start = new Date(Date.UTC(officeToday.getUTCFullYear(), officeToday.getUTCMonth(), 1))
+  const end = new Date(Date.UTC(officeToday.getUTCFullYear(), officeToday.getUTCMonth() + 1, 0))
   end.setUTCHours(23, 59, 59, 999)
   return { start, end }
 }

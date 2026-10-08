@@ -2,7 +2,7 @@ import { type AbsensiRecord, Prisma } from "@prisma/client"
 import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { HttpError } from "@/lib/errors"
-import { getUtcDayBounds } from "@/lib/date-bounds"
+import { getOfficeDayBounds } from "@/lib/office-time"
 
 export { HttpError }
 
@@ -46,7 +46,7 @@ export function validateLocationData(body: {
 }
 
 export async function getTodaysAttendance(userId: string, date: Date) {
-  const { start, end } = getUtcDayBounds(date)
+  const { start, end } = getOfficeDayBounds(date)
 
   const attendance = await prisma.absensiRecord.findFirst({
     where: {

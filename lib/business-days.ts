@@ -7,12 +7,14 @@
  *
  * A "calendar date" in this module is a Date pinned to UTC midnight, so
  * day-of-week is unambiguous. `toCalendarDate` is the seam that gets you
- * there from a wall-clock Date, reading its *local* date — the day a user
- * would say they are in.
+ * there from a wall-clock Date, reading its *office* date — the day the
+ * office says it is, whatever the server's or browser's timezone.
  */
 
+import { toOfficeCalendarDate } from "./office-time"
+
 export function toCalendarDate(date: Date): Date {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  return toOfficeCalendarDate(date)
 }
 
 export function isBusinessDay(calendarDate: Date): boolean {

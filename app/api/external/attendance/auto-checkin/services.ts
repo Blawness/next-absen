@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { reverseGeocode } from "@/lib/location"
 import { HttpError } from "@/lib/errors"
-import { getUtcDayBounds } from "@/lib/date-bounds"
+import { getOfficeDayBounds } from "@/lib/office-time"
 import { getBusinessHoursConfig, computeLateStatus } from "@/lib/business-hours"
 import { Prisma } from "@prisma/client"
 import type { ValidatedApiKey } from "@/app/api/external/utils"
@@ -51,7 +51,7 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
   }
 
   const now = new Date()
-  const { start, end } = getUtcDayBounds(now)
+  const { start, end } = getOfficeDayBounds(now)
   const existing = await prisma.absensiRecord.findFirst({
     where: {
       userId,
@@ -85,7 +85,7 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
     attendance = await prisma.absensiRecord.create({
       data: {
         userId,
-        date: now,
+        date: start,
         checkInTime,
         checkOutTime,
         checkInLatitude: latitude,

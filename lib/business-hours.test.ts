@@ -24,33 +24,41 @@ describe("computeLateStatus", () => {
   }
 
   it("returns present with 0 minutes when check-in is exactly at start", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:00:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:00:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns present when check-in is within grace period", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:10:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:10:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns present when check-in is exactly at grace boundary", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:15:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:15:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
   })
 
   it("returns late with floor-rounded minutes when past grace period", () => {
-    const result = computeLateStatus(new Date("2025-01-15T08:45:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T08:45:00+07:00"), config)
     expect(result.lateMinutes).toBe(45)
     expect(result.status).toBe(AttendanceStatus.late)
   })
 
   it("returns present for early check-in (before start)", () => {
-    const result = computeLateStatus(new Date("2025-01-15T07:30:00"), config)
+    const result = computeLateStatus(new Date("2025-01-15T07:30:00+07:00"), config)
     expect(result.lateMinutes).toBe(0)
     expect(result.status).toBe(AttendanceStatus.present)
+  })
+
+  it("reads startTime on the office clock, not the server clock", () => {
+    // 08:45 WIB is 01:45 UTC. On a UTC server, reading 08:00 off the server
+    // clock would put the start at 15:00 WIB and call this check-in early.
+    const result = computeLateStatus(new Date("2025-01-15T01:45:00Z"), config)
+    expect(result.lateMinutes).toBe(45)
+    expect(result.status).toBe(AttendanceStatus.late)
   })
 
   it("handles malformed startTime gracefully", () => {

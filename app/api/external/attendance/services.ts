@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { startOfDay, endOfDay } from "date-fns"
+import { getOfficeDayBounds, toOfficeCalendarDate } from "@/lib/office-time"
 import { Prisma } from "@prisma/client"
 import type { ValidatedApiKey } from "@/app/api/external/utils"
 
@@ -10,6 +10,23 @@ export interface GetAttendanceParams {
   userId?: string
   limit?: number
   offset?: number
+}
+
+/**
+ * A YYYY-MM-DD string is taken as that calendar date; a full timestamp is
+ * read on the office clock. Returns null when the input does not parse.
+ */
+function parseCalendarDate(input: string): Date | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const calendarDate = new Date(`${input}T00:00:00.000Z`)
+    return isNaN(calendarDate.getTime()) ? null : calendarDate
+  }
+  const instant = new Date(input)
+  return isNaN(instant.getTime()) ? null : toOfficeCalendarDate(instant)
+}
+
+function nextDay(calendarDate: Date): Date {
+  return new Date(calendarDate.getTime() + 24 * 60 * 60 * 1000)
 }
 
 export async function getAttendanceData(
@@ -23,39 +40,23 @@ export async function getAttendanceData(
 
   const where: Prisma.AbsensiRecordWhereInput = {}
 
-  if (date) {
-    const d = new Date(date)
-    if (!isNaN(d.getTime())) {
-      where.date = {
-        gte: startOfDay(d),
-        lte: endOfDay(d),
-      }
-    }
-  } else {
-    const dateFilter: { gte?: Date; lte?: Date } = {}
+  // `AbsensiRecord.date` is a calendar date pinned to UTC midnight, so the
+  // filter is built from calendar dates too: [first day, day after last).
+  // date-fns startOfDay/endOfDay would cut the day on the server's clock.
+  const day = date ? parseCalendarDate(date) : null
+  const from = !date && dateFrom ? parseCalendarDate(dateFrom) : null
+  const to = !date && dateTo ? parseCalendarDate(dateTo) : null
 
-    if (dateFrom) {
-      const from = new Date(dateFrom)
-      if (!isNaN(from.getTime())) {
-        dateFilter.gte = startOfDay(from)
-      }
+  if (day) {
+    where.date = { gte: day, lt: nextDay(day) }
+  } else if (from || to) {
+    where.date = {
+      ...(from && { gte: from }),
+      ...(to && { lt: nextDay(to) }),
     }
-    if (dateTo) {
-      const to = new Date(dateTo)
-      if (!isNaN(to.getTime())) {
-        dateFilter.lte = endOfDay(to)
-      }
-    }
-
-    if (dateFilter.gte || dateFilter.lte) {
-      where.date = dateFilter
-    } else {
-      const today = new Date()
-      where.date = {
-        gte: startOfDay(today),
-        lte: endOfDay(today),
-      }
-    }
+  } else if (!date) {
+    const { start, end } = getOfficeDayBounds()
+    where.date = { gte: start, lt: end }
   }
 
   if (userId) {

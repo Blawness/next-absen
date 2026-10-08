@@ -9,6 +9,19 @@ describe("KPI services helpers", () => {
     expect(end.toISOString().slice(0,10)).toBe("2025-01-12") // Sunday
   })
 
+  it("puts a Monday-morning WIB request in the new week, not the UTC Sunday", () => {
+    const today = new Date("2025-01-13T03:00:00+07:00") // Mon 03:00 WIB = Sun 20:00 UTC
+    const { start } = resolveRange("weekly", today)
+    expect(start.toISOString().slice(0,10)).toBe("2025-01-13")
+  })
+
+  it("puts the first WIB morning of a month in that month", () => {
+    const today = new Date("2025-02-01T05:00:00+07:00") // still Jan 31 in UTC
+    const { start, end } = resolveRange("monthly", today)
+    expect(start.toISOString().slice(0,10)).toBe("2025-02-01")
+    expect(end.toISOString().slice(0,10)).toBe("2025-02-28")
+  })
+
   it("counts business days Mon-Fri", () => {
     const start = new Date("2025-01-06T00:00:00Z") // Mon
     const end = new Date("2025-01-12T00:00:00Z")   // Sun

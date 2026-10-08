@@ -1,6 +1,6 @@
 import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getUtcDayBounds } from "@/lib/date-bounds"
+import { getOfficeDayBounds } from "@/lib/office-time"
 import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
 
 import { HttpError } from "@/lib/errors"
@@ -13,9 +13,9 @@ export async function getTodaysAttendance(userId: string) {
   // throttled; see lib/auto-checkout.ts.
   await maybeSweepAutoCheckout()
 
-  // Use UTC day boundaries (see lib/date-bounds.ts) so the comparison
-  // against MySQL DATE columns is consistent regardless of server TZ.
-  const { start, end } = getUtcDayBounds()
+  // "Today" is the office date (see lib/office-time.ts), whatever the
+  // server's timezone.
+  const { start, end } = getOfficeDayBounds()
 
   // Optimization: Removed redundant orderBy since [userId, date] is unique
   return await prisma.absensiRecord.findFirst({

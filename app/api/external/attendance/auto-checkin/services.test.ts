@@ -166,12 +166,12 @@ describe("Auto Check-In Service", () => {
       })
       ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
 
-      // Force "now" to be 23:30 local so computeLateStatus returns late.
+      // Force "now" to be 23:30 on the office clock (WIB) so
+      // computeLateStatus returns late on any machine timezone.
       // The service reads the clock with `new Date()`, which a spy on
       // Date.now does not reach, so fake the Date itself — and only Date,
       // so the awaited mocks still resolve.
-      const fakeNow = new Date()
-      fakeNow.setHours(23, 30, 0, 0)
+      const fakeNow = new Date("2025-01-15T23:30:00+07:00")
       jest.useFakeTimers({
         now: fakeNow,
         doNotFake: [

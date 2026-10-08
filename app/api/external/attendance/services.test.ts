@@ -91,6 +91,48 @@ describe("getAttendanceData", () => {
     )
   })
 
+  it("matches the requested calendar date exactly, whatever the server timezone", async () => {
+    ;(prisma.absensiRecord.count as jest.Mock).mockResolvedValue(0)
+    ;(prisma.absensiRecord.findMany as jest.Mock).mockResolvedValue([])
+    ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
+
+    await getAttendanceData({ date: "2026-05-05" }, mockApiKey)
+
+    const { where } = (prisma.absensiRecord.findMany as jest.Mock).mock.calls[0][0]
+    expect(where.date.gte.toISOString()).toBe("2026-05-05T00:00:00.000Z")
+    expect(where.date.lt.toISOString()).toBe("2026-05-06T00:00:00.000Z")
+  })
+
+  it("covers dateFrom through dateTo inclusive", async () => {
+    ;(prisma.absensiRecord.count as jest.Mock).mockResolvedValue(0)
+    ;(prisma.absensiRecord.findMany as jest.Mock).mockResolvedValue([])
+    ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
+
+    await getAttendanceData({ dateFrom: "2026-05-01", dateTo: "2026-05-05" }, mockApiKey)
+
+    const { where } = (prisma.absensiRecord.findMany as jest.Mock).mock.calls[0][0]
+    expect(where.date.gte.toISOString()).toBe("2026-05-01T00:00:00.000Z")
+    expect(where.date.lt.toISOString()).toBe("2026-05-06T00:00:00.000Z")
+  })
+
+  it("defaults to the office date, not the UTC date", async () => {
+    ;(prisma.absensiRecord.count as jest.Mock).mockResolvedValue(0)
+    ;(prisma.absensiRecord.findMany as jest.Mock).mockResolvedValue([])
+    ;(prisma.activityLog.create as jest.Mock).mockResolvedValue({})
+    // 06:00 WIB on the 5th — still the 4th in UTC.
+    jest.useFakeTimers({ now: new Date("2026-05-05T06:00:00+07:00"), doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] })
+
+    try {
+      await getAttendanceData({}, mockApiKey)
+    } finally {
+      jest.useRealTimers()
+    }
+
+    const { where } = (prisma.absensiRecord.findMany as jest.Mock).mock.calls[0][0]
+    expect(where.date.gte.toISOString()).toBe("2026-05-05T00:00:00.000Z")
+    expect(where.date.lt.toISOString()).toBe("2026-05-06T00:00:00.000Z")
+  })
+
   it("should filter by userId", async () => {
     ;(prisma.absensiRecord.count as jest.Mock).mockResolvedValue(0)
     ;(prisma.absensiRecord.findMany as jest.Mock).mockResolvedValue([])

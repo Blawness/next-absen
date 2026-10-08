@@ -1,5 +1,6 @@
 import { prisma } from "./prisma"
 import { AttendanceStatus } from "@prisma/client"
+import { getOfficeClock, officeClockOn } from "./office-time"
 
 export interface BusinessHoursConfig {
   startTime: string      // "HH:mm"
@@ -84,7 +85,8 @@ export async function getBusinessHoursConfig(): Promise<BusinessHoursConfig> {
 }
 
 /**
- * Resolve an "HH:mm" string against the local-clock date of `reference`.
+ * Resolve an "HH:mm" string on the office clock, on the office date of
+ * `reference` (see lib/office-time.ts — never the server's clock).
  * Returns [timestampMs, dstShifted] where dstShifted is 1 when the wall
  * clock time does not exist on that date, or null if the input is malformed.
  */
@@ -95,9 +97,8 @@ export function parseClock(time: string, reference: Date): [number, number] | nu
   const minutes = Number(match[2])
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
 
-  const start = new Date(reference)
-  start.setHours(hours, minutes, 0, 0)
-  return [start.getTime(), start.getHours() === hours ? 0 : 1] // 1 if DST shifted
+  const start = officeClockOn(hours, minutes, reference)
+  return [start.getTime(), getOfficeClock(start).hour === hours ? 0 : 1] // 1 if DST shifted
 }
 
 /**

@@ -1,5 +1,6 @@
-import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
 import { countBusinessDays, countElapsedBusinessDays, toCalendarDate } from "./business-days"
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface WeekStats {
   daysAttended: number
@@ -27,15 +28,19 @@ export function computeWeekStats(
   records: WeekStatsRecord[],
   now: Date = new Date(),
 ): WeekStats {
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+  // The week is Monday..Sunday of the office date. Records carry calendar
+  // dates pinned to UTC midnight (AbsensiRecord.date), so compare them as
+  // calendar dates too — date-fns startOfWeek would cut on the browser's
+  // own timezone instead.
+  const today = toCalendarDate(now)
+  const daysSinceMonday = (today.getUTCDay() + 6) % 7
+  const startDate = new Date(today.getTime() - daysSinceMonday * DAY_MS)
+  const endDate = new Date(startDate.getTime() + 6 * DAY_MS)
 
-  const inWeek = records.filter(r =>
-    isWithinInterval(new Date(r.date), { start: weekStart, end: weekEnd })
-  )
-
-  const startDate = toCalendarDate(weekStart)
-  const endDate = toCalendarDate(weekEnd)
+  const inWeek = records.filter(r => {
+    const time = new Date(r.date).getTime()
+    return time >= startDate.getTime() && time <= endDate.getTime()
+  })
 
   const totalWorkHours = inWeek.reduce((sum, r) => sum + (Number(r.workHours) || 0), 0)
   const elapsed = countElapsedBusinessDays(startDate, endDate, now)

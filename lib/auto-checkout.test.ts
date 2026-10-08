@@ -23,12 +23,11 @@ const mockedUpdateMany = prisma.absensiRecord.updateMany as jest.Mock
 const mockedCreateMany = prisma.activityLog.createMany as jest.Mock
 
 /**
- * Date literals here deliberately omit the trailing `Z`: auto-checkout now
- * resolves `endTime` against the local clock (same convention as
- * business-hours.test.ts). Assertions compare `getTime()` so they hold in
- * any machine timezone.
+ * Office wall-clock time (Asia/Jakarta, UTC+7). Auto-checkout resolves
+ * `endTime` on the office clock (see lib/office-time.ts), so the literals
+ * carry that offset explicitly and the tests hold on any machine timezone.
  */
-const local = (iso: string) => new Date(iso)
+const local = (iso: string) => new Date(`${iso}+07:00`)
 
 function config(overrides: Partial<BusinessHoursConfig> = {}): BusinessHoursConfig {
   return {

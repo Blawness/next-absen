@@ -108,3 +108,4 @@ Everything under `/api/` otherwise passes straight through; those routes do thei
 | `GOOGLE_MAPS_API_KEY` | No | Reverse geocoding |
 | `SESSION_MAX_AGE_SECONDS` | No | Override JWT lifetime (default 30 days) |
 | `SESSION_UPDATE_AGE_SECONDS` | No | Override session refresh interval (default 12h) |
+| `OFFICE_TIME_ZONE` | No | IANA zone for business hours and attendance dates (default `Asia/Jakarta`) |

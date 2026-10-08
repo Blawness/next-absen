@@ -2,7 +2,7 @@ import { type AbsensiRecord, Prisma, AttendanceStatus } from "@prisma/client"
 import { validateSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { HttpError } from "@/lib/errors"
-import { getUtcDayBounds } from "@/lib/date-bounds"
+import { getOfficeDayBounds } from "@/lib/office-time"
 import { validateGeofence } from "@/lib/geofence"
 import { getBusinessHoursConfig, computeLateStatus } from "@/lib/business-hours"
 
@@ -48,7 +48,7 @@ export function validateLocationData(body: {
 }
 
 export async function getExistingAttendance(userId: string, date: Date) {
-  const { start, end } = getUtcDayBounds(date)
+  const { start, end } = getOfficeDayBounds(date)
 
   const existingAttendance = await prisma.absensiRecord.findFirst({
     where: {
@@ -104,7 +104,7 @@ export async function createOrUpdateAttendance(
   status: AttendanceStatus
 ) {
   const now = new Date()
-  const { start, end } = getUtcDayBounds(now)
+  const { start, end } = getOfficeDayBounds(now)
 
   const attendanceData = {
     userId,
