@@ -8,6 +8,7 @@ import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { convertToCSV } from "@/lib/csv"
 import { getUtcDateKey } from "@/lib/date-bounds"
 import { calendarDateForDisplay, toOfficeCalendarDate, toOfficeDisplayDate } from "@/lib/office-time"
 import { buildReportsWhereClause } from "../route"
@@ -113,24 +114,25 @@ function generateCSV(records: any[]): NextResponse {
     'Catatan'
   ]
 
-  const csvData = [
-    headers.join(','),
-    ...records.map(record => [
-      format(record.date, 'yyyy-MM-dd'),
-      record.user.name,
-      record.user.department || '',
-      record.user.position || '',
-      record.checkInTime ? format(record.checkInTime, 'HH:mm') : '',
-      record.checkOutTime ? format(record.checkOutTime, 'HH:mm') : '',
-      record.workHours || '',
-      record.overtimeHours || '',
-      record.lateMinutes || '',
-      record.status,
-      record.checkInAddress || '',
-      record.checkOutAddress || '',
-      record.notes || ''
-    ].map(field => `"${field}"`).join(','))
-  ].join('\n')
+  const rows = records.map(record => ({
+    'Tanggal': getUtcDateKey(record.date),
+    'Nama': record.user.name,
+    'Departemen': record.user.department || '',
+    'Posisi': record.user.position || '',
+    'Check-in': record.checkInTime ? format(toOfficeDisplayDate(record.checkInTime), 'HH:mm') : '',
+    'Check-out': record.checkOutTime ? format(toOfficeDisplayDate(record.checkOutTime), 'HH:mm') : '',
+    'Jam Kerja': record.workHours || '',
+    'Lembur': record.overtimeHours || '',
+    'Terlambat (menit)': record.lateMinutes || '',
+    'Status': record.status,
+    'Lokasi Check-in': record.checkInAddress || '',
+    'Lokasi Check-out': record.checkOutAddress || '',
+    'Catatan': record.notes || '',
+  }))
+
+  // convertToCSV escapes quotes/commas/newlines and neutralises formula
+  // text, so a note like `=HYPERLINK(...)` can't run when opened in Excel.
+  const csvData = convertToCSV(rows, headers)
 
   return new NextResponse(csvData, {
     headers: {
