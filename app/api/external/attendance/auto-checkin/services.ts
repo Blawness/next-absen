@@ -94,7 +94,7 @@ export async function autoCheckIn(input: AutoCheckInInput, apiKey: ValidatedApiK
         checkInAccuracy: accuracy,
         workHours: 8.00,
         overtimeHours: 0.00,
-        lateMinutes: 0,
+        lateMinutes,
         status,
         notes: notes ?? null,
       },

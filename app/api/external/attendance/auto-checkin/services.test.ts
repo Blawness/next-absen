@@ -189,7 +189,8 @@ describe("Auto Check-In Service", () => {
           expect.objectContaining({
             data: expect.objectContaining({
               status: "late",
-              lateMinutes: expect.any(Number),
+              // 23:30 against a 09:00 start: 14h30m late.
+              lateMinutes: 870,
             }),
           })
         )
