@@ -18,6 +18,26 @@ async function checkPermission() {
   return session
 }
 
+/**
+ * Work hours and overtime for a manually entered shift, shared by create
+ * and update so a record looks the same whichever path wrote it. Without
+ * both times there is nothing to measure: work hours stay empty and
+ * overtime is zero.
+ */
+async function computeShiftHours(
+  checkInTime: Date | null,
+  checkOutTime: Date | null,
+): Promise<{ workHours: number | null; overtimeHours: number }> {
+  if (!checkInTime || !checkOutTime) {
+    return { workHours: null, overtimeHours: 0 }
+  }
+  const workedHours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
+  return {
+    workHours: Math.round(workedHours * 100) / 100, // DECIMAL(4,2)
+    overtimeHours: computeOvertimeHours(checkInTime, checkOutTime, await getBusinessHoursConfig()),
+  }
+}
+
 async function logManageActivity(
   superadminId: string,
   action: string,
@@ -136,6 +156,8 @@ export async function createAttendance(data: CreateAttendanceData) {
     throw new HttpError("checkOutTime must be after checkInTime", 400)
   }
 
+  const { workHours, overtimeHours } = await computeShiftHours(checkInTime, checkOutTime)
+
   try {
     const record = await prisma.absensiRecord.create({
       data: {
@@ -143,6 +165,8 @@ export async function createAttendance(data: CreateAttendanceData) {
         date: dateObj,
         checkInTime,
         checkOutTime,
+        workHours,
+        overtimeHours,
         status: (data.status as any) ?? "absent",
         notes: data.notes ?? null,
       },
@@ -218,17 +242,9 @@ export async function updateAttendance(data: UpdateAttendanceData) {
     ? (updateData.checkOutTime as Date | null)
     : existing.checkOutTime
 
-  if (finalCheckIn && finalCheckOut) {
-    updateData.workHours = (finalCheckOut.getTime() - finalCheckIn.getTime()) / (1000 * 60 * 60)
-    updateData.overtimeHours = computeOvertimeHours(
-      finalCheckIn,
-      finalCheckOut,
-      await getBusinessHoursConfig(),
-    )
-  } else if ("checkInTime" in updateData || "checkOutTime" in updateData) {
-    // One of them was cleared — work hours can no longer be computed
-    updateData.workHours = null
-    updateData.overtimeHours = 0
+  if ("checkInTime" in updateData || "checkOutTime" in updateData) {
+    // Clearing either time empties work hours and zeroes overtime.
+    Object.assign(updateData, await computeShiftHours(finalCheckIn, finalCheckOut))
   }
 
   const record = await prisma.absensiRecord.update({
