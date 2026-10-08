@@ -128,3 +128,22 @@ export function computeLateStatus(
   const lateMinutes = Math.floor(diffMs / (60 * 1000))
   return { lateMinutes, status: AttendanceStatus.late }
 }
+
+/**
+ * Overtime for a closed shift: the time worked past `endTime` on the office
+ * clock, on the check-in's office date. A check-in already past `endTime`
+ * makes the whole shift overtime. Rounded to two decimals to match the
+ * DECIMAL(4,2) column.
+ */
+export function computeOvertimeHours(
+  checkInTime: Date,
+  checkOutTime: Date,
+  config: BusinessHoursConfig,
+): number {
+  const parsed = parseClock(config.endTime, checkInTime)
+  if (!parsed) return 0
+  const overtimeStartMs = Math.max(parsed[0], checkInTime.getTime())
+  const overtimeMs = checkOutTime.getTime() - overtimeStartMs
+  if (overtimeMs <= 0) return 0
+  return Math.round((overtimeMs / (60 * 60 * 1000)) * 100) / 100
+}

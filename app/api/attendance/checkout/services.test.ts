@@ -31,6 +31,9 @@ jest.mock("@/lib/prisma", () => ({
     activityLog: {
       create: jest.fn(),
     },
+    systemSettings: {
+      findFirst: jest.fn().mockResolvedValue(null), // project defaults: 08:00-17:00
+    },
   },
 }))
 
@@ -133,6 +136,26 @@ describe("Checkout Service", () => {
       expect(prisma.absensiRecord.update).toHaveBeenCalled()
       expect(result.checkOutTime).not.toBeNull()
       expect(result).toEqual(updatedRecord)
+    })
+
+    it("records overtime worked past the configured endTime", async () => {
+      // Checked in 08:00 WIB, checking out 19:30 WIB: 2.5h past 17:00.
+      const checkInTime = new Date("2025-01-15T08:00:00+07:00")
+      ;(prisma.absensiRecord.update as jest.Mock).mockResolvedValue({ id: "att-1" })
+      jest.useFakeTimers({ now: new Date("2025-01-15T19:30:00+07:00"), doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] })
+
+      try {
+        await processCheckout(
+          { id: "att-1", checkInTime } as AbsensiRecord,
+          { latitude: 1, longitude: 1, address: "test", accuracy: 1 },
+        )
+      } finally {
+        jest.useRealTimers()
+      }
+
+      const { data } = (prisma.absensiRecord.update as jest.Mock).mock.calls[0][0]
+      expect(data.overtimeHours).toBe(2.5)
+      expect(data.workHours).toBeCloseTo(11.5, 5)
     })
 
     it("should throw an error if the database update fails", async () => {

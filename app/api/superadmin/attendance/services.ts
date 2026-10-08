@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { HttpError } from "@/lib/errors"
 import { hasPermission, Permission } from "@/lib/permissions"
 import { maybeSweepAutoCheckout } from "@/lib/auto-checkout"
+import { computeOvertimeHours, getBusinessHoursConfig } from "@/lib/business-hours"
 
 async function checkPermission() {
   const session = await getServerSession(authOptions)
@@ -219,9 +220,15 @@ export async function updateAttendance(data: UpdateAttendanceData) {
 
   if (finalCheckIn && finalCheckOut) {
     updateData.workHours = (finalCheckOut.getTime() - finalCheckIn.getTime()) / (1000 * 60 * 60)
+    updateData.overtimeHours = computeOvertimeHours(
+      finalCheckIn,
+      finalCheckOut,
+      await getBusinessHoursConfig(),
+    )
   } else if ("checkInTime" in updateData || "checkOutTime" in updateData) {
     // One of them was cleared — work hours can no longer be computed
     updateData.workHours = null
+    updateData.overtimeHours = 0
   }
 
   const record = await prisma.absensiRecord.update({
