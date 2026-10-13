@@ -6,181 +6,157 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableEmpty,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import { DataTableEmptyState } from "@/components/ui/data-table/data-table-empty-state"
-import { BarChart3, MapPin, LogIn, LogOut } from "lucide-react"
-import { ReportRecord, ReportSummary } from "../types"
-import { STATUS_LABELS, TABLE_HEADERS } from "@/lib/constants"
+import { DataTablePagination } from "@/components/ui/data-table/data-table-pagination"
+import { BarChart3, LogIn, LogOut } from "lucide-react"
+import { paginate } from "@/lib/report-view"
+import { ReportRecord } from "../types"
+import { TABLE_HEADERS } from "@/lib/constants"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { AttendanceStatus } from "@prisma/client"
+import { STATUS_STYLE } from "./status-style"
 
 interface ReportsTableProps {
   records: ReportRecord[]
-  summary: ReportSummary | null
-  formatAddress?: (address?: string | null) => string | null
+  page: number
+  onPageChange: (page: number) => void
 }
 
-// Helper function to format address display
+export const PAGE_SIZE = 20
+
+// Reverse-geocoding fallbacks are stored as "Koordinat: lat, lng" — show just the numbers.
 const formatAddress = (address?: string | null) => {
   if (!address) return null
 
-  if (address.startsWith("Koordinat:")) {
-    const coordsMatch = address.match(
-      /Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/
-    )
-    if (coordsMatch) {
-      return `${coordsMatch[1]}, ${coordsMatch[2]}`
-    }
-  }
-
-  return address
+  const coordsMatch = address.match(/^Koordinat:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/)
+  return coordsMatch ? `${coordsMatch[1]}, ${coordsMatch[2]}` : address
 }
 
-const STATUS_BADGE: Record<
-  AttendanceStatus,
-  { label: string; className: string }
-> = {
-  present: {
-    label: STATUS_LABELS.present,
-    className: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
-  },
-  late: {
-    label: STATUS_LABELS.late,
-    className: "border-amber-500/30 bg-amber-500/15 text-amber-300",
-  },
-  absent: {
-    label: STATUS_LABELS.absent,
-    className: "border-rose-500/30 bg-rose-500/15 text-rose-300",
-  },
-  half_day: {
-    label: STATUS_LABELS.half_day,
-    className: "border-sky-500/30 bg-sky-500/15 text-sky-300",
-  },
-}
+const formatDate = (date: Date) => format(new Date(date), "dd MMM yyyy", { locale: idLocale })
+const formatTime = (date: Date | null) => (date ? format(new Date(date), "HH:mm") : "–")
+const formatHours = (hours: number | null) => (hours ? `${hours}j` : "–")
 
-export const ReportsTable = ({ records, summary }: ReportsTableProps) => {
+const StatusBadge = ({ record }: { record: ReportRecord }) => {
+  const status = STATUS_STYLE[record.status]
   return (
-    <div className="animate-fade-up anim-delay-400">
-      <Card variant="glass" className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-white">Data Absensi Detail</CardTitle>
-          <CardDescription className="text-white/65">
-            {records.length} record ditemukan
-            {summary?.dateRange.startDate && summary?.dateRange.endDate && (
-              <>
-                {" "}
-                dari{" "}
-                {format(summary.dateRange.startDate, "dd MMM yyyy", {
-                  locale: idLocale,
-                })}{" "}
-                hingga{" "}
-                {format(summary.dateRange.endDate, "dd MMM yyyy", {
-                  locale: idLocale,
-                })}
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {records.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{TABLE_HEADERS.DATE}</TableHead>
-                  <TableHead>{TABLE_HEADERS.USER}</TableHead>
-                  <TableHead>{TABLE_HEADERS.CHECK_IN}</TableHead>
-                  <TableHead>{TABLE_HEADERS.CHECK_OUT}</TableHead>
-                  <TableHead>{TABLE_HEADERS.WORK_HOURS}</TableHead>
-                  <TableHead>{TABLE_HEADERS.STATUS}</TableHead>
-                  <TableHead>{TABLE_HEADERS.LOCATION}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {records.map((record) => {
-                  const status = STATUS_BADGE[record.status]
-                  return (
+    <Badge variant="outline" className={`whitespace-nowrap text-xs ${status.badge}`}>
+      {status.label}
+      {record.status === "late" && record.lateMinutes ? ` · ${record.lateMinutes}m` : ""}
+    </Badge>
+  )
+}
+
+const AddressLine = ({ kind, address }: { kind: "in" | "out"; address: string | null }) => {
+  const text = formatAddress(address)
+  if (!text) return null
+  const Icon = kind === "in" ? LogIn : LogOut
+  return (
+    <div className="flex min-w-0 items-center gap-1.5 text-white/65" title={text}>
+      <Icon className={`h-3 w-3 flex-shrink-0 ${kind === "in" ? "text-emerald-400" : "text-sky-400"}`} />
+      <span className="truncate">{text}</span>
+    </div>
+  )
+}
+
+/** Phone layout: one compact card per record instead of a 7-column table. */
+const RecordCard = ({ record }: { record: ReportRecord }) => (
+  <li className="space-y-2 px-4 py-3">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate font-medium text-white">{record.user.name}</p>
+        <p className="text-xs text-white/50">{formatDate(record.date)}</p>
+      </div>
+      <StatusBadge record={record} />
+    </div>
+    <div className="flex gap-4 text-sm tabular-nums text-white/80">
+      <span className="flex items-center gap-1"><LogIn className="h-3.5 w-3.5 text-emerald-400" />{formatTime(record.checkInTime)}</span>
+      <span className="flex items-center gap-1"><LogOut className="h-3.5 w-3.5 text-sky-400" />{formatTime(record.checkOutTime)}</span>
+      <span className="text-white/60">{formatHours(record.workHours)}</span>
+    </div>
+  </li>
+)
+
+export const ReportsTable = ({ records, page, onPageChange }: ReportsTableProps) => {
+  const { items: pageRecords, page: currentPage, totalPages } = paginate(records, page, PAGE_SIZE)
+
+  return (
+    <Card variant="glass" className="overflow-hidden">
+      <CardHeader>
+        <CardTitle className="text-white">Data Absensi Detail</CardTitle>
+        <CardDescription className="text-white/65">{records.length} record ditemukan</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {records.length === 0 ? (
+          <div className="p-6">
+            <DataTableEmptyState
+              icon={<BarChart3 className="h-7 w-7" />}
+              title="Tidak ada data absensi"
+              description="Coba ubah filter atau periode waktu untuk melihat data."
+            />
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y divide-white/10 border-t border-white/10 md:hidden">
+              {pageRecords.map((record) => <RecordCard key={record.id} record={record} />)}
+            </ul>
+
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{TABLE_HEADERS.DATE}</TableHead>
+                    <TableHead>{TABLE_HEADERS.USER}</TableHead>
+                    <TableHead>{TABLE_HEADERS.CHECK_IN}</TableHead>
+                    <TableHead>{TABLE_HEADERS.CHECK_OUT}</TableHead>
+                    <TableHead>{TABLE_HEADERS.WORK_HOURS}</TableHead>
+                    <TableHead>{TABLE_HEADERS.STATUS}</TableHead>
+                    <TableHead>{TABLE_HEADERS.LOCATION}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageRecords.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell className="text-white/85">
-                        {format(new Date(record.date), "dd MMM yyyy", {
-                          locale: idLocale,
-                        })}
-                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-white/85">{formatDate(record.date)}</TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium text-white">
-                            {record.user.name}
-                          </p>
-                          <p className="text-xs text-white/50">
-                            {record.user.department} • {record.user.position}
-                          </p>
-                        </div>
+                        <p className="font-medium text-white">{record.user.name}</p>
+                        <p className="text-xs text-white/50">
+                          {[record.user.department, record.user.position].filter(Boolean).join(" • ")}
+                        </p>
                       </TableCell>
-                      <TableCell className="text-white/85 tabular-nums">
-                        {record.checkInTime
-                          ? format(new Date(record.checkInTime), "HH:mm")
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-white/85 tabular-nums">
-                        {record.checkOutTime
-                          ? format(new Date(record.checkOutTime), "HH:mm")
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-white/85 tabular-nums">
-                        {record.workHours ? `${record.workHours}j` : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${status.className}`}
-                        >
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
+                      <TableCell className="tabular-nums text-white/85">{formatTime(record.checkInTime)}</TableCell>
+                      <TableCell className="tabular-nums text-white/85">{formatTime(record.checkOutTime)}</TableCell>
+                      <TableCell className="tabular-nums text-white/85">{formatHours(record.workHours)}</TableCell>
+                      <TableCell><StatusBadge record={record} /></TableCell>
+                      <TableCell className="max-w-[16rem]">
                         <div className="space-y-1 text-xs">
-                          {record.checkInAddress && (
-                            <div className="flex items-center gap-1.5 text-white/65">
-                              <LogIn className="h-3 w-3 flex-shrink-0 text-emerald-400" />
-                              <span className="truncate">
-                                {formatAddress(record.checkInAddress)}
-                              </span>
-                            </div>
+                          <AddressLine kind="in" address={record.checkInAddress} />
+                          <AddressLine kind="out" address={record.checkOutAddress} />
+                          {!record.checkInAddress && !record.checkOutAddress && (
+                            <span className="text-white/30">—</span>
                           )}
-                          {record.checkOutAddress && (
-                            <div className="flex items-center gap-1.5 text-white/65">
-                              <LogOut className="h-3 w-3 flex-shrink-0 text-sky-400" />
-                              <span className="truncate">
-                                {formatAddress(record.checkOutAddress)}
-                              </span>
-                            </div>
-                          )}
-                          {!record.checkInAddress &&
-                            !record.checkOutAddress && (
-                              <span className="text-white/30">—</span>
-                            )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="p-6">
-              <DataTableEmptyState
-                icon={<BarChart3 className="h-7 w-7" />}
-                title="Tidak ada data absensi"
-                description="Coba ubah filter atau periode waktu untuk melihat data."
-              />
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+
+            <DataTablePagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={records.length}
+              limit={PAGE_SIZE}
+              onPageChange={onPageChange}
+              entityLabel="record"
+            />
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }
