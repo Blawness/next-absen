@@ -1,129 +1,155 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Building } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Building, ChevronDown, ChevronUp } from "lucide-react"
+import { formatRate } from "@/lib/report-view"
 import { ReportSummary, UserAttendanceStat } from "../types"
-import { STATUS_LABELS } from "@/lib/constants"
-import { AttendanceStatus } from "@prisma/client"
+import { getRateColor } from "./rate-color"
+import { STATUS_ORDER, STATUS_STYLE } from "./status-style"
+
 interface BreakdownCardsProps {
   summary: ReportSummary
+  /** Off for regular users — a "per employee" list of one is just noise. */
+  showPerEmployee: boolean
 }
 
-/** Which count maps to which status badge, in the order they read best. */
+/** Employees shown before "Lihat semua" — the list is sorted worst-first, so these are the ones to look at. */
+const COLLAPSED_EMPLOYEE_COUNT = 5
+
 type StatCountKey = Extract<keyof UserAttendanceStat, "present" | "late" | "halfDay" | "absent">
 
-const STAT_PARTS: Array<{ key: StatCountKey; status: AttendanceStatus }> = [
-  { key: "present", status: "present" },
-  { key: "late", status: "late" },
-  { key: "halfDay", status: "half_day" },
-  { key: "absent", status: "absent" },
-]
+const STAT_KEY_BY_STATUS = {
+  present: "present",
+  late: "late",
+  half_day: "halfDay",
+  absent: "absent",
+} as const satisfies Record<(typeof STATUS_ORDER)[number], StatCountKey>
 
-/** Whole numbers stay whole — "100%" reads better than "100.0%". */
-const formatRate = (rate: number) =>
-  Number.isInteger(rate) ? String(rate) : rate.toFixed(1)
+const percentOf = (count: number, total: number) =>
+  total === 0 ? 0 : Math.round((count / total) * 1000) / 10
 
-const getRateColor = (rate: number) => {
-  if (rate >= 90) return "text-emerald-300"
-  if (rate >= 75) return "text-yellow-300"
-  return "text-red-300"
-}
-
-export const BreakdownCards = ({ summary }: BreakdownCardsProps) => {
-  const statusBreakdown = Object.entries(summary.statusBreakdown).map(([status, count]) => ({
-    status: status as AttendanceStatus,
-    count,
-    percentage: ((count / summary.totalRecords) * 100).toFixed(1)
-  }))
-
-  const getStatusColor = (status: AttendanceStatus) => {
-    switch (status) {
-      case 'present': return 'bg-emerald-400'
-      case 'late': return 'bg-yellow-400'
-      case 'absent': return 'bg-red-400'
-      case 'half_day': return 'bg-purple-400'
-      default: return 'bg-gray-400'
-    }
-  }
+const StatusDistribution = ({ summary }: { summary: ReportSummary }) => {
+  const total = summary.totalRecords
+  const parts = STATUS_ORDER.map((status) => {
+    const count = summary.statusBreakdown[status] ?? 0
+    return { status, count, percent: percentOf(count, total) }
+  })
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 animate-fade-up anim-delay-300">
-      {/* Status Breakdown */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="text-white">Status Breakdown</CardTitle>
-          <CardDescription className="text-white/70">
-            Distribusi status absensi
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {statusBreakdown.map(({ status, count, percentage }) => (
-              <div key={status} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${getStatusColor(status)}`}></div>
-                  <Badge
-                    variant={status === 'present' ? 'default' : 'secondary'}
-                    className={status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : ''}
-                  >
-                    {STATUS_LABELS[status]}
-                  </Badge>
-                  <span className="text-sm text-white/60">
-                    {count} record
-                  </span>
-                </div>
-                <span className="font-semibold text-white">
-                  {percentage}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Per-employee attendance */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="text-white">Statistik Kehadiran per Karyawan</CardTitle>
-          <CardDescription className="text-white/70">
-            Diurutkan dari kehadiran terendah
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {summary.userBreakdown.map((stat) => (
-              <div key={stat.userId} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                <div className="flex justify-between items-baseline gap-3">
-                  <span className="text-sm font-medium text-white truncate">{stat.name}</span>
-                  <span className={`font-semibold tabular-nums ${getRateColor(stat.attendanceRate)}`}>
-                    {formatRate(stat.attendanceRate)}%
-                  </span>
-                </div>
-                {stat.department && (
-                  <p className="flex items-center gap-1.5 text-xs text-white/50 mt-0.5">
-                    <Building className="h-3 w-3 flex-shrink-0" />
-                    {stat.department}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-                  {STAT_PARTS.map(({ key, status }) => {
-                    const count = stat[key]
-                    // Skip zeroes — a row of "0 absen" is noise, not information.
-                    if (count === 0) return null
-                    return (
-                      <span key={key} className="flex items-center gap-1.5 text-xs text-white/60">
-                        <span className={`w-2 h-2 rounded-full ${getStatusColor(status)}`} />
-                        {count} {STATUS_LABELS[status].toLowerCase()}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Card variant="glass">
+      <CardHeader>
+        <CardTitle className="text-white">Distribusi Status</CardTitle>
+        <CardDescription className="text-white/70">Dari {total} record dalam periode</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div
+          className="flex h-3 w-full overflow-hidden rounded-full bg-white/10"
+          role="img"
+          aria-label={parts.map(({ status, percent }) => `${STATUS_STYLE[status].label} ${formatRate(percent)}%`).join(", ")}
+        >
+          {parts.map(({ status, percent }) =>
+            percent > 0 ? (
+              <div key={status} className={STATUS_STYLE[status].dot} style={{ width: `${percent}%` }} />
+            ) : null
+          )}
+        </div>
+        <ul className="grid grid-cols-2 gap-2">
+          {parts.map(({ status, count, percent }) => (
+            <li
+              key={status}
+              className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-sm text-white/80">
+                <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${STATUS_STYLE[status].dot}`} />
+                <span className="truncate">{STATUS_STYLE[status].label}</span>
+              </span>
+              <span className="text-right tabular-nums">
+                <span className="font-semibold text-white">{count}</span>
+                <span className="ml-1.5 text-xs text-white/50">{formatRate(percent)}%</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }
+
+const EmployeeRow = ({ stat }: { stat: UserAttendanceStat }) => (
+  <li className="rounded-lg border border-white/10 bg-white/5 p-3">
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="truncate text-sm font-medium text-white">{stat.name}</span>
+      <span className={`font-semibold tabular-nums ${getRateColor(stat.attendanceRate)}`}>
+        {formatRate(Math.round(stat.attendanceRate * 10) / 10)}%
+      </span>
+    </div>
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60">
+      {stat.department && (
+        <span className="flex items-center gap-1 text-white/45">
+          <Building className="h-3 w-3 flex-shrink-0" />
+          {stat.department}
+        </span>
+      )}
+      {STATUS_ORDER.map((status) => {
+        const count = stat[STAT_KEY_BY_STATUS[status]]
+        // Skip zeroes — a row of "0 tidak hadir" is noise, not information.
+        if (count === 0) return null
+        return (
+          <span key={status} className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[status].dot}`} />
+            {count} {STATUS_STYLE[status].label.toLowerCase()}
+          </span>
+        )
+      })}
+    </div>
+  </li>
+)
+
+const PerEmployee = ({ stats }: { stats: UserAttendanceStat[] }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const hasMore = stats.length > COLLAPSED_EMPLOYEE_COUNT
+  const visible = isExpanded ? stats : stats.slice(0, COLLAPSED_EMPLOYEE_COUNT)
+
+  return (
+    <Card variant="glass">
+      <CardHeader>
+        <CardTitle className="text-white">Kehadiran per Karyawan</CardTitle>
+        <CardDescription className="text-white/70">Diurutkan dari kehadiran terendah</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {stats.length === 0 ? (
+          <p className="text-sm text-white/50">Belum ada data karyawan di periode ini.</p>
+        ) : (
+          <>
+            <ul className={`space-y-2 ${isExpanded ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
+              {visible.map((stat) => <EmployeeRow key={stat.userId} stat={stat} />)}
+            </ul>
+            {hasMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded((value) => !value)}
+                className="mt-3 w-full text-white/70 hover:scale-100 hover:bg-white/10 hover:text-white active:scale-100"
+              >
+                {isExpanded ? (
+                  <><ChevronUp className="mr-2 h-4 w-4" />Tampilkan lebih sedikit</>
+                ) : (
+                  <><ChevronDown className="mr-2 h-4 w-4" />Lihat semua ({stats.length})</>
+                )}
+              </Button>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export const BreakdownCards = ({ summary, showPerEmployee }: BreakdownCardsProps) => (
+  <div className={`grid items-start gap-4 ${showPerEmployee ? "md:grid-cols-2" : ""}`}>
+    <StatusDistribution summary={summary} />
+    {showPerEmployee && <PerEmployee stats={summary.userBreakdown} />}
+  </div>
+)
